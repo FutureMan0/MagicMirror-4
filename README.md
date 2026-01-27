@@ -1,77 +1,74 @@
-# 🪞 MagicMirror³ (Next Gen)
+# 🪞 MagicMirror⁴ (MM⁴)
+### *The Next Generation of Smart Mirroring*
 
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%20%7C%20Windows%20%7C%20Linux-blue)](#)
-
-**MagicMirror³** ist ein modulares, hochmodernes Smart-Mirror-System, das von Grund auf für **Multi-Display-Setups** und eine **intuitive Benutzererfahrung** entwickelt wurde. Schluss mit komplexen Konfigurationsdateien – willkommen in der Zukunft des Smart Mirrors.
-
----
-
-## ✨ Warum MagicMirror³? (USPs)
-
-Im Gegensatz zu klassischen Open-Source-Systemen setzt MagicMirror³ neue Maßstäbe in Flexibilität und Design:
-
-1. **🚀 Native Dual-Screen Power**: Das erste System, das nativ zwei HDMI-Ausgänge (HDMI-0 & HDMI-1) ansteuert. Ideal für große Spiegel, die zwei Monitore nutzen, um verschiedene Informationen gleichzeitig darzustellen.
-2. **📱 Modern Web-GUI & Live-Preview**: Keine manuelle Bearbeitung von `.js`-Dateien mehr. Konfiguriere deinen Spiegel bequem vom Handy oder Laptop aus. Verschiebe Module via **Drag & Drop** und sieh die Änderungen sofort in der Live-Vorschau.
-3. **🛠️ One-Line Installer**: Ein intelligenter CLI-Installer übernimmt alles – von Node.js-Setup über Kiosk-Modus und Cursor-Hiding bis hin zur System-Optimierung für Raspberry Pi OS (inkl. Wayland/Bookworm Support).
-4. **🔄 Smart Auto-Update**: Bleibe immer aktuell. Das System prüft selbstständig auf GitHub-Updates und installiert diese mit einem Klick direkt über das Web-Interface – inklusive automatischem Prozess-Neustart.
-5. **💎 Premium Aesthetics**: Ein Designsystem basierend auf Glassmorphism, flüssigen Animationen und einem intelligenten Dark-Mode, das nicht wie ein Bastelprojekt, sondern wie ein High-End-Produkt aussieht.
+[![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20%7C%20Windows-blue)](#)
+[![Status](https://img.shields.io/badge/Status-Stable-green)](#)
 
 ---
 
-## 🛠️ Installation (Raspberry Pi)
+## 💎 Die Vision
+**MagicMirror⁴** bricht mit dem alten Konzept schwerfälliger Konfigurationsdateien. Es ist das erste Smart-Mirror-System, das konsequent auf **Benutzerfreundlichkeit**, **Hardware-Power** und **Premium-Design** setzt. Entwickelt für Enthusiasten, die mehr von ihrem Spiegel erwarten als nur Text auf schwarzem Hintergrund.
 
-Wir haben den Installationsprozess so sauber wie möglich gestaltet. Kopiere einfach diesen Befehl in dein Terminal:
+---
+
+## 🔥 Key Features
+
+| Feature | Beschreibung | Der MM⁴ Vorteil |
+| :--- | :--- | :--- |
+| **Dual-Screen Engine** | Native Unterstützung für HDMI-0 & HDMI-1. | Steuere zwei Monitore unabhängig mit nur einem Pi. |
+| **Web-Config 2.0** | Vollständig interaktives Web-Interface. | Ändere Layouts via **Drag & Drop** live am Handy. |
+| **One-Click Update** | In-App Systemaktualisierung via GitHub. | Updates installieren sich per Knopfdruck selbstständig. |
+| **Next-Gen Design** | Glassmorphism & Canvas-Effekte. | Sieht aus wie ein High-End Produkt, nicht wie ein Skript. |
+| **Auto-Kiosk** | Vollautomatische Systemoptimierung. | Kein Programmieren nötig – der Installer macht alles. |
+
+---
+
+## ⚡ Schnellstart (Raspberry Pi)
+
+MM⁴ ist in weniger als 5 Minuten einsatzbereit. Kopiere diesen "Magic-Command" in dein Terminal:
 
 ```bash
-# Repository klonen
-git clone https://github.com/DEIN_USER/MagicMirror3.git
-cd MagicMirror3
-
-# Installer starten
-chmod +x rpi-install.sh
-sudo ./rpi-install.sh
+# Repository klonen & Installer starten
+git clone https://github.com/DEIN_USER/MagicMirror4.git && cd MagicMirror4 && chmod +x rpi-install.sh && sudo ./rpi-install.sh
 ```
 
-**Der Installer erledigt:**
-*   System-Updates & Grafik-Abhängigkeiten
-*   Node.js (LTS) & PM2 (Prozess-Manager)
-*   HDMI-Port Erkennung & Konfiguration
-*   Automatischer Start nach Boot
-*   Kiosk-Modus Tweaks (Cursor weg, Stromsparen aus)
+### Was der Installer für dich tut:
+1.  **Full Update:** Aktualisiert dein System & installiert Node.js LTS.
+2.  **Hardware-Check:** Erkennt deine Monitore & konfiguriert die HDMI-Ports.
+3.  **Kiosk-Finish:** Versteckt den Mauszeiger, deaktiviert den Standby & optimiert die GPU.
+4.  **Autostart:** Richtet MM⁴ als Systemdienst ein (immer bereit nach Reboot).
 
 ---
 
-## 🏪 Module & App Store
+## 🏪 Das Modul-Ökosystem
 
-MagicMirror³ kommt mit einer wachsenden Liste an Premium-Modulen:
+MM⁴ wächst mit deinen Bedürfnissen. Jedes Modul lässt sich über das Web-UI in Sekunden anpassen:
 
-*   **🕐 Clock**: Elegante Zeitanzeige mit verschiedenen Layouts.
-*   **🌤️ Weather**: Animierte Wetter-Effekte (Regen, Schnee, Sonne) direkt auf dem Spiegel-Glas.
-*   **📅 WebUntis**: Vollständige Integration deines Stundenplans (ideal für Schulen/Unis).
-*   **🎵 Spotify**: Real-time Player mit Cover-Art und Spotify-Code Support.
-*   **👤 Presence**: UART-Sensor Support für automatisches Dimmen bei Abwesenheit.
-
----
-
-## 💻 Entwicklung & Windows Support
-
-MagicMirror³ läuft hervorragend auf Windows zum Testen und Entwickeln:
-
-```bash
-npm install
-npm run dev   # Startet mit DevTools
-```
+*   🕒 **Clock**: Modern, minimalistisch oder klassisch.
+*   🌤️ **Weather**: Atemberaubende Hintergrund-Animationen passend zum Wetter.
+*   📅 **WebUntis**: Deine Schulorganisation, perfekt visualisiert.
+*   🎵 **Spotify**: Streaming-Status mit Cover-Art & Echtzeit-Sync.
+*   👤 **Presence**: Reagiert auf dich durch Ultraschall- oder PIR-Sensoren.
 
 ---
 
-## 📄 Lizenz
+## �️ Entwicklung & Testen
 
-Dieses Projekt ist unter der **MIT-Lizenz** lizenziert - siehe die [LICENSE](LICENSE) Datei für Details.
+Du hast keinen Pi zur Hand? Kein Problem. MM⁴ läuft nativ auf Windows:
+
+1.  `npm install`
+2.  `npm run dev` (Öffnet Electron mit Debug-Tools)
+3.  Web-Interface unter `http://localhost:3000` öffnen.
 
 ---
 
+## 📄 Lizenz & Team
+
+Hinter MagicMirror⁴ steht eine Vision von sauberem Code und perfektem Design. 
+Lizenziert unter der **MIT-Lizenz** – bereit für deine Ideen.
+
+---
 <p align="center">
-  Entwickelt mit ❤️ für die Smart Home Community.
+  <b>Bringe deinen Spiegel zum Leben. Mit MagicMirror⁴.</b>
 </p>
