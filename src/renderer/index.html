@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:3000 https://api.openweathermap.org https://*.webuntis.com https://accounts.spotify.com https://api.spotify.com; img-src 'self' data: https:;">
+  <title>Magic Mirror</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #000000;
+      --text-primary: #FFFFFF;
+      --text-secondary: #888888;
+      --accent-cyan: #00D4FF;
+      --accent-red: #FF4444;
+      --accent-green: #44FF88;
+      --font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #modules-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .modules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .modules-absolute {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .module-container {
+      padding: 20px;
+      animation: fadeIn 0.5s ease-out;
+      min-width: 0;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Clock Module */
+    .module-clock {
+      text-align: right;
+    }
+
+    .clock-time {
+      font-size: 4rem;
+      font-weight: 300;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+    }
+
+    .clock-date {
+      font-size: 1.3rem;
+      color: var(--text-secondary);
+    }
+
+    /* Weather Module */
+    .module-weather {
+      text-align: center;
+    }
+
+    .weather-icon-large {
+      font-size: 4rem;
+      margin-bottom: 10px;
+      display: inline-block;
+    }
+
+    .weather-icon-large[data-weather="sun"] {
+      animation: sunRotate 20s linear infinite;
+    }
+
+    .weather-icon-large[data-weather="rain"] {
+      animation: rainShake 0.5s ease-in-out infinite;
+    }
+
+    .weather-icon-large[data-weather="snow"] {
+      animation: snowFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes sunRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rainShake {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    @keyframes snowFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-5px) rotate(5deg); }
+    }
+
+    .weather-temp {
+      font-size: 3rem;
+      font-weight: 300;
+      color: var(--accent-cyan);
+    }
+
+    .weather-feels-like {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .weather-location {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .weather-forecast {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      justify-items: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .forecast-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .forecast-day {
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+    }
+
+    .forecast-icon {
+      font-size: 1.2rem;
+    }
+
+    .forecast-temp {
+      color: var(--accent-cyan);
+      font-size: 0.9rem;
+    }
+
+    /* Untis Module */
+    .module-untis {
+      text-align: left;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .untis-week-header {
+      margin-bottom: 12px;
+    }
+
+    .untis-title {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+
+    .untis-subtitle {
+      color: var(--accent-cyan);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .untis-week-grid {
+      display: grid;
+      grid-template-columns: 70px repeat(5, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 6px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .untis-time-header {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .untis-days-header {
+      grid-column: 2 / span 5;
+      grid-row: 1;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .untis-day-header {
+      text-align: center;
+      padding-bottom: 6px;
+    }
+
+    .untis-day-header.past {
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .untis-time-column {
+      grid-column: 1;
+      grid-row: 2;
+      position: relative;
+      height: var(--untis-grid-height);
+      overflow: hidden;
+      color: var(--text-secondary);
+    }
+
+    .untis-time-label {
+      position: absolute;
+      left: 0;
+      transform: translateY(-50%);
+      font-size: 0.75rem;
+    }
+
+    .untis-days-body {
+      grid-column: 2 / span 5;
+      grid-row: 2;
+      position: relative;
+      height: var(--untis-grid-height);
+      display: grid;
+      overflow: hidden;
+    }
+
+    .untis-time-column-content {
+      position: relative;
+      height: var(--untis-grid-height);
+    }
+
+    .untis-days-body-content {
+      position: relative;
+      height: var(--untis-grid-height);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      overflow: hidden;
+    }
+
+    .untis-day-column {
+      position: relative;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .untis-message {
+      color: var(--text-secondary);
+      padding: 12px 0;
+    }
+
+    .untis-lesson {
+      position: absolute;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--accent-cyan);
+      background: rgba(0, 212, 255, 0.15);
+      color: var(--text-primary);
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      z-index: 1;
+    }
+
+    .untis-lesson--past {
+      opacity: 0.5;
+      filter: grayscale(0.7);
+    }
+
+    .untis-lesson-subject {
+      font-weight: 600;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .untis-lesson-meta {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .untis-now-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--accent-red);
+      z-index: 2;
+    }
+
+    .untis-now-label {
+      position: absolute;
+      left: 0;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      color: var(--accent-red);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2px 6px;
+      border-radius: 10px;
+      z-index: 3;
+    }
+
+    .module-spotify {
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .untis-error, .spotify-error, .weather-error {
+      color: var(--accent-red);
+      padding: 20px;
+    }
+
+    .module-placeholder {
+      color: var(--text-secondary);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .module-error {
+      background: rgba(255, 68, 68, 0.1);
+      border: 1px solid var(--accent-red);
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .module-error-title {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--accent-red);
+      margin-bottom: 8px;
+    }
+
+    .module-error-message {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div id="modules-container"></div>
+  <script src="moduleLoader.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+.module-weather {
+  color: var(--text-primary);
+  min-width: 260px;
+}
+
+.weather-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weather-current {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 5px;
+}
+
+.weather-icon-large {
+  font-size: 4.5rem;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.weather-temp-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.weather-temp {
+  font-size: 4rem;
+  font-weight: 200;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.weather-description {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  font-weight: 300;
+}
+
+.weather-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+  margin: 10px 0;
+}
+
+.weather-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: center;
+}
+
+.detail-icon {
+  font-size: 1.2rem;
+  opacity: 0.6;
+  margin-bottom: 2px;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.detail-label {
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
+.detail-sublabel {
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  margin-top: 0;
+  opacity: 0.7;
+}
+
+.weather-sun-times {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 8px 0;
+}
+
+.sun-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sun-icon {
+  font-size: 1rem;
+  opacity: 0.6;
+}
+
+.sun-time-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sun-time-label {
+  font-size: 0.55rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  opacity: 0.6;
+}
+
+.sun-time-value {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 400;
+  font-feature-settings: 'tnum';
+}
+
+/* Subtile Icon-Animationen */
+.weather-icon-large[data-weather="sun"],
+.weather-icon-large[data-weather="rain"],
+.weather-icon-large[data-weather="snow"],
+.weather-icon-large[data-weather="thunderstorm"],
+.weather-icon-large[data-weather="clouds"] {
+  /* Keine Animationen für minimalistischen Look */
+}
+
+.forecast-icon {
+  font-size: 1.3rem;
+  display: inline-block;
+}
+
+.weather-separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 12px 0;
+}
+
+.weather-location {
+  text-align: left;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+.weather-forecast-title {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+.weather-forecast {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forecast-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.forecast-day:last-child {
+  border-bottom: none;
+}
+
+.forecast-day-name {
+  min-width: 50px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: 0.1px;
+}
+
+.forecast-icon {
+  font-size: 1.3rem;
+  margin: 0 10px;
+}
+
+.forecast-temps {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 60px;
+  justify-content: flex-end;
+}
+
+.forecast-temp-high {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.forecast-temp-separator {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  font-size: 0.8rem;
+}
+
+.forecast-temp-low {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.forecast-rain {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 45px;
+  text-align: right;
+  opacity: 0.7;
+}
+
+.forecast-rain-placeholder {
+  min-width: 45px;
+}

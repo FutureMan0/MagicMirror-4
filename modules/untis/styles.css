@@ -1,0 +1,259 @@
+.module-untis {
+  color: var(--text-primary);
+  min-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  /* Scrollbar verstecken */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.module-untis::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
+.untis-error,
+.untis-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+}
+
+.untis-week-view {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.untis-header {
+  display: grid;
+  grid-template-columns: 70px repeat(5, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.untis-header-time {
+  /* Leere Zelle für Ausrichtung */
+}
+
+.untis-day-header {
+  text-align: center;
+  padding: 5px;
+  font-size: 0.9rem;
+}
+
+.untis-today {
+  color: var(--accent-red);
+  font-weight: 700;
+}
+
+.untis-past-day {
+  opacity: 0.4;
+}
+
+.untis-grid {
+  display: grid;
+  grid-template-columns: 70px repeat(5, 1fr);
+  gap: 4px;
+  width: 100%;
+  position: relative;
+}
+
+.untis-time-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 2px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-height: 55px;
+  position: relative;
+}
+
+.untis-current-slot {
+  color: var(--accent-red, #ff4444);
+  font-weight: 700;
+}
+
+/* Zeitlinie über das gesamte Grid */
+.untis-time-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent-red, #ff4444);
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+}
+
+.untis-time {
+  font-weight: 500;
+}
+
+.untis-period {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* Container für mehrere Stunden zur gleichen Zeit */
+.untis-cell {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+  align-items: stretch;
+}
+
+/* Einzelne Stunde - fixe maximale Breite für einheitliches Aussehen */
+.untis-lesson {
+  padding: 6px 8px;
+  border-radius: 6px;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* Sanfter Schatten für Tiefe */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Text in Stunden */
+.untis-subject {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.3px;
+}
+
+.untis-room {
+  font-size: 0.7rem;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.untis-teacher {
+  font-size: 0.65rem;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.untis-empty-slot {
+  min-height: 55px;
+}
+
+/* Vergangene Stunden ausgrauen */
+.untis-past {
+  opacity: 0.35;
+}
+
+.untis-past .untis-lesson {
+  filter: grayscale(70%);
+}
+
+/* Aktuelle Zeit-Linie */
+.untis-current-time {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-red, #ff4444);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.untis-time-label {
+  position: absolute;
+  left: 0;
+  top: -10px;
+  font-size: 0.75rem;
+  color: var(--accent-red, #ff4444);
+  font-weight: 700;
+  background: var(--bg-primary, #111);
+  padding: 0 4px;
+}
+
+/* Tages-Ansicht */
+.untis-day-view {
+  width: 100%;
+}
+
+.untis-day-title {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+.untis-lesson-card {
+  padding: 12px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.untis-lesson-time {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.untis-lesson-subject {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.untis-lesson-details {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Nächste-Stunde Ansicht */
+.untis-next-view {
+  text-align: center;
+  padding: 20px;
+}
+
+.untis-next-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.untis-next-time {
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.untis-next-subject {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.untis-next-details {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+.untis-next-room {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,47 @@
+{
+  "name": "magic-mirror-untis",
+  "version": "1.0.0",
+  "description": "Modulares Magic Mirror System mit WebUntis Integration",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "display1": "electron . --instance=display1 --screen=0",
+    "display2": "electron . --instance=display2 --screen=1 --no-server",
+    "display1:dev": "electron . --instance=display1 --screen=0 --dev",
+    "display2:dev": "electron . --instance=display2 --screen=1 --no-server --dev",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "magic-mirror",
+    "electron",
+    "webuntis",
+    "smart-mirror"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "dayjs": "^1.11.10",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.magicmirror.untis",
+    "productName": "Magic Mirror Untis",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "modules/**/*",
+      "config/**/*",
+      "package.json"
+    ]
+  }
+}

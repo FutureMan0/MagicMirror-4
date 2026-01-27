@@ -1,0 +1,36 @@
+.module-clock {
+  text-align: center;
+  color: var(--text-primary);
+  padding: 5px 15px 2px 15px;
+}
+
+.clock-time {
+  font-size: 4rem;
+  font-weight: 100;
+  letter-spacing: 3px;
+  margin-bottom: 2px;
+  color: #ffffff;
+  font-family: 'Segoe UI Light', 'Helvetica Neue', 'Arial', sans-serif;
+  line-height: 0.95;
+  position: relative;
+  display: inline-block;
+}
+
+/* Dual-Optic Effekt - dezenter Schatten */
+.clock-time::after {
+  content: attr(data-time);
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  color: rgba(100, 180, 255, 0.15);
+  z-index: -1;
+}
+
+.clock-date {
+  font-size: 1rem;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-family: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+}

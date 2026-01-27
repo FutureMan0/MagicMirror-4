@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Magic Mirror Config</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="themes.css">
+</head>
+
+<body data-theme="dark">
+  <div class="config-container">
+    <header class="config-header">
+      <h1 data-i18n="appTitle">Magic Mirror</h1>
+      <div class="header-actions">
+        <div class="instance-selector">
+          <label data-i18n="instance">Instanz:</label>
+          <select id="instance-select">
+            <option value="display1">Display 1</option>
+            <option value="display2">Display 2</option>
+          </select>
+        </div>
+        <button id="settings-btn" aria-label="Einstellungen">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Tab-basierte Inhalte -->
+    <main class="app-content">
+      <!-- Tab 1: Module & Preview (auf Desktop nebeneinander, auf Mobile nur Module) -->
+      <section id="tab-modules" class="tab-content active">
+        <div class="config-layout">
+          <aside class="module-sidebar">
+            <h2 data-i18n="modules">Module</h2>
+            <div id="module-list"></div>
+          </aside>
+
+          <div class="config-main">
+            <!-- Preview (auf Desktop immer sichtbar, auf Mobile im Preview-Tab) -->
+            <div class="preview-section desktop-preview">
+              <h2 data-i18n="livePreview">Live Preview</h2>
+              <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
+                Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
+              <div id="preview-container-desktop" class="preview-container">
+                <div class="preview-grid" id="preview-grid-desktop">
+                  <!-- Preview wird hier gerendert -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Module Settings -->
+            <div class="settings-section" id="settings-section">
+              <h2 data-i18n="moduleSettings">Modul-Einstellungen</h2>
+              <p style="color: var(--text-secondary); margin-bottom: 15px;" data-i18n="selectModuleHint">Wähle ein Modul
+                links, um es zu konfigurieren.</p>
+              <div id="module-settings"></div>
+              <div class="settings-actions" id="settings-actions" style="display: none;">
+                <button class="btn-primary" id="save-settings-btn" data-i18n="save">Speichern</button>
+                <button class="btn-secondary" id="cancel-settings-btn" data-i18n="cancel">Abbrechen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 2: Preview (nur auf Mobile) -->
+      <section id="tab-preview" class="tab-content mobile-only">
+        <div class="preview-section">
+          <h2 data-i18n="livePreview">Live Preview</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
+            Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
+          <div id="preview-container-mobile" class="preview-container">
+            <div class="preview-grid" id="preview-grid-mobile">
+              <!-- Preview wird hier gerendert -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 3: App Store -->
+      <section id="tab-appstore" class="tab-content">
+        <div class="appstore-section">
+          <h2 data-i18n="appStore">Module App Store</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 20px;">Füge Module zur aktuellen Instanz hinzu oder
+            entferne sie.</p>
+
+          <div class="appstore-grid" id="appstore-grid">
+            <!-- Module werden hier dynamisch geladen -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 4: Einstellungen -->
+      <section id="tab-settings" class="tab-content">
+        <div class="settings-section">
+          <h2 data-i18n="settings">Einstellungen</h2>
+
+          <div class="settings-group">
+            <h3 data-i18n="theme">Design</h3>
+            <div class="theme-picker">
+              <button data-theme="dark" class="active" data-i18n="themeDark">Dunkel</button>
+              <button data-theme="light" data-i18n="themeLight">Hell</button>
+              <button data-theme="oled" data-i18n="themeOled">OLED</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3 data-i18n="language">Sprache</h3>
+            <select id="language-select">
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+
+          <div class="settings-group" id="update-group">
+            <h3 data-i18n="update">System-Update</h3>
+            <div id="update-status">
+              <span id="update-message">Prüfe auf Updates...</span>
+              <button id="check-update-btn" class="btn-secondary" style="margin-left: 10px;">Jetzt prüfen</button>
+            </div>
+            <div id="update-action" style="display: none; margin-top: 15px;">
+              <div
+                style="background: rgba(0, 255, 255, 0.1); border: 1px solid var(--accent-cyan); padding: 15px; border-radius: 8px;">
+                <p style="margin-bottom: 15px;">Ein neues Update von GitHub ist verfügbar!</p>
+                <button id="execute-update-btn" class="btn-primary">Update jetzt installieren</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Bottom Navigation (Mobile) -->
+  <nav class="bottom-nav">
+    <button data-tab="modules" class="active">
+      <span class="icon">📦</span>
+      <span data-i18n="modules">Module</span>
+    </button>
+    <button data-tab="preview">
+      <span class="icon">👁️</span>
+      <span data-i18n="preview">Vorschau</span>
+    </button>
+    <button data-tab="appstore">
+      <span class="icon">🏪</span>
+      <span data-i18n="appStore">Store</span>
+    </button>
+    <button data-tab="settings">
+      <span class="icon">⚙️</span>
+      <span data-i18n="settings">Einstellungen</span>
+    </button>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

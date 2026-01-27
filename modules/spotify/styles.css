@@ -1,0 +1,138 @@
+.module-spotify {
+  color: var(--text-primary);
+  min-width: 350px;
+  text-align: center;
+}
+
+.spotify-error,
+.spotify-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+}
+
+.spotify-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.spotify-info {
+  text-align: left;
+  width: 100%;
+  margin-bottom: 20px;
+  padding-left: 10px;
+  border-left: 2px solid var(--text-primary);
+}
+
+.spotify-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+.spotify-artist {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  opacity: 0.9;
+}
+
+.spotify-cover {
+  width: 300px;
+  height: 300px;
+  margin: 20px 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.spotify-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.spotify-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+  padding: 15px;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.spotify-logo {
+  font-size: 1.5rem;
+}
+
+.spotify-waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 40px;
+}
+
+.waveform-bar {
+  width: 4px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  animation: waveform 1s ease-in-out infinite;
+}
+
+.waveform-bar:nth-child(odd) {
+  animation-delay: 0.1s;
+}
+
+.waveform-bar:nth-child(even) {
+  animation-delay: 0.2s;
+}
+
+@keyframes waveform {
+  0%, 100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.spotify-progress {
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.spotify-progress-bar {
+  height: 100%;
+  background: var(--accent-cyan);
+  transition: width 0.3s ease;
+}
+
+.spotify-time {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.spotify-device {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  opacity: 0.8;
+}
+
+.spotify-device-icon {
+  font-size: 1rem;
+}

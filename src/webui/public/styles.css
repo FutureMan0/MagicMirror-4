@@ -1,0 +1,889 @@
+:root {
+  --bg-dark: #1a1a1a;
+  --bg-darker: #0f0f0f;
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --accent-cyan: #00D4FF;
+  --accent-red: #FF4444;
+  --border-color: #333333;
+  --touch-target-min: 44px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-darker);
+  color: var(--text-primary);
+  min-height: 100vh;
+  /* Verhindert Bounce-Effekt auf Mobile */
+  overscroll-behavior: none;
+  /* Verhindert unerwünschtes Ziehen auf Touch-Geräten */
+  touch-action: pan-y;
+}
+
+.config-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 15px;
+  padding-bottom: 80px; /* Platz für Bottom-Nav auf Mobile */
+}
+
+/* Mobile-First: Kompakter Header */
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+  gap: 10px;
+}
+
+.config-header h1 {
+  font-size: 1.5rem;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.instance-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.instance-selector label {
+  display: none; /* Versteckt auf Mobile */
+}
+
+.instance-selector select {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  min-height: var(--touch-target-min);
+}
+
+#settings-btn {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+#settings-btn:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile-First: Einspaltig */
+.config-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.module-sidebar {
+  background: var(--bg-dark);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  height: fit-content;
+}
+
+.module-sidebar h2 {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+#module-list {
+  margin-bottom: 15px;
+}
+
+.module-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  margin-bottom: 10px;
+  background: var(--bg-darker);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  /* Touch-freundlich */
+  min-height: var(--touch-target-min);
+  border: 1px solid transparent;
+}
+
+.module-item:active {
+  background: #252525;
+}
+
+.module-item.active {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid var(--accent-cyan);
+}
+
+/* Touch-optimierte Checkbox */
+.module-item input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.module-item-name {
+  flex: 1;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+/* Drag Handle Icon */
+.drag-handle {
+  cursor: grab;
+  padding: 8px;
+  opacity: 0.5;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.module-edit-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.module-edit-btn:active {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-add-module {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent-cyan);
+  color: var(--bg-darker);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-add-module:hover {
+  opacity: 0.9;
+}
+
+.config-main {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.preview-section,
+.settings-section {
+  background: var(--bg-dark);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.preview-section h2,
+.settings-section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+}
+
+.preview-container {
+  background: #000000;
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 400px;
+  position: relative;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  width: 100%;
+  height: 100%;
+  gap: 10px;
+  min-height: 380px;
+}
+
+.preview-module {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  min-height: 80px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+  word-break: break-word;
+}
+
+.preview-module:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.preview-module.drag-over {
+  background: rgba(0, 212, 255, 0.2);
+  border: 2px dashed var(--accent-cyan);
+}
+
+.preview-module.has-module {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.module-item.dragging {
+  opacity: 0.5;
+}
+
+.module-item {
+  cursor: grab;
+}
+
+.module-item:active {
+  cursor: grabbing;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: var(--bg-darker);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
+
+.form-group-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-group-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 14px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  /* Touch-optimiert */
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary {
+  background: var(--accent-cyan);
+  color: var(--bg-darker);
+}
+
+.btn-secondary {
+  background: var(--bg-darker);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+  opacity: 0.8;
+}
+
+/* Tab Navigation System */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Desktop: Preview immer sichtbar neben Module-Settings */
+.desktop-preview {
+  display: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
+/* Bottom Navigation (Mobile) */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-dark);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  z-index: 1000;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.bottom-nav button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  font-size: 0.75rem;
+  transition: color 0.2s;
+  min-height: var(--touch-target-min);
+}
+
+.bottom-nav button .icon {
+  font-size: 1.5rem;
+}
+
+.bottom-nav button.active {
+  color: var(--accent-cyan);
+}
+
+.bottom-nav button:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Settings Page Styles */
+.settings-group {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-group:last-child {
+  border-bottom: none;
+}
+
+.settings-group h3 {
+  font-size: 1rem;
+  margin-bottom: 15px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+#update-status {
+  display: flex;
+  align-items: center;
+  background: var(--bg-darker);
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 10px;
+}
+
+#update-message {
+  flex: 1;
+  font-weight: 500;
+}
+
+.theme-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.theme-picker button {
+  padding: 16px;
+  background: var(--bg-darker);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  min-height: var(--touch-target-min);
+}
+
+.theme-picker button.active {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.theme-picker button:active {
+  transform: scale(0.98);
+}
+
+#language-select {
+  width: 100%;
+  background: var(--bg-darker);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 1rem;
+  min-height: var(--touch-target-min);
+}
+
+/* Tablet/Desktop: ab 768px */
+@media (min-width: 768px) {
+  body {
+    touch-action: auto;
+  }
+
+  .config-container {
+    padding: 20px;
+    padding-bottom: 20px;
+  }
+
+  .config-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+  }
+
+  .config-header h1 {
+    font-size: 2rem;
+  }
+
+  .instance-selector label {
+    display: inline;
+  }
+
+  .config-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  /* Desktop: Preview immer sichtbar */
+  .desktop-preview {
+    display: block !important;
+    margin-bottom: 30px;
+  }
+
+  /* Mobile Preview-Tab verstecken */
+  .mobile-only {
+    display: none !important;
+  }
+
+  .module-sidebar {
+    padding: 20px;
+  }
+
+  .module-sidebar h2 {
+    font-size: 1.2rem;
+  }
+
+  .preview-section,
+  .settings-section {
+    padding: 25px;
+  }
+
+  .preview-section h2,
+  .settings-section h2 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+
+  .preview-container {
+    padding: 20px;
+    min-height: 600px;
+  }
+
+  .preview-grid {
+    gap: 15px;
+    min-height: 560px;
+  }
+
+  .preview-module {
+    font-size: 0.9rem;
+  }
+
+  .module-item:hover {
+    background: #252525;
+  }
+
+  .module-edit-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .preview-module:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    opacity: 0.9;
+  }
+}
+
+/* Desktop: ab 1200px */
+@media (min-width: 1200px) {
+  .config-layout {
+    grid-template-columns: 320px 1fr;
+  }
+
+  .theme-picker {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* SortableJS Styles */
+.sortable-ghost {
+  opacity: 0.4;
+  background: var(--accent-cyan);
+}
+
+.sortable-chosen {
+  opacity: 0.8;
+}
+
+.sortable-drag {
+  opacity: 0.8;
+  cursor: grabbing;
+}
+
+.module-item.sortable-chosen .drag-handle {
+  cursor: grabbing;
+}
+
+.preview-module.sortable-ghost {
+  background: rgba(0, 212, 255, 0.3);
+  border: 2px dashed var(--accent-cyan);
+}
+
+.preview-module.sortable-chosen {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+/* ==================== APP STORE ==================== */
+.appstore-section {
+  padding: 20px;
+}
+
+.appstore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.appstore-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.appstore-card:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.2);
+}
+
+.appstore-card.installed {
+  border-color: rgba(0, 255, 100, 0.4);
+}
+
+.appstore-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.appstore-card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.appstore-card-badge {
+  background: rgba(0, 255, 100, 0.2);
+  color: #00ff66;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.appstore-card-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 15px;
+  min-height: 60px;
+}
+
+.appstore-card-preview {
+  background: var(--bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  overflow: hidden;
+  position: relative;
+}
+
+.appstore-card-preview-icon {
+  font-size: 3rem;
+  opacity: 0.6;
+}
+
+.appstore-card-preview-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 10px;
+}
+
+.appstore-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.appstore-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--touch-target-min);
+}
+
+.appstore-btn-add {
+  background: var(--accent-cyan);
+  color: #000;
+}
+
+.appstore-btn-add:hover {
+  background: #00e0ff;
+  transform: scale(1.02);
+}
+
+.appstore-btn-add:active {
+  transform: scale(0.98);
+}
+
+.appstore-btn-remove {
+  background: rgba(255, 68, 68, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+
+.appstore-btn-remove:hover {
+  background: rgba(255, 68, 68, 0.3);
+}
+
+.appstore-btn-configure {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--accent-cyan);
+  border: 1px solid var(--accent-cyan);
+  flex: 0 0 auto;
+  padding: 12px 16px;
+}
+
+.appstore-btn-configure:hover {
+  background: rgba(0, 212, 255, 0.2);
+}
+
+.appstore-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Preview Modal */
+.appstore-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.appstore-modal.active {
+  display: flex;
+}
+
+.appstore-modal-content {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 30px;
+  position: relative;
+}
+
+.appstore-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.appstore-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.appstore-modal-title {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+}
+
+.appstore-modal-description {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.appstore-modal-preview {
+  background: var(--bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+/* Responsive für App Store */
+@media (max-width: 768px) {
+  .appstore-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .appstore-modal-content {
+    padding: 20px;
+  }
+}

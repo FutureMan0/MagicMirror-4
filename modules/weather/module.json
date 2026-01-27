@@ -1,0 +1,34 @@
+{
+  "name": "weather",
+  "displayName": "Wetter",
+  "version": "1.0.0",
+  "description": "Wetter-Anzeige mit OpenWeatherMap",
+  "author": "Magic Mirror",
+  "config": {
+    "apiKey": {
+      "type": "string",
+      "default": "",
+      "description": "OpenWeatherMap API Key"
+    },
+    "city": {
+      "type": "string",
+      "default": "Vienna,AT",
+      "description": "Stadt (Name,CountryCode oder lat,lon)"
+    },
+    "units": {
+      "type": "string",
+      "default": "metric",
+      "description": "Einheiten (metric/imperial)"
+    },
+    "forecastDays": {
+      "type": "number",
+      "default": 5,
+      "description": "Anzahl Vorhersage-Tage"
+    },
+    "showEffects": {
+      "type": "boolean",
+      "default": true,
+      "description": "Wetter-Effekte anzeigen"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "clock",
+  "displayName": "Uhr & Datum",
+  "version": "1.0.0",
+  "description": "Zeigt aktuelle Uhrzeit und Datum",
+  "author": "Magic Mirror",
+  "config": {
+    "timeFormat": {
+      "type": "string",
+      "default": "HH:mm:ss",
+      "description": "Zeitformat (HH:mm:ss für 24h, hh:mm:ss A für 12h)"
+    },
+    "showDate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Datum anzeigen"
+    },
+    "dateFormat": {
+      "type": "string",
+      "default": "dddd, DD. MMMM YYYY",
+      "description": "Datumsformat"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Europe/Vienna",
+      "description": "Zeitzone"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "spotify",
+  "displayName": "Spotify",
+  "version": "1.0.0",
+  "description": "Zeigt aktuell abgespielten Spotify Song",
+  "author": "Magic Mirror",
+  "config": {
+    "clientId": {
+      "type": "string",
+      "default": "",
+      "description": "Spotify Client ID"
+    },
+    "clientSecret": {
+      "type": "string",
+      "default": "",
+      "description": "Spotify Client Secret"
+    },
+    "refreshToken": {
+      "type": "string",
+      "default": "",
+      "description": "Spotify Refresh Token (wird nach OAuth gesetzt)"
+    },
+    "showCover": {
+      "type": "boolean",
+      "default": true,
+      "description": "Album Cover anzeigen"
+    },
+    "showProgress": {
+      "type": "boolean",
+      "default": true,
+      "description": "Fortschrittsbalken anzeigen"
+    },
+    "showSpotifyCode": {
+      "type": "boolean",
+      "default": true,
+      "description": "Spotify Code anzeigen"
+    },
+    "updateInterval": {
+      "type": "number",
+      "default": 5000,
+      "description": "Update-Intervall in Millisekunden"
+    }
+  }
+}

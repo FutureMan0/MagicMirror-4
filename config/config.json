@@ -1,0 +1,54 @@
+{
+  "language": "de",
+  "timeFormat": 24,
+  "modules": [
+    {
+      "module": "clock",
+      "position": "top_right",
+      "enabled": true,
+      "config": {
+        "timeFormat": "HH:mm:ss",
+        "showDate": true,
+        "dateFormat": "dddd, DD. MMMM YYYY"
+      }
+    },
+    {
+      "module": "weather",
+      "position": "bottom_right",
+      "enabled": true,
+      "config": {
+        "city": "Klagenfurt,AT",
+        "units": "metric",
+        "forecastDays": 5,
+        "showEffects": true
+      }
+    },
+    {
+      "module": "untis",
+      "position": "top_left",
+      "enabled": true,
+      "config": {
+        "viewMode": "week"
+      }
+    },
+    {
+      "module": "spotify",
+      "position": "bottom_left",
+      "enabled": false,
+      "config": {
+        "showCover": true,
+        "showProgress": true,
+        "showSpotifyCode": true
+      }
+    },
+    {
+      "module": "presence",
+      "position": "bottom_center",
+      "enabled": false,
+      "config": {
+        "timeout": 60000,
+        "dimTimeout": 300000
+      }
+    }
+  ]
+}

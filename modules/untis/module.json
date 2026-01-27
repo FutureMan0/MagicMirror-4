@@ -1,0 +1,59 @@
+{
+  "name": "untis",
+  "displayName": "WebUntis Stundenplan",
+  "version": "1.0.0",
+  "description": "Zeigt Stundenplan von WebUntis",
+  "author": "Magic Mirror",
+  "config": {
+    "server": {
+      "type": "string",
+      "default": "",
+      "description": "WebUntis Server (z.B. htl-klu.webuntis.com)"
+    },
+    "username": {
+      "type": "string",
+      "default": "",
+      "description": "Benutzername"
+    },
+    "password": {
+      "type": "string",
+      "default": "",
+      "description": "Passwort"
+    },
+    "school": {
+      "type": "string",
+      "default": "",
+      "description": "Schulname"
+    },
+    "classId": {
+      "type": "number",
+      "default": 0,
+      "description": "Klassen-ID"
+    },
+    "className": {
+      "type": "string",
+      "default": "",
+      "description": "Klassenname (z.B. 5BHEL)"
+    },
+    "viewMode": {
+      "type": "string",
+      "default": "week",
+      "description": "Ansichtsmodus (week/day/next)"
+    },
+    "colorNormal": {
+      "type": "string",
+      "default": "#00D4FF",
+      "description": "Farbe für normale Stunden"
+    },
+    "colorSpecial": {
+      "type": "string",
+      "default": "#FFA500",
+      "description": "Farbe für bestimmte Fächer"
+    },
+    "colorCancelled": {
+      "type": "string",
+      "default": "#FF4444",
+      "description": "Farbe für Entfälle"
+    }
+  }
+}
