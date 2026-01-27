@@ -7,6 +7,9 @@ let selectedModule = null;
 let moduleListSortable = null;
 let previewGridSortable = null;
 
+// Visual Editor Instance
+let visualEditor = null;
+
 // Initialisierung
 document.addEventListener('DOMContentLoaded', async () => {
   // Theme aus LocalStorage laden
@@ -19,14 +22,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Settings-Button Setup
   setupSettingsButton();
 
-  // Theme-Picker Setup
+  // Theme-Picker Setup (WebUI)
   setupThemePicker();
+
+  // Mirror Theme-Picker Setup
+  setupMirrorThemePicker();
 
   // Lade zuerst Module, dann Config
   await loadModules();
   await loadConfig();
   renderModuleList();
-  renderPreview();
+  
+  // Warte kurz, bis initGridSettings gelaufen ist
+  setTimeout(() => {
+    const mode = localStorage.getItem('layoutMode') || 'visual';
+    console.log('Initial layout mode:', mode);
+    if (mode === 'classic') {
+      renderPreview();
+    } else {
+      // Initialisiere Visual Editor für den visuellen Modus
+      initVisualEditor();
+    }
+  }, 300);
 
   // SortableJS Setup
   setupDragAndDrop();
@@ -35,6 +52,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('instance-select').addEventListener('change', (e) => {
     currentInstance = e.target.value;
     loadConfig();
+  });
+
+  // Sprache-Synchronisation
+  window.addEventListener('languageChanged', (e) => {
+    if (currentConfig && currentConfig.language !== e.detail.language) {
+      currentConfig.language = e.detail.language;
+      saveConfig();
+    }
   });
 
   document.getElementById('save-settings-btn').addEventListener('click', () => {
@@ -47,6 +72,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Update-System initialisieren
   initUpdateSystem();
+
+  // Grid-Einstellungen initialisieren
+  initGridSettings();
+
+  // Visual Editor nur initialisieren wenn visueller Modus aktiv ist
+  // wird durch initGridSettings gesteuert
 });
 
 // Tab-Navigation
@@ -96,6 +127,29 @@ function switchTab(tabName) {
   // Preview aktualisieren wenn Preview-Tab geöffnet wird
   if (tabName === 'preview') {
     renderPreview();
+  }
+
+  // Layout Editor aktualisieren/initialisieren wenn Layout-Tab geöffnet wird
+  if (tabName === 'layout') {
+    const mode = window.getLayoutMode ? window.getLayoutMode() : 'visual';
+    
+    if (mode === 'visual') {
+      // Initialisiere Editoren falls noch nicht geschehen
+      if (!visualEditorDesktop && !visualEditorMobile) {
+        console.log('Initializing visual editor from tab switch');
+        setTimeout(() => initVisualEditor(), 100);
+      } else {
+        // Aktualisiere vorhandene Editoren
+        if (visualEditorDesktop) {
+          visualEditorDesktop.updateConfig(currentConfig);
+        }
+        if (visualEditorMobile) {
+          visualEditorMobile.updateConfig(currentConfig);
+        }
+      }
+    } else {
+      renderPreview();
+    }
   }
 
   // App Store aktualisieren wenn App Store-Tab geöffnet wird
@@ -170,11 +224,58 @@ async function loadConfig() {
     const response = await fetch(`/api/config?instance=${currentInstance}`);
     currentConfig = await response.json();
     console.log('Config geladen:', currentConfig); // Debug
+
+    // UI-Sprache an Config anpassen
+    if (currentConfig.language && typeof setLanguage === 'function' && currentConfig.language !== currentLanguage) {
+      setLanguage(currentConfig.language);
+    }
+
     renderModuleList(); // Aktualisiere auch die Modul-Liste
     renderPreview();
+    updateMirrorThemeUI(); // Update UI for Mirror Theme
+    
+    // Visual Editor aktualisieren falls vorhanden
+    if (visualEditor) {
+      visualEditor.updateConfig(currentConfig);
+    }
   } catch (error) {
     console.error('Fehler beim Laden der Konfiguration:', error);
   }
+}
+
+// Mirror Theme System
+function setupMirrorThemePicker() {
+  const themeButtons = document.querySelectorAll('#mirror-theme-picker button[data-mirror-theme]');
+
+  themeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const theme = button.getAttribute('data-mirror-theme');
+      setMirrorTheme(theme);
+    });
+  });
+}
+
+function updateMirrorThemeUI() {
+  if (!currentConfig) return;
+  const currentTheme = currentConfig.theme || 'default';
+
+  const buttons = document.querySelectorAll('#mirror-theme-picker button');
+  buttons.forEach(btn => btn.classList.remove('active'));
+
+  const activeBtn = document.querySelector(`#mirror-theme-picker button[data-mirror-theme="${currentTheme}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+}
+
+async function setMirrorTheme(theme) {
+  if (!currentConfig) return;
+
+  currentConfig.theme = theme;
+
+  // Update UI immediately for feedback
+  updateMirrorThemeUI();
+
+  // Save to config
+  saveConfig();
 }
 
 async function loadModules() {
@@ -375,16 +476,63 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   let html = `<h3>${displayName}</h3>`;
   html += '<form class="settings-form" id="module-settings-form">';
 
-  // Position
+  // Position Type Selector
+  const posType = typeof moduleConfig.position === 'string' ? 'legacy' : 
+                  (moduleConfig.position?.column !== undefined ? 'grid' : 'absolute');
+  
+  html += '<div class="form-group">';
+  html += `<label data-i18n="positionType">${t('positionType') || 'Positions-Typ'}</label>`;
+  html += '<select name="positionType" id="position-type-select">';
+  html += `<option value="legacy" ${posType === 'legacy' ? 'selected' : ''}>Legacy (top_left, etc.)</option>`;
+  html += `<option value="grid" ${posType === 'grid' ? 'selected' : ''}>Grid (Spalten/Zeilen)</option>`;
+  html += `<option value="absolute" ${posType === 'absolute' ? 'selected' : ''}>Absolut (Pixel/Prozent)</option>`;
+  html += '</select>';
+  html += '</div>';
+
+  // Legacy Position
+  html += `<div id="position-legacy" class="position-config" style="display: ${posType === 'legacy' ? 'block' : 'none'}">`;
   html += '<div class="form-group">';
   html += `<label data-i18n="position">${t('position')}</label>`;
-  html += '<select name="position" id="module-position">';
+  html += '<select name="position" id="module-position-legacy">';
   const positions = ['top_left', 'top_center', 'top_right', 'middle_left', 'middle_center', 'middle_right', 'bottom_left', 'bottom_center', 'bottom_right'];
+  const currentLegacyPos = typeof moduleConfig.position === 'string' ? moduleConfig.position : 'middle_center';
   positions.forEach(pos => {
-    const selected = moduleConfig.position === pos ? 'selected' : '';
+    const selected = currentLegacyPos === pos ? 'selected' : '';
     html += `<option value="${pos}" ${selected}>${getPositionName(pos)}</option>`;
   });
   html += '</select>';
+  html += '</div>';
+  html += '</div>';
+
+  // Grid Position
+  const gridPos = typeof moduleConfig.position === 'object' && moduleConfig.position.column !== undefined ? moduleConfig.position : {
+    column: 2, row: 2, columnSpan: 1, rowSpan: 1, align: 'start', justify: 'start'
+  };
+  html += `<div id="position-grid" class="position-config" style="display: ${posType === 'grid' ? 'block' : 'none'}">`;
+  html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
+  html += '<label>Spalte: <input type="number" name="posColumn" value="' + gridPos.column + '" min="1" max="10"></label>';
+  html += '<label>Zeile: <input type="number" name="posRow" value="' + gridPos.row + '" min="1" max="10"></label>';
+  html += '<label>Spalten-Span: <input type="number" name="posColumnSpan" value="' + gridPos.columnSpan + '" min="1" max="10"></label>';
+  html += '<label>Zeilen-Span: <input type="number" name="posRowSpan" value="' + gridPos.rowSpan + '" min="1" max="10"></label>';
+  html += '</div>';
+  html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
+  html += '<label>Horizontal: <select name="posJustify"><option value="start" ' + (gridPos.justify === 'start' ? 'selected' : '') + '>Start</option><option value="center" ' + (gridPos.justify === 'center' ? 'selected' : '') + '>Center</option><option value="end" ' + (gridPos.justify === 'end' ? 'selected' : '') + '>End</option></select></label>';
+  html += '<label>Vertikal: <select name="posAlign"><option value="start" ' + (gridPos.align === 'start' ? 'selected' : '') + '>Start</option><option value="center" ' + (gridPos.align === 'center' ? 'selected' : '') + '>Center</option><option value="end" ' + (gridPos.align === 'end' ? 'selected' : '') + '>End</option></select></label>';
+  html += '</div>';
+  html += '</div>';
+
+  // Absolute Position
+  const absPos = typeof moduleConfig.position === 'object' && moduleConfig.position.x !== undefined ? moduleConfig.position : {
+    x: '10%', y: '10%', width: 'auto', height: 'auto', zIndex: 1
+  };
+  html += `<div id="position-absolute" class="position-config" style="display: ${posType === 'absolute' ? 'block' : 'none'}">`;
+  html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
+  html += '<label>X: <input type="text" name="posX" value="' + absPos.x + '" placeholder="10%, 50px"></label>';
+  html += '<label>Y: <input type="text" name="posY" value="' + absPos.y + '" placeholder="10%, 50px"></label>';
+  html += '<label>Breite: <input type="text" name="posWidth" value="' + absPos.width + '" placeholder="auto, 300px"></label>';
+  html += '<label>Höhe: <input type="text" name="posHeight" value="' + absPos.height + '" placeholder="auto, 200px"></label>';
+  html += '<label>Z-Index: <input type="number" name="posZIndex" value="' + absPos.zIndex + '" min="1" max="1000"></label>';
+  html += '</div>';
   html += '</div>';
 
   // Modul-spezifische Einstellungen
@@ -461,6 +609,17 @@ function showModuleSettings(moduleConfig, moduleInfo) {
 
   if (moduleConfig.module === 'spotify') {
     initSpotifyAuth(moduleConfig);
+  }
+
+  // Position Type Switcher
+  const posTypeSelect = document.getElementById('position-type-select');
+  if (posTypeSelect) {
+    posTypeSelect.addEventListener('change', (e) => {
+      const posType = e.target.value;
+      document.querySelectorAll('.position-config').forEach(el => el.style.display = 'none');
+      const targetDiv = document.getElementById(`position-${posType}`);
+      if (targetDiv) targetDiv.style.display = 'block';
+    });
   }
 }
 
@@ -602,7 +761,29 @@ async function saveModuleSettings() {
   const formData = new FormData(form);
 
   const moduleConfig = currentConfig.modules[selectedModule];
-  moduleConfig.position = formData.get('position');
+  
+  // Position basierend auf Typ setzen
+  const posType = formData.get('positionType');
+  if (posType === 'legacy') {
+    moduleConfig.position = formData.get('position');
+  } else if (posType === 'grid') {
+    moduleConfig.position = {
+      column: parseInt(formData.get('posColumn')) || 1,
+      row: parseInt(formData.get('posRow')) || 1,
+      columnSpan: parseInt(formData.get('posColumnSpan')) || 1,
+      rowSpan: parseInt(formData.get('posRowSpan')) || 1,
+      justify: formData.get('posJustify') || 'start',
+      align: formData.get('posAlign') || 'start'
+    };
+  } else if (posType === 'absolute') {
+    moduleConfig.position = {
+      x: formData.get('posX') || '0',
+      y: formData.get('posY') || '0',
+      width: formData.get('posWidth') || 'auto',
+      height: formData.get('posHeight') || 'auto',
+      zIndex: parseInt(formData.get('posZIndex')) || 1
+    };
+  }
 
   if (!moduleConfig.config) {
     moduleConfig.config = {};
@@ -645,7 +826,11 @@ async function saveModuleSettings() {
 
     if (response.ok) {
       await loadConfig();
-      renderPreview();
+      if (window.refreshActiveLayoutView) {
+        window.refreshActiveLayoutView();
+      } else {
+        renderPreview();
+      }
       hideSettings();
     }
   } catch (error) {
@@ -731,7 +916,11 @@ async function saveConfig() {
 
     if (response.ok) {
       await loadConfig();
-      renderPreview();
+      if (window.refreshActiveLayoutView) {
+        window.refreshActiveLayoutView();
+      } else {
+        renderPreview();
+      }
     }
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
@@ -892,7 +1081,11 @@ async function addModule(moduleName) {
       await loadConfig();
       renderAppStore();
       renderModuleList();
-      renderPreview();
+      if (window.refreshActiveLayoutView) {
+        window.refreshActiveLayoutView();
+      } else {
+        renderPreview();
+      }
 
       // Zeige Success-Nachricht
       const displayName = moduleInfo?.info?.displayName || moduleName;
@@ -929,7 +1122,11 @@ async function removeModule(moduleName) {
       await loadConfig();
       renderAppStore();
       renderModuleList();
-      renderPreview();
+      if (window.refreshActiveLayoutView) {
+        window.refreshActiveLayoutView();
+      } else {
+        renderPreview();
+      }
 
       showNotification(`✓ ${displayName} wurde entfernt.`, 'success');
     }
@@ -988,7 +1185,7 @@ async function checkUpdate() {
   const actionDiv = document.getElementById('update-action');
   if (!message) return;
 
-  message.textContent = 'Prüfe...';
+  message.textContent = t('checking');
   message.style.color = 'var(--text-secondary)';
 
   try {
@@ -996,18 +1193,18 @@ async function checkUpdate() {
     const data = await response.json();
 
     if (data.updateAvailable) {
-      message.textContent = 'Update verfügbar!';
+      message.textContent = t('updateAvailable');
       message.style.color = 'var(--accent-cyan)';
       if (actionDiv) actionDiv.style.display = 'block';
-      showNotification('System-Update verfügbar!');
+      showNotification(t('updateAvailable'));
     } else {
-      message.textContent = 'System ist auf dem neuesten Stand.';
+      message.textContent = t('systemUpToDate');
       message.style.color = 'var(--text-secondary)';
       if (actionDiv) actionDiv.style.display = 'none';
     }
   } catch (error) {
     console.error('Update-Check fehlgeschlagen:', error);
-    message.textContent = 'Prüfung fehlgeschlagen.';
+    message.textContent = 'Error';
   }
 }
 
@@ -1015,30 +1212,34 @@ async function executeUpdate() {
   const btn = document.getElementById('execute-update-btn');
   if (!btn) return;
 
-  if (!confirm('Das System wird aktualisiert und anschließend neu gestartet. Fortfahren?')) {
+  const confirmMsg = currentLanguage === 'de'
+    ? 'Das System wird aktualisiert und anschließend neu gestartet. Fortfahren?'
+    : 'The system will be updated and then restarted. Proceed?';
+  if (!confirm(confirmMsg)) {
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = 'Installiere...';
+  btn.textContent = currentLanguage === 'de' ? 'Installiere...' : 'Installing...';
 
   try {
     const response = await fetch('/api/update/execute', { method: 'POST' });
     const data = await response.json();
 
     if (data.success) {
-      showNotification('Update erfolgreich! Neustart...');
+      const successMsg = currentLanguage === 'de' ? 'Update erfolgreich! Neustart...' : 'Update successful! Restarting...';
+      showNotification(successMsg);
       setTimeout(() => {
         location.reload();
       }, 5000);
     } else {
-      alert('Update fehlgeschlagen: ' + (data.error || 'Unbekannter Fehler'));
+      alert('Update failed: ' + (data.error || 'Unknown error'));
       btn.disabled = false;
-      btn.textContent = 'Update jetzt installieren';
+      btn.textContent = t('installUpdate');
     }
   } catch (error) {
-    console.error('Update-Execution fehlgeschlagen:', error);
-    alert('Verbindung zum Server verloren während des Updates.');
+    console.error('Update-Execution failed:', error);
+    alert(currentLanguage === 'de' ? 'Verbindung zum Server verloren während des Updates.' : 'Connection to server lost during update.');
   }
 }
 
@@ -1069,4 +1270,273 @@ if (!document.getElementById('notification-styles')) {
     }
   `;
   document.head.appendChild(style);
+}
+
+// ==================== GRID SETTINGS ====================
+
+function initGridSettings() {
+  const columnsInput = document.getElementById('grid-columns');
+  const rowsInput = document.getElementById('grid-rows');
+  const gapInput = document.getElementById('grid-gap');
+  const paddingInput = document.getElementById('grid-padding');
+  const saveBtn = document.getElementById('save-grid-settings-btn');
+  const layoutModeSelect = document.getElementById('layout-mode');
+
+  if (!saveBtn) return;
+
+  // Layout-Modus Verwaltung
+  function getLayoutMode() {
+    return localStorage.getItem('layoutMode') || 'visual';
+  }
+
+  function setLayoutMode(mode) {
+    localStorage.setItem('layoutMode', mode);
+    applyLayoutMode(mode);
+  }
+
+  function applyLayoutMode(mode) {
+    const classicDesktop = document.getElementById('classic-preview-desktop');
+    const visualDesktop = document.getElementById('visual-editor-desktop');
+    const classicMobile = document.getElementById('classic-preview-mobile');
+    const visualMobile = document.getElementById('visual-editor-mobile');
+
+    console.log('Applying layout mode:', mode);
+
+    if (mode === 'classic') {
+      // Zeige NUR klassisches Preview, entferne Visual Editor komplett
+      if (classicDesktop) {
+        classicDesktop.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+        console.log('Showing classic desktop');
+      }
+      if (visualDesktop) {
+        visualDesktop.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
+        console.log('Hiding visual desktop');
+      }
+      if (classicMobile) {
+        classicMobile.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+      }
+      if (visualMobile) {
+        visualMobile.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
+      }
+      
+      // Rendere Preview
+      setTimeout(() => renderPreview(), 100);
+    } else {
+      // Zeige NUR visuellen Editor, entferne klassisches Preview komplett
+      if (classicDesktop) {
+        classicDesktop.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
+        console.log('Hiding classic desktop');
+      }
+      if (visualDesktop) {
+        visualDesktop.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+        console.log('Showing visual desktop');
+      }
+      if (classicMobile) {
+        classicMobile.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
+      }
+      if (visualMobile) {
+        visualMobile.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+      }
+      
+      // Initialisiere Visual Editor falls noch nicht geschehen
+      setTimeout(() => {
+        if (!visualEditorDesktop && !visualEditorMobile) {
+          console.log('Initializing visual editor');
+          initVisualEditor();
+        } else {
+          console.log('Updating visual editor config');
+          if (visualEditorDesktop) {
+            visualEditorDesktop.updateConfig(currentConfig);
+          }
+          if (visualEditorMobile) {
+            visualEditorMobile.updateConfig(currentConfig);
+          }
+        }
+      }, 100);
+    }
+  }
+
+  // Layout-Modus beim Start laden
+  if (layoutModeSelect) {
+    const savedMode = getLayoutMode();
+    layoutModeSelect.value = savedMode;
+    applyLayoutMode(savedMode);
+
+    // Event-Listener für Modus-Änderung
+    layoutModeSelect.addEventListener('change', (e) => {
+      setLayoutMode(e.target.value);
+    });
+  }
+
+  // Lade aktuelle Grid-Einstellungen
+  function loadGridSettings() {
+    if (!currentConfig) return;
+    
+    const gridSettings = currentConfig.gridSettings || {
+      columns: 3,
+      rows: 3,
+      gap: 12,
+      padding: 12
+    };
+
+    if (columnsInput) columnsInput.value = gridSettings.columns;
+    if (rowsInput) rowsInput.value = gridSettings.rows;
+    if (gapInput) gapInput.value = gridSettings.gap;
+    if (paddingInput) paddingInput.value = gridSettings.padding;
+  }
+
+  // Initial laden
+  loadGridSettings();
+
+  // Bei Config-Änderung neu laden
+  const originalLoadConfig = loadConfig;
+  window.addEventListener('configLoaded', loadGridSettings);
+
+  // Speichern-Button
+  saveBtn.addEventListener('click', async () => {
+    if (!currentConfig) return;
+
+    const newGridSettings = {
+      columns: parseInt(columnsInput.value) || 3,
+      rows: parseInt(rowsInput.value) || 3,
+      gap: parseInt(gapInput.value) || 12,
+      padding: parseInt(paddingInput.value) || 12,
+      columnSizes: [],
+      rowSizes: []
+    };
+
+    // Generiere columnSizes und rowSizes - alle gleich groß (1fr)
+    for (let i = 0; i < newGridSettings.columns; i++) {
+      newGridSettings.columnSizes.push('1fr');
+    }
+
+    for (let i = 0; i < newGridSettings.rows; i++) {
+      newGridSettings.rowSizes.push('1fr');
+    }
+
+    currentConfig.gridSettings = newGridSettings;
+
+    try {
+      const response = await fetch(`/api/config?instance=${currentInstance}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentConfig)
+      });
+
+      if (response.ok) {
+        await loadConfig();
+        
+        // Aktualisiere die aktive Ansicht
+        const currentMode = getLayoutMode();
+        if (currentMode === 'classic') {
+          renderPreview();
+        } else {
+          if (visualEditorDesktop) {
+            visualEditorDesktop.updateConfig(currentConfig);
+          }
+          if (visualEditorMobile) {
+            visualEditorMobile.updateConfig(currentConfig);
+          }
+        }
+        
+        showNotification('✓ Grid-Einstellungen gespeichert!', 'success');
+      }
+    } catch (error) {
+      console.error('Fehler beim Speichern der Grid-Einstellungen:', error);
+      alert('Fehler beim Speichern der Grid-Einstellungen.');
+    }
+  });
+  
+  // Hilfsfunktion: Aktualisiere die aktive Layout-Ansicht
+  function refreshActiveLayoutView() {
+    const mode = getLayoutMode();
+    if (mode === 'classic') {
+      renderPreview();
+    } else {
+      // Aktualisiere beide Editoren falls vorhanden
+      if (visualEditorDesktop) {
+        visualEditorDesktop.updateConfig(currentConfig);
+      }
+      if (visualEditorMobile) {
+        visualEditorMobile.updateConfig(currentConfig);
+      }
+    }
+  }
+  
+  // Mache Funktionen global verfügbar
+  window.applyLayoutMode = applyLayoutMode;
+  window.getLayoutMode = getLayoutMode;
+  window.refreshActiveLayoutView = refreshActiveLayoutView;
+}
+
+// ==================== VISUAL EDITOR ====================
+
+let visualEditorDesktop = null;
+let visualEditorMobile = null;
+
+function initVisualEditor() {
+  console.log('Initializing visual editor...');
+  
+  if (!window.VisualGridEditor) {
+    console.error('VisualGridEditor class not found');
+    return;
+  }
+
+  // Desktop-Editor initialisieren
+  const desktopContainer = document.getElementById('visual-editor-container-desktop');
+  if (desktopContainer && !visualEditorDesktop) {
+    console.log('Creating desktop visual editor');
+    visualEditorDesktop = new window.VisualGridEditor(
+      '#visual-editor-container-desktop',
+      currentConfig,
+      async (updatedConfig) => {
+        currentConfig = updatedConfig;
+        await saveConfigAndRefresh();
+      }
+    );
+  }
+
+  // Mobile-Editor initialisieren
+  const mobileContainer = document.getElementById('visual-editor-container-mobile');
+  if (mobileContainer && !visualEditorMobile) {
+    console.log('Creating mobile visual editor');
+    visualEditorMobile = new window.VisualGridEditor(
+      '#visual-editor-container-mobile',
+      currentConfig,
+      async (updatedConfig) => {
+        currentConfig = updatedConfig;
+        await saveConfigAndRefresh();
+      }
+    );
+  }
+  
+  // Setze visualEditor auf den passenden Editor
+  visualEditor = visualEditorDesktop || visualEditorMobile;
+}
+
+async function saveConfigAndRefresh() {
+  try {
+    const response = await fetch(`/api/config?instance=${currentInstance}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentConfig)
+    });
+
+    if (response.ok) {
+      await loadConfig();
+      
+      // Aktualisiere beide Editoren falls vorhanden
+      if (visualEditorDesktop) {
+        visualEditorDesktop.updateConfig(currentConfig);
+      }
+      if (visualEditorMobile) {
+        visualEditorMobile.updateConfig(currentConfig);
+      }
+      
+      showNotification('✓ Layout gespeichert!', 'success');
+    }
+  } catch (error) {
+    console.error('Fehler beim Speichern des Layouts:', error);
+    alert('Fehler beim Speichern des Layouts.');
+  }
 }

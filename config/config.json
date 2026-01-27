@@ -1,10 +1,26 @@
 {
   "language": "de",
+  "theme": "cyberpunk",
   "timeFormat": 24,
+  "gridSettings": {
+    "columns": 3,
+    "rows": 3,
+    "gap": 12,
+    "padding": 12,
+    "columnSizes": ["minmax(320px, 1fr)", "1fr", "1fr"],
+    "rowSizes": ["auto", "1fr", "1fr"]
+  },
   "modules": [
     {
       "module": "clock",
-      "position": "top_right",
+      "position": {
+        "column": 1,
+        "row": 1,
+        "columnSpan": 1,
+        "rowSpan": 1,
+        "align": "start",
+        "justify": "start"
+      },
       "enabled": true,
       "config": {
         "timeFormat": "HH:mm:ss",
@@ -14,7 +30,14 @@
     },
     {
       "module": "weather",
-      "position": "bottom_right",
+      "position": {
+        "column": 1,
+        "row": 2,
+        "columnSpan": 1,
+        "rowSpan": 2,
+        "align": "start",
+        "justify": "start"
+      },
       "enabled": true,
       "config": {
         "city": "Klagenfurt,AT",
@@ -25,7 +48,14 @@
     },
     {
       "module": "untis",
-      "position": "top_left",
+      "position": {
+        "column": 2,
+        "row": 1,
+        "columnSpan": 2,
+        "rowSpan": 3,
+        "align": "start",
+        "justify": "start"
+      },
       "enabled": true,
       "config": {
         "viewMode": "week"

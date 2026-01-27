@@ -1,0 +1,364 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+/* Cyberpunk 2077 HUD Theme */
+:root {
+    --cp-yellow: #fcee0a;
+    --cp-red: #ff003c;
+    --cp-cyan: #00f0ff;
+    --cp-blue: #02d7f2;
+    --cp-bg: rgba(5, 10, 14, 0.85);
+    --cp-border: var(--cp-cyan);
+    --font-family: 'Rajdhani', sans-serif;
+
+    /* Overriding system variables */
+    --bg-primary: #000000;
+    --text-primary: var(--cp-cyan);
+    --text-secondary: rgba(0, 240, 255, 0.6);
+    --accent-cyan: var(--cp-cyan);
+    --accent-red: var(--cp-red);
+}
+
+* {
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+body {
+    background-color: #000;
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    color: var(--cp-cyan);
+}
+
+/* Background HUD Elements */
+/* HUD Background */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(0, 240, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.modules-grid {
+    display: grid;
+    /* Grid-Template wird dynamisch von JS über CSS Custom Properties gesetzt */
+    grid-template-columns: var(--grid-column-template, minmax(320px, 1fr) 1fr 1fr);
+    grid-template-rows: var(--grid-row-template, auto 1fr 1fr);
+    width: 100vw;
+    height: 100vh;
+    padding: var(--grid-padding, 12px);
+    gap: var(--grid-gap, 12px);
+    box-sizing: border-box;
+    overflow: hidden;
+    align-items: stretch;
+}
+
+
+
+/* Module Containers */
+.module-container {
+    background: var(--cp-bg);
+    border-left: 4px solid var(--cp-cyan);
+    border-right: 1px solid rgba(0, 240, 255, 0.3);
+    border-top: 1px solid rgba(0, 240, 255, 0.3);
+    border-bottom: 2px solid var(--cp-cyan);
+    padding: 12px !important;
+    position: relative;
+    clip-path: polygon(0 0,
+            calc(100% - 20px) 0,
+            100% 20px,
+            100% 100%,
+            20px 100%,
+            0 calc(100% - 20px));
+    box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.1);
+    backdrop-filter: blur(5px);
+    max-height: 100%;
+    overflow: visible;
+    scrollbar-width: none;
+    scrollbar-color: var(--cp-cyan) transparent;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.module-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.module-container::-webkit-scrollbar-thumb {
+    background: var(--cp-cyan);
+    border-radius: 2px;
+}
+
+/* ACCESS GRANTED TAG */
+.module-container::before {
+    content: "[ ACCESS GRANTED ]";
+    position: absolute;
+    top: -2px;
+    left: 40px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #000;
+    background: var(--cp-cyan);
+    padding: 2px 10px;
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 10% 100%);
+    animation: flicker 3s infinite;
+}
+
+/* Yellow Accent */
+.module-container::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--cp-yellow);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+@keyframes flicker {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+
+    51% {
+        opacity: 1;
+    }
+
+    52% {
+        opacity: 0.2;
+    }
+
+    53% {
+        opacity: 1;
+    }
+}
+
+/* CLOCK */
+.module-clock {
+    text-align: left;
+}
+
+.clock-time {
+    font-size: 5.5rem !important;
+    font-weight: 700 !important;
+    color: var(--cp-yellow) !important;
+    margin: 0;
+    line-height: 1;
+    filter: drop-shadow(0 0 5px rgba(252, 238, 10, 0.5));
+}
+
+.clock-date {
+    font-size: 1.4rem !important;
+    color: var(--cp-cyan) !important;
+    margin-top: 10px;
+    opacity: 0.8;
+}
+
+/* WEATHER */
+.weather-temp {
+    font-size: 4rem !important;
+    color: var(--cp-white) !important;
+    font-weight: 700 !important;
+    background: linear-gradient(to bottom, #fff, var(--cp-cyan));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.weather-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.weather-detail {
+    background: rgba(0, 240, 255, 0.05);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    padding: 10px !important;
+    transform: skew(-15deg);
+}
+
+.weather-detail * {
+    transform: skew(15deg);
+}
+
+/* UNTIS - THE SLANT */
+.untis-week-view {
+    width: fit-content;
+    max-width: 100%;
+}
+
+.untis-header {
+    display: grid;
+    /* grid-template-columns wird dynamisch per JS gesetzt */
+    margin-bottom: 1px;
+    max-width: 100%;
+    width: fit-content;
+}
+
+.untis-day-header {
+    padding: 2px 1px;
+    background: rgba(0, 240, 255, 0.05);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    margin: 0 1px;
+    transform: skew(-5deg);
+    font-weight: 700;
+    font-size: 0.6rem;
+    text-align: center;
+}
+
+.untis-day-header.untis-today {
+    background: var(--cp-yellow) !important;
+    color: #000 !important;
+    border-color: var(--cp-yellow);
+}
+
+.untis-day-header.untis-past-day {
+    opacity: 0.4;
+}
+
+.untis-day-header * {
+    transform: skew(5deg);
+}
+
+.untis-grid {
+    display: grid;
+    /* grid-template-columns wird dynamisch per JS gesetzt */
+    grid-auto-rows: minmax(32px, auto);
+    gap: 1px;
+    max-width: 100%;
+    width: fit-content;
+}
+
+.untis-time-slot {
+    background: rgba(0, 240, 255, 0.05);
+    border: 1px solid rgba(0, 240, 255, 0.15);
+    transform: skew(-5deg);
+    padding: 1px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.untis-cell,
+.untis-empty-slot {
+    background: rgba(0, 240, 255, 0.02);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+    transform: skew(-5deg);
+    padding: 1px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px;
+    overflow: visible;
+    scrollbar-width: none;
+}
+
+.untis-cell::-webkit-scrollbar {
+    display: none;
+}
+
+.untis-cell:hover {
+    background: rgba(0, 240, 255, 0.08);
+    border-color: var(--cp-cyan);
+}
+
+.untis-lesson {
+    flex: 1 1 100%;
+    min-width: 30px;
+    max-width: 100%;
+    transform: skew(5deg) !important;
+    background: rgba(0, 240, 255, 0.15) !important;
+    border-left: 2px solid var(--cp-red) !important;
+    color: #fff !important;
+    padding: 2px 4px !important;
+    font-size: 0.6rem;
+    min-height: 22px;
+    margin-bottom: 0;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.untis-lesson:only-child {
+    flex: 1 1 100%;
+}
+
+.untis-subject {
+    font-weight: 700;
+    color: var(--cp-yellow);
+}
+
+.untis-room,
+.untis-teacher {
+    font-size: 0.5rem;
+    opacity: 0.7;
+}
+
+.untis-time {
+    transform: skew(5deg);
+    color: var(--cp-yellow);
+    font-weight: 700;
+    font-size: 0.6rem;
+}
+
+.untis-period {
+    transform: skew(5deg);
+    font-size: 0.45rem;
+    opacity: 0.5;
+}
+
+.untis-time-line {
+    background: var(--cp-red) !important;
+    height: 2px !important;
+    box-shadow: 0 0 8px var(--cp-red);
+    z-index: 10;
+}
+
+/* Vergangene Stunden ausgrauen */
+.untis-past {
+    opacity: 0.35;
+}
+
+.untis-past .untis-lesson {
+    filter: grayscale(60%);
+    border-left-color: rgba(255, 0, 60, 0.3) !important;
+}
+
+/* Global Polish */
+h1,
+h2,
+h3 {
+    color: var(--cp-yellow);
+    letter-spacing: 2px;
+}
+
+.module-error {
+    border: 2px solid var(--cp-red);
+    background: rgba(255, 0, 60, 0.1);
+    clip-path: polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%);
+}
+
+.module-error-title {
+    color: var(--cp-red) !important;
+    font-weight: 700;
+}
+
+/* Scanline moving animation */

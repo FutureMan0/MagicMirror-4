@@ -83,54 +83,72 @@ class WeatherEffects {
 
   animateRain() {
     // Erstelle neue Tropfen
-    if (Math.random() < 0.3) {
+    if (this.particles.length < 150) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
-        y: -10,
-        speed: 5 + Math.random() * 10,
-        length: 10 + Math.random() * 20
+        y: Math.random() * -this.canvas.height,
+        speed: 10 + Math.random() * 15,
+        length: 20 + Math.random() * 30,
+        opacity: 0.1 + Math.random() * 0.4
       });
     }
 
     // Zeichne und bewege Tropfen
     this.ctx.strokeStyle = '#00D4FF';
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = 1;
+
     this.particles = this.particles.filter(particle => {
+      this.ctx.globalAlpha = particle.opacity;
       this.ctx.beginPath();
       this.ctx.moveTo(particle.x, particle.y);
-      this.ctx.lineTo(particle.x, particle.y + particle.length);
+      this.ctx.lineTo(particle.x + 1, particle.y + particle.length);
       this.ctx.stroke();
 
       particle.y += particle.speed;
+      particle.x += 1; // Leichter schräger Regen
 
-      return particle.y < this.canvas.height;
+      if (particle.y > this.canvas.height) {
+        particle.y = -particle.length;
+        particle.x = Math.random() * this.canvas.width;
+      }
+      return true;
     });
+    this.ctx.globalAlpha = 1.0;
   }
 
   animateSnow() {
     // Erstelle neue Schneeflocken
-    if (Math.random() < 0.1) {
+    if (this.particles.length < 100) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
-        y: -10,
+        y: Math.random() * -this.canvas.height,
         speed: 1 + Math.random() * 2,
-        size: 2 + Math.random() * 4,
-        sway: Math.random() * 2 - 1
+        size: 1 + Math.random() * 3,
+        sway: Math.random() * 2 - 1,
+        angle: Math.random() * Math.PI * 2,
+        opacity: 0.2 + Math.random() * 0.7
       });
     }
 
     // Zeichne und bewege Schneeflocken
     this.ctx.fillStyle = '#FFFFFF';
     this.particles = this.particles.filter(particle => {
+      this.ctx.globalAlpha = particle.opacity;
       this.ctx.beginPath();
       this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       this.ctx.fill();
 
       particle.y += particle.speed;
-      particle.x += particle.sway * 0.5;
+      particle.angle += 0.02;
+      particle.x += Math.sin(particle.angle) * 0.5 + particle.sway * 0.3;
 
-      return particle.y < this.canvas.height;
+      if (particle.y > this.canvas.height) {
+        particle.y = -10;
+        particle.x = Math.random() * this.canvas.width;
+      }
+      return true;
     });
+    this.ctx.globalAlpha = 1.0;
   }
 
   animateSun() {
@@ -186,4 +204,12 @@ class WeatherEffects {
   }
 }
 
-module.exports = WeatherEffects;
+// Browser-Check
+if (typeof window !== 'undefined') {
+  window.WeatherEffects = WeatherEffects;
+}
+
+// Node.js: Exportiere als CommonJS
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = WeatherEffects;
+}

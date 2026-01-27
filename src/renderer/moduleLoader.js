@@ -71,9 +71,10 @@ class RendererModuleLoader {
    * @param {string} moduleName - Name des Moduls
    * @param {object} config - Konfiguration für das Modul
    * @param {object} envConfig - Umgebungsvariablen
+   * @param {string} language - Aktuelle Sprache
    * @returns {Promise<HTMLElement|null>} - Gerenderte Modul-Instanz
    */
-  async createModuleInstance(moduleName, config = {}, envConfig = {}) {
+  async createModuleInstance(moduleName, config = {}, envConfig = {}, language = 'en') {
     // Lade Modul, falls noch nicht geladen
     if (!this.moduleClasses.has(moduleName)) {
       const loaded = await this.loadModule(moduleName);
@@ -83,11 +84,11 @@ class RendererModuleLoader {
     }
 
     const ModuleClass = this.moduleClasses.get(moduleName);
-    
+
     try {
-      // Merge config mit envConfig (für API-Keys etc.)
-      const mergedConfig = this.mergeConfig(moduleName, config, envConfig);
-      
+      // Merge config mit envConfig (für API-Keys etc.) und language
+      const mergedConfig = this.mergeConfig(moduleName, config, envConfig, language);
+
       // Erstelle Instanz
       const instance = new ModuleClass(mergedConfig);
       this.loadedModules.set(`${moduleName}-${Date.now()}`, instance);
@@ -107,10 +108,10 @@ class RendererModuleLoader {
   }
 
   /**
-   * Merge Modul-Config mit Environment-Config
+   * Merge Modul-Config mit Environment-Config und globaler Sprache
    */
-  mergeConfig(moduleName, config, envConfig) {
-    const merged = { ...config };
+  mergeConfig(moduleName, config, envConfig, language) {
+    const merged = { ...config, language };
 
     // Modul-spezifische Env-Mappings
     switch (moduleName) {
@@ -139,7 +140,7 @@ class RendererModuleLoader {
    */
   injectStyles(moduleName, css) {
     const styleId = `module-styles-${moduleName}`;
-    
+
     // Entferne alte Styles, falls vorhanden
     const existingStyle = document.getElementById(styleId);
     if (existingStyle) {

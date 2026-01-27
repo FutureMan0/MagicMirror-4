@@ -36,20 +36,36 @@
           </aside>
 
           <div class="config-main">
-            <!-- Preview (auf Desktop immer sichtbar, auf Mobile im Preview-Tab) -->
-            <div class="preview-section desktop-preview">
-              <h2 data-i18n="livePreview">Live Preview</h2>
-              <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
-                Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
-              <div id="preview-container-desktop" class="preview-container">
-                <div class="preview-grid" id="preview-grid-desktop">
-                  <!-- Preview wird hier gerendert -->
+            <!-- Klassisches Preview ODER Visueller Layout Editor -->
+            <div id="layout-view-container">
+              <!-- Klassisches Preview (optional sichtbar) -->
+              <div class="preview-section desktop-preview" id="classic-preview-desktop" style="display: none;">
+                <h2 data-i18n="livePreview">Live Preview</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
+                  Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
+                <div id="preview-container-desktop" class="preview-container">
+                  <div class="preview-grid" id="preview-grid-desktop">
+                    <!-- Preview wird hier gerendert -->
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Visueller Layout Editor (optional sichtbar) -->
+              <div class="preview-section desktop-preview" id="visual-editor-desktop" style="display: none;">
+                <h2 data-i18n="layoutEditor">Layout Editor</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
+                  Visueller Editor mit Drag & Drop und Resize-Funktionen.
+                  <br><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.
+                  <br><strong>Mobile:</strong> Tap auf Module für Quick-Actions.
+                </p>
+                <div id="visual-editor-container-desktop">
+                  <!-- Visual Editor wird hier initialisiert -->
                 </div>
               </div>
             </div>
 
             <!-- Module Settings -->
-            <div class="settings-section" id="settings-section">
+            <div class="settings-section" id="settings-section" style="margin-top: 30px;">
               <h2 data-i18n="moduleSettings">Modul-Einstellungen</h2>
               <p style="color: var(--text-secondary); margin-bottom: 15px;" data-i18n="selectModuleHint">Wähle ein Modul
                 links, um es zu konfigurieren.</p>
@@ -63,15 +79,31 @@
         </div>
       </section>
 
-      <!-- Tab 2: Preview (nur auf Mobile) -->
-      <section id="tab-preview" class="tab-content mobile-only">
-        <div class="preview-section">
-          <h2 data-i18n="livePreview">Live Preview</h2>
-          <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
-            Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
-          <div id="preview-container-mobile" class="preview-container">
-            <div class="preview-grid" id="preview-grid-mobile">
-              <!-- Preview wird hier gerendert -->
+      <!-- Tab 2: Preview/Layout (auf Mobile) -->
+      <section id="tab-layout" class="tab-content">
+        <div id="layout-view-container-mobile">
+          <!-- Klassisches Preview (optional sichtbar) -->
+          <div class="preview-section" id="classic-preview-mobile" style="display: none;">
+            <h2 data-i18n="livePreview">Live Preview</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
+              Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
+            <div id="preview-container-mobile" class="preview-container">
+              <div class="preview-grid" id="preview-grid-mobile">
+                <!-- Preview wird hier gerendert -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- Visueller Layout Editor (optional sichtbar) -->
+          <div class="preview-section" id="visual-editor-mobile" style="display: none;">
+            <h2 data-i18n="layoutEditor">Layout Editor</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
+              Visueller Editor mit Drag & Drop und Resize-Funktionen.
+              <br><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.
+              <br><strong>Mobile:</strong> Tap auf Module für Quick-Actions.
+            </p>
+            <div id="visual-editor-container-mobile">
+              <!-- Visual Editor wird hier initialisiert -->
             </div>
           </div>
         </div>
@@ -105,6 +137,14 @@
           </div>
 
           <div class="settings-group">
+            <h3 data-i18n="mirrorTheme">Mirror Theme</h3>
+            <div class="theme-picker" id="mirror-theme-picker">
+              <button data-mirror-theme="default" class="active" data-i18n="themeDefault">Default</button>
+              <button data-mirror-theme="cyberpunk" data-i18n="themeCyberpunk">Cyberpunk</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
             <h3 data-i18n="language">Sprache</h3>
             <select id="language-select">
               <option value="de">Deutsch</option>
@@ -112,17 +152,61 @@
             </select>
           </div>
 
+          <div class="settings-group">
+            <h3 data-i18n="gridSettings">Grid-Einstellungen</h3>
+            <div class="grid-settings-form">
+              <!-- Layout-Modus Auswahl -->
+              <div class="form-row" style="margin-bottom: 20px;">
+                <label style="display: flex; flex-direction: column;">
+                  <span style="margin-bottom: 8px; font-weight: 500;">Layout-Modus:</span>
+                  <select id="layout-mode" style="padding: 10px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px; font-size: 0.95rem;">
+                    <option value="classic">Klassisches Grid (Preview)</option>
+                    <option value="visual" selected>Visueller Layout-Manager</option>
+                  </select>
+                  <small style="color: var(--text-secondary); margin-top: 5px; font-size: 0.85rem;">
+                    Wähle, ob du das klassische Preview-Grid oder den neuen visuellen Editor verwenden möchtest.
+                  </small>
+                </label>
+              </div>
+              
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <label style="display: flex; flex-direction: column;">
+                  <span data-i18n="columns" style="margin-bottom: 5px;">Spalten:</span>
+                  <input type="number" id="grid-columns" min="1" max="10" value="3" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                </label>
+                <label style="display: flex; flex-direction: column;">
+                  <span data-i18n="rows" style="margin-bottom: 5px;">Zeilen:</span>
+                  <input type="number" id="grid-rows" min="1" max="10" value="3" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                </label>
+              </div>
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <label style="display: flex; flex-direction: column;">
+                  <span data-i18n="gap" style="margin-bottom: 5px;">Abstand (px):</span>
+                  <input type="number" id="grid-gap" min="0" max="50" value="12" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                </label>
+                <label style="display: flex; flex-direction: column;">
+                  <span data-i18n="padding" style="margin-bottom: 5px;">Padding (px):</span>
+                  <input type="number" id="grid-padding" min="0" max="50" value="12" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                </label>
+              </div>
+              <button id="save-grid-settings-btn" class="btn-primary" data-i18n="applyGridSettings">Grid-Einstellungen anwenden</button>
+            </div>
+          </div>
+
           <div class="settings-group" id="update-group">
-            <h3 data-i18n="update">System-Update</h3>
+            <h3 data-i18n="update">Update</h3>
             <div id="update-status">
-              <span id="update-message">Prüfe auf Updates...</span>
-              <button id="check-update-btn" class="btn-secondary" style="margin-left: 10px;">Jetzt prüfen</button>
+              <span id="update-message" data-i18n="checking">Prüfe auf Updates...</span>
+              <button id="check-update-btn" class="btn-secondary" style="margin-left: 10px;" data-i18n="checkNow">Jetzt
+                prüfen</button>
             </div>
             <div id="update-action" style="display: none; margin-top: 15px;">
               <div
                 style="background: rgba(0, 255, 255, 0.1); border: 1px solid var(--accent-cyan); padding: 15px; border-radius: 8px;">
-                <p style="margin-bottom: 15px;">Ein neues Update von GitHub ist verfügbar!</p>
-                <button id="execute-update-btn" class="btn-primary">Update jetzt installieren</button>
+                <p style="margin-bottom: 15px;" data-i18n="updateAvailableText">Ein neues Update von GitHub ist
+                  verfügbar!</p>
+                <button id="execute-update-btn" class="btn-primary" data-i18n="installUpdate">Update jetzt
+                  installieren</button>
               </div>
             </div>
           </div>
@@ -137,9 +221,9 @@
       <span class="icon">📦</span>
       <span data-i18n="modules">Module</span>
     </button>
-    <button data-tab="preview">
-      <span class="icon">👁️</span>
-      <span data-i18n="preview">Vorschau</span>
+    <button data-tab="layout">
+      <span class="icon">🎨</span>
+      <span data-i18n="layout">Layout</span>
     </button>
     <button data-tab="appstore">
       <span class="icon">🏪</span>
@@ -153,6 +237,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="i18n.js"></script>
+  <script src="visual-editor.js"></script>
   <script src="app.js"></script>
 </body>
 

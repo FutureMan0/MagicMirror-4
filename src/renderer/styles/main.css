@@ -6,6 +6,14 @@
   --accent-red: #FF4444;
   --accent-green: #44FF88;
   --font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Grid System Custom Properties (werden dynamisch von JS gesetzt) */
+  --grid-columns: 3;
+  --grid-rows: 3;
+  --grid-gap: 12px;
+  --grid-padding: 12px;
+  --grid-column-template: minmax(320px, 1fr) 1fr 1fr;
+  --grid-row-template: auto 1fr 1fr;
 }
 
 * {
@@ -31,12 +39,15 @@ body {
 
 .modules-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr;
+  /* Grid-Template wird dynamisch von JS über CSS Custom Properties gesetzt */
+  grid-template-columns: var(--grid-column-template, minmax(320px, 1fr) 1fr 1fr);
+  grid-template-rows: var(--grid-row-template, auto 1fr 1fr);
   width: 100%;
   height: 100%;
-  padding: 20px;
-  gap: 20px;
+  padding: var(--grid-padding, 12px);
+  gap: var(--grid-gap, 12px);
+  align-items: stretch;
+  box-sizing: border-box;
 }
 
 .modules-absolute {
@@ -55,6 +66,10 @@ body {
   background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
   transition: opacity 0.3s ease;
+  max-height: 100%;
+  overflow: auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .module-container:hover {
