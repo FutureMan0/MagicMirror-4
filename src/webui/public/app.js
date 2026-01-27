@@ -754,9 +754,11 @@ function renderAppStore() {
   const installedModules = currentConfig.modules || [];
 
   availableModules.forEach(module => {
+    const moduleInfo = module.info || {};
+    if (moduleInfo.hidden) return; // Skip hidden modules
+
     const isInstalled = installedModules.some(m => m.module === module.name);
     const moduleIndex = installedModules.findIndex(m => m.module === module.name);
-    const moduleInfo = module.info || {};
 
     const card = document.createElement('div');
     card.className = `appstore-card ${isInstalled ? 'installed' : ''}`;
@@ -767,7 +769,6 @@ function renderAppStore() {
       'weather': '🌤️',
       'untis': '📅',
       'spotify': '🎵',
-      'presence': '👤',
       'calendar': '📆',
       'news': '📰'
     };

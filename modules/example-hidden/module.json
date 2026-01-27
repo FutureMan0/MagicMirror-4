@@ -1,0 +1,7 @@
+{
+    "name": "example-hidden",
+    "displayName": "Example (Hidden)",
+    "version": "1.0.0",
+    "description": "This is an example module that is hidden from the Store UI.",
+    "hidden": true
+}

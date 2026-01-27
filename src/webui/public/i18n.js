@@ -2,7 +2,7 @@
 
 const translations = {
   de: {
-    appTitle: 'Magic Mirror',
+    appTitle: 'MagicMirror⁴',
     instance: 'Instanz:',
     modules: 'Module',
     preview: 'Vorschau',
@@ -31,7 +31,7 @@ const translations = {
     positionBottomRight: 'Unten Rechts'
   },
   en: {
-    appTitle: 'Magic Mirror',
+    appTitle: 'MagicMirror⁴',
     instance: 'Instance:',
     modules: 'Modules',
     preview: 'Preview',
@@ -105,7 +105,7 @@ function updatePageTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(element => {
     const key = element.getAttribute('data-i18n');
     const translation = t(key);
-    
+
     // Text-Inhalte aktualisieren
     if (element.tagName === 'INPUT' || element.tagName === 'BUTTON') {
       // Für Buttons/Inputs nur wenn kein Icon drin ist
@@ -118,7 +118,7 @@ function updatePageTranslations() {
       element.textContent = translation;
     }
   });
-  
+
   // HTML lang Attribut aktualisieren
   document.documentElement.lang = currentLanguage;
 }
@@ -129,7 +129,7 @@ function setLanguage(lang) {
     currentLanguage = lang;
     localStorage.setItem('language', lang);
     updatePageTranslations();
-    
+
     // Event für andere Scripts
     window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
   }
@@ -138,7 +138,7 @@ function setLanguage(lang) {
 // Initial-Setup
 document.addEventListener('DOMContentLoaded', () => {
   updatePageTranslations();
-  
+
   // Sprach-Selector Setup
   const languageSelect = document.getElementById('language-select');
   if (languageSelect) {

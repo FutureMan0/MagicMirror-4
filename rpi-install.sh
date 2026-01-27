@@ -10,7 +10,7 @@ BLUE='\033[0-34m'
 NC='\033[0m'
 
 echo -e "${BLUE}==============================================${NC}"
-echo -e "${BLUE}   MagicMirror4 Raspberry Pi Installer      ${NC}"
+echo -e "${BLUE}   MagicMirror⁴ Raspberry Pi Installer      ${NC}"
 echo -e "${BLUE}==============================================${NC}"
 
 # Check if running as root
@@ -42,7 +42,7 @@ if ! command -v node &> /dev/null; then
 fi
 
 # 4. Install Project Dependencies
-echo -e "${GREEN}[4/6] Installing MagicMirror4 dependencies...${NC}"
+echo -e "${GREEN}[4/6] Installing MagicMirror⁴ dependencies...${NC}"
 sudo -u $REAL_USER npm install
 
 # 4b. Setup .env file
@@ -66,7 +66,7 @@ if [ "$DISPLAY_COUNT" -eq 0 ]; then
     DISPLAY_COUNT=$(wlr-randr | grep -c "Enabled: yes" || echo "1")
 fi
 
-CHOICE=$(whiptail --title "MagicMirror4 Setup" --menu "Detected Displays: $DISPLAY_COUNT\nChoose your HDMI configuration:" 15 60 4 \
+CHOICE=$(whiptail --title "MagicMirror⁴ Setup" --menu "Detected Displays: $DISPLAY_COUNT\nChoose your HDMI configuration:" 15 60 4 \
 "1" "One Screen (HDMI-0 only)" \
 "2" "Two Screens (HDMI-0 and HDMI-1)" 3>&1 1>&2 2>&3)
 
@@ -165,3 +165,4 @@ echo -e "You can manage the processes with: ${BLUE}pm2 list${NC}"
 echo -e "View logs with: ${BLUE}pm2 logs${NC}"
 echo -e "Web Interface: ${BLUE}http://$(hostname -I | awk '{print $1}'):3000${NC}"
 echo -e "${BLUE}==============================================${NC}"
+

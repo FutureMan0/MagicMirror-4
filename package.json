@@ -1,8 +1,13 @@
 {
   "name": "magic-mirror-4",
   "version": "1.0.0",
-  "description": "Modulares Magic Mirror System mit WebUntis Integration",
+  "description": "Modular Magic Mirror System with Web interface, Multi-display support and Auto-update.",
   "main": "src/main/main.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FutureMan0/MagicMirror-4.git"
+  },
+  "homepage": "https://github.com/FutureMan0/MagicMirror-4#readme",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
@@ -32,8 +37,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.magicmirror.untis",
-    "productName": "Magic Mirror Untis",
+    "appId": "com.magicmirror.4",
+    "productName": "MagicMirror 4",
     "directories": {
       "output": "dist"
     },

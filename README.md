@@ -7,68 +7,77 @@
 
 ---
 
-## 💎 Die Vision
-**MagicMirror⁴** bricht mit dem alten Konzept schwerfälliger Konfigurationsdateien. Es ist das erste Smart-Mirror-System, das konsequent auf **Benutzerfreundlichkeit**, **Hardware-Power** und **Premium-Design** setzt. Entwickelt für Enthusiasten, die mehr von ihrem Spiegel erwarten als nur Text auf schwarzem Hintergrund.
+## 💎 The Vision
+**MagicMirror⁴** breaks away from the old concept of cumbersome configuration files. It is the first smart mirror system consistently designed for **user-friendliness**, **hardware power**, and **premium design**. Built for enthusiasts who expect more from their mirror than just text on a black background.
 
 ---
 
 ## 🔥 Key Features
 
-| Feature | Beschreibung | Der MM⁴ Vorteil |
+| Feature | Description | The MM⁴ Advantage |
 | :--- | :--- | :--- |
-| **Dual-Screen Engine** | Native Unterstützung für HDMI-0 & HDMI-1. | Steuere zwei Monitore unabhängig mit nur einem Pi. |
-| **Web-Config 2.0** | Vollständig interaktives Web-Interface. | Ändere Layouts via **Drag & Drop** live am Handy. |
-| **One-Click Update** | In-App Systemaktualisierung via GitHub. | Updates installieren sich per Knopfdruck selbstständig. |
-| **Next-Gen Design** | Glassmorphism & Canvas-Effekte. | Sieht aus wie ein High-End Produkt, nicht wie ein Skript. |
-| **Auto-Kiosk** | Vollautomatische Systemoptimierung. | Kein Programmieren nötig – der Installer macht alles. |
+| **Dual-Screen Engine** | Native support for HDMI-0 & HDMI-1. | Control two monitors independently with a single Pi. |
+| **Web-Config 2.0** | Fully interactive web interface. | Change layouts via **Drag & Drop** live from your phone. |
+| **One-Click Update** | In-app system updates via GitHub. | Updates install themselves automatically with one click. |
+| **Next-Gen Design** | Glassmorphism & Canvas effects. | Looks like a high-end product, not like a script. |
+| **Auto-Kiosk** | Fully automated system optimization. | No coding required – the installer handles everything. |
 
 ---
 
-## ⚡ Schnellstart (Raspberry Pi)
+## 🏗️ Plug & Play Module System
 
-MM⁴ ist in weniger als 5 Minuten einsatzbereit. Kopiere diesen "Magic-Command" in dein Terminal:
+MM⁴ uses a **Dynamic Module Loader**. Adding features is as easy as dropping a folder into the `modules/` directory:
+
+*   **Auto-Scan:** MM⁴ detects new folders in the `modules/` directory automatically.
+*   **Instant UI:** New modules appear immediately in the Web UI's "Store" for activation.
+*   **Clean Structure:** Each module is self-contained with its own logic, styles, and settings.
+
+---
+
+## ⚡ Quick Start (Raspberry Pi)
+
+MM⁴ is ready to go in less than 5 minutes. Copy this "Magic Command" into your terminal:
 
 ```bash
-# Repository klonen & Installer starten
-git clone https://github.com/DEIN_USER/MagicMirror4.git && cd MagicMirror4 && chmod +x rpi-install.sh && sudo ./rpi-install.sh
+# Clone repository & start installer
+git clone https://github.com/FutureMan0/MagicMirror-4.git && cd MagicMirror-4 && chmod +x rpi-install.sh && sudo ./rpi-install.sh
 ```
 
-### Was der Installer für dich tut:
-1.  **Full Update:** Aktualisiert dein System & installiert Node.js LTS.
-2.  **Hardware-Check:** Erkennt deine Monitore & konfiguriert die HDMI-Ports.
-3.  **Kiosk-Finish:** Versteckt den Mauszeiger, deaktiviert den Standby & optimiert die GPU.
-4.  **Autostart:** Richtet MM⁴ als Systemdienst ein (immer bereit nach Reboot).
+### What the installer does for you:
+1.  **Full Update:** Updates your system & installs Node.js LTS.
+2.  **Hardware Check:** Detects your monitors & configures the HDMI ports.
+3.  **Kiosk Finish:** Hides the mouse cursor, disables standby & optimizes the GPU.
+4.  **Autostart:** Sets up MM⁴ as a system service (always ready after reboot).
 
 ---
 
-## 🏪 Das Modul-Ökosystem
+## 🏪 The Module Ecosystem
 
-MM⁴ wächst mit deinen Bedürfnissen. Jedes Modul lässt sich über das Web-UI in Sekunden anpassen:
+MM⁴ grows with your needs. Every module can be customized in seconds via the Web UI:
 
-*   🕒 **Clock**: Modern, minimalistisch oder klassisch.
-*   🌤️ **Weather**: Atemberaubende Hintergrund-Animationen passend zum Wetter.
-*   📅 **WebUntis**: Deine Schulorganisation, perfekt visualisiert.
-*   🎵 **Spotify**: Streaming-Status mit Cover-Art & Echtzeit-Sync.
-*   👤 **Presence**: Reagiert auf dich durch Ultraschall- oder PIR-Sensoren.
+*   🕒 **Clock**: Modern, minimalist, or classic.
+*   🌤️ **Weather**: Stunning background animations matching the current weather.
+*   📅 **WebUntis**: Your school schedule, perfectly visualized.
+*   🎵 **Spotify**: Streaming status with cover art & real-time sync.
 
 ---
 
-## �️ Entwicklung & Testen
+## 🛠️ Development & Testing
 
-Du hast keinen Pi zur Hand? Kein Problem. MM⁴ läuft nativ auf Windows:
+Don't have a Pi on hand? No problem. MM⁴ runs natively on Windows:
 
 1.  `npm install`
-2.  `npm run dev` (Öffnet Electron mit Debug-Tools)
-3.  Web-Interface unter `http://localhost:3000` öffnen.
+2.  `npm run dev` (Opens Electron with debug tools)
+3.  Open Web Interface at `http://localhost:3000`.
 
 ---
 
-## 📄 Lizenz & Team
+## 📄 License & Team
 
-Hinter MagicMirror⁴ steht eine Vision von sauberem Code und perfektem Design. 
-Lizenziert unter der **MIT-Lizenz** – bereit für deine Ideen.
+Behind MagicMirror⁴ stands a vision of clean code and perfect design. 
+Licensed under the **MIT License** – ready for your ideas.
 
 ---
 <p align="center">
-  <b>Bringe deinen Spiegel zum Leben. Mit MagicMirror⁴.</b>
+  <b>Bring your mirror to life. With MagicMirror⁴.</b>
 </p>
