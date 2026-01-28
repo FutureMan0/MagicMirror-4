@@ -126,19 +126,39 @@ function startWebServer() {
   expressApp.post('/api/update/execute', async (req, res) => {
     try {
       const { exec } = require('child_process');
-      // Pull and reboot system (via PM2)
-      exec('git pull && npm install', (error, stdout, stderr) => {
-        if (error) {
-          return res.status(500).json({ error: error.message, details: stderr });
-        }
-        res.json({ success: true, log: stdout });
-
-        // Restart after a short delay
-        setTimeout(() => {
-          exec('pm2 restart all', (e) => {
-            if (e) console.error('Auto-Restart failed:', e);
+      
+      // Step 1: Stash local changes if any (prevents merge conflicts)
+      exec('git stash push -m "Auto-stashed before update"', (stashError, stashStdout, stashStderr) => {
+        const hasLocalChanges = !stashError && stashStdout.includes('Saved working directory');
+        
+        // Step 2: Pull latest changes and install dependencies
+        exec('git pull && npm install', (error, stdout, stderr) => {
+          if (error) {
+            return res.status(500).json({ 
+              error: error.message, 
+              details: stderr,
+              note: hasLocalChanges ? 'Local changes were stashed. Use "git stash list" to see them.' : ''
+            });
+          }
+          
+          let logMessage = stdout;
+          if (hasLocalChanges) {
+            logMessage += '\n\nNote: Local changes were automatically stashed. Use "git stash list" to review them.';
+          }
+          
+          res.json({ 
+            success: true, 
+            log: logMessage,
+            stashedChanges: hasLocalChanges
           });
-        }, 2000);
+
+          // Restart after a short delay
+          setTimeout(() => {
+            exec('pm2 restart all', (e) => {
+              if (e) console.error('Auto-Restart failed:', e);
+            });
+          }, 2000);
+        });
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
