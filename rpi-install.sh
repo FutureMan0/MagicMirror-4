@@ -197,6 +197,12 @@ EOF
 chmod +x "$INSTALL_DIR/scripts/rpi/mm-xsession.sh"
 chown $REAL_USER:$REAL_USER "$INSTALL_DIR/scripts/rpi/mm-xsession.sh"
 
+# Allow starting Xorg from a systemd service (otherwise Xorg.wrap blocks with "Only console users...")
+cat > /etc/X11/Xwrapper.config <<EOF
+allowed_users=anybody
+needs_root_rights=yes
+EOF
+
 cat > "/etc/systemd/system/mm-kiosk.service" <<EOF
 [Unit]
 Description=MagicMirror⁴ Kiosk (X11 + pm2-runtime)
@@ -209,9 +215,10 @@ Type=simple
 User=$REAL_USER
 WorkingDirectory=$INSTALL_DIR
 Environment=DISPLAY=:0
-Environment=XDG_RUNTIME_DIR=/run/user/%U
-ExecStartPre=/bin/mkdir -p /run/user/%U
-ExecStartPre=/bin/chown %u:%u /run/user/%U
+# Create a private runtime dir owned by the service user (avoids /run/user/<uid> issues)
+RuntimeDirectory=mm-kiosk
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/mm-kiosk
 # Bind to tty1 so X really appears there (otherwise you may only see a blinking cursor)
 TTYPath=/dev/tty1
 TTYReset=yes
