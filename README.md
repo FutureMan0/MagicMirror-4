@@ -64,6 +64,19 @@ This means Electron was started **without a running X server** (often happens wh
 
 **If you previously used `pm2 startup`:** the installer disables the `pm2-<user>` service so it won’t restart Electron headless anymore.
 
+### Updating an existing installation (without overwriting your setup)
+If `git pull` complains about local changes (e.g. `rpi-install.sh`):
+
+```bash
+cd MagicMirror-4
+git status
+git stash push -m "local changes"
+git pull
+git stash pop || true
+chmod +x rpi-install.sh
+sudo ./rpi-install.sh
+```
+
 ## 🏪 The Module Ecosystem
 
 MM⁴ grows with your needs. Every module can be customized in seconds via the Web UI:

@@ -20,7 +20,11 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Get the actual user (not root)
-REAL_USER=$SUDO_USER
+REAL_USER="${SUDO_USER:-$(logname 2>/dev/null || true)}"
+if [ -z "${REAL_USER:-}" ] || [ "$REAL_USER" = "root" ]; then
+  echo -e "${RED}Konnte den Ziel-User nicht bestimmen. Bitte starte mit: sudo ./rpi-install.sh${NC}"
+  exit 1
+fi
 USER_HOME=$(eval echo ~$REAL_USER)
 INSTALL_DIR=$(dirname "$(readlink -f "$0")")
 
@@ -33,12 +37,9 @@ if [ -d "$INSTALL_DIR/node_modules" ] || [ -f "$INSTALL_DIR/ecosystem.config.js"
 fi
 
 KEEP_ECOSYSTEM=0
+ASK_KEEP_ECOSYSTEM=0
 if [ "$EXISTING_INSTALL" -eq 1 ] && [ -f "$INSTALL_DIR/ecosystem.config.js" ]; then
-  if command -v whiptail >/dev/null 2>&1; then
-    if whiptail --title "MagicMirror⁴ Update" --yesno "Bestehende Installation erkannt.\n\nVorhandene ecosystem.config.js beibehalten?\n\nJa = Update ohne Neu-Konfiguration\nNein = Neu konfigurieren (Backup wird erstellt)" 15 70; then
-      KEEP_ECOSYSTEM=1
-    fi
-  fi
+  ASK_KEEP_ECOSYSTEM=1
 fi
 
 # 1. Update System
@@ -51,6 +52,13 @@ apt install -y \
   curl git build-essential whiptail \
   xserver-xorg x11-xserver-utils xinit openbox unclutter \
   libnss3 libasound2 libatk-adaptor libgdk-pixbuf2.0-0 libgtk-3-0 libgbm1
+
+# Ask update question only after whiptail is available
+if [ "$ASK_KEEP_ECOSYSTEM" -eq 1 ]; then
+  if whiptail --title "MagicMirror⁴ Update" --yesno "Bestehende Installation erkannt.\n\nVorhandene ecosystem.config.js beibehalten?\n\nJa = Update ohne Neu-Konfiguration\nNein = Neu konfigurieren (Backup wird erstellt)" 15 70; then
+    KEEP_ECOSYSTEM=1
+  fi
+fi
 
 # 3. Install Node.js (Latest LTS)
 echo -e "${GREEN}[3/7] Installing Node.js...${NC}"
