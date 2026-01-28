@@ -173,26 +173,46 @@ echo -e "${GREEN}[6/7] Setting up Kiosk Autostart (X11 + pm2-runtime)...${NC}"
 install -d "$INSTALL_DIR/scripts/rpi"
 cat > "$INSTALL_DIR/scripts/rpi/mm-xsession.sh" <<'EOF'
 #!/usr/bin/env bash
-set -euo pipefail
-exec >>"$HOME/.mm-xsession.log" 2>&1
+# MagicMirror⁴ X11 Session Script
+# Runs inside xinit; must stay alive as long as the session should run.
+
+LOG="$HOME/.mm-xsession.log"
+echo "=== MM⁴ Session starting $(date) ===" >> "$LOG"
+exec 2>>"$LOG"   # redirect stderr to log
+set -x            # trace commands to log
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$PROJECT_DIR"
+cd "$PROJECT_DIR" || exit 1
 
 export DISPLAY="${DISPLAY:-:0}"
 export NODE_ENV="${NODE_ENV:-production}"
 export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}"
 
-# Minimal WM (helps with focus/keyboard on some setups)
-openbox-session &
+# Wait until X is ready (max 10 seconds)
+for i in $(seq 1 20); do
+  xdpyinfo >/dev/null 2>&1 && break
+  sleep 0.5
+done
 
 # Kiosk tweaks (safe even if they fail)
-xset s off || true
-xset -dpms || true
-xset s noblank || true
+xset s off       2>/dev/null || true
+xset -dpms       2>/dev/null || true
+xset s noblank   2>/dev/null || true
+
+# Hide cursor after 0.1s idle
 unclutter -idle 0.1 -root &
 
-exec pm2-runtime start "$PROJECT_DIR/ecosystem.config.js" --update-env
+# Simple window manager (openbox without session wrapper – more stable)
+openbox &
+sleep 1
+
+# Run MagicMirror via pm2-runtime (foreground, keeps session alive)
+echo "Starting pm2-runtime..." >> "$LOG"
+pm2-runtime start "$PROJECT_DIR/ecosystem.config.js" --update-env 2>&1 | tee -a "$LOG"
+
+# If pm2-runtime exits, keep X alive for debugging (optional – can be removed)
+echo "pm2-runtime exited at $(date)" >> "$LOG"
+sleep infinity
 EOF
 chmod +x "$INSTALL_DIR/scripts/rpi/mm-xsession.sh"
 chown $REAL_USER:$REAL_USER "$INSTALL_DIR/scripts/rpi/mm-xsession.sh"
