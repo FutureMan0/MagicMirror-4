@@ -1,39 +1,48 @@
 {
     "name": "mmwave-presence",
     "displayName": "mmWave Presence",
-    "version": "1.0.0",
-    "description": "Präsenzerkennung mit 24GHz mmWave Sensor (XIAO). Schaltet das Display bei Erkennung ein.",
+    "version": "1.2.0",
+    "description": "Presence detection with 24GHz mmWave Sensor for XIAO (Seeed Studio). Serial UART @ 256000 baud.",
     "author": "Antigravity",
     "config": {
         "port": {
             "type": "string",
             "default": "/dev/ttyAMA0",
-            "description": "Serieller Port (z.B. /dev/ttyAMA0)"
+            "description": "UART Serial Port (e.g. /dev/ttyAMA0 for GPIO14/15)"
         },
         "baudRate": {
             "type": "number",
             "default": 256000,
-            "description": "Baudrate (Standard: 256000)"
+            "description": "Baud rate (default: 256000, can be changed via command)"
         },
         "sensitivity": {
             "type": "number",
             "default": 40,
-            "description": "Allgemeine Empfindlichkeit (0-100)"
+            "min": 0,
+            "max": 100,
+            "description": "Sensitivity for all distance gates (0-100)"
+        },
+        "maxDistanceGate": {
+            "type": "number",
+            "default": 8,
+            "min": 1,
+            "max": 8,
+            "description": "Maximum detection distance gate (1-8, each = 0.75m)"
         },
         "offDelay": {
             "type": "number",
             "default": 60,
-            "description": "Ausschaltverzögerung in Sekunden"
+            "description": "Display off delay in seconds after last presence"
         },
-        "checkInterval": {
-            "type": "number",
-            "default": 500,
-            "description": "Interval für Sensor-Abfrage (ms)"
+        "engineeringMode": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable engineering mode (shows energy values per distance gate)"
         },
         "hideUI": {
             "type": "boolean",
             "default": false,
-            "description": "UI ausblenden (Backend läuft weiter)"
+            "description": "Hide UI (backend continues running)"
         }
     }
 }

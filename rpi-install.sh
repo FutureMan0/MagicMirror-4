@@ -22,7 +22,7 @@ fi
 # Get the actual user (not root)
 REAL_USER="${SUDO_USER:-$(logname 2>/dev/null || true)}"
 if [ -z "${REAL_USER:-}" ] || [ "$REAL_USER" = "root" ]; then
-  echo -e "${RED}Konnte den Ziel-User nicht bestimmen. Bitte starte mit: sudo ./rpi-install.sh${NC}"
+  echo -e "${RED}Could not determine target user. Please run with: sudo ./rpi-install.sh${NC}"
   exit 1
 fi
 USER_HOME=$(eval echo ~$REAL_USER)
@@ -55,7 +55,7 @@ apt install -y \
 
 # Ask update question only after whiptail is available
 if [ "$ASK_KEEP_ECOSYSTEM" -eq 1 ]; then
-  if whiptail --title "MagicMirror⁴ Update" --yesno "Bestehende Installation erkannt.\n\nVorhandene ecosystem.config.js beibehalten?\n\nJa = Update ohne Neu-Konfiguration\nNein = Neu konfigurieren (Backup wird erstellt)" 15 70; then
+  if whiptail --title "MagicMirror⁴ Update" --yesno "Existing installation detected.\n\nKeep existing ecosystem.config.js?\n\nYes = Update without reconfiguration\nNo = Reconfigure (backup will be created)" 15 70; then
     KEEP_ECOSYSTEM=1
   fi
 fi
@@ -208,7 +208,7 @@ sleep 1
 
 # Run MagicMirror via pm2-runtime (foreground, keeps session alive)
 echo "Starting pm2-runtime..." >> "$LOG"
-pm2-runtime start "$PROJECT_DIR/ecosystem.config.js" --update-env 2>&1 | tee -a "$LOG"
+pm2-runtime start "$PROJECT_DIR/ecosystem.config.js" 2>&1 | tee -a "$LOG"
 
 # If pm2-runtime exits, keep X alive for debugging (optional – can be removed)
 echo "pm2-runtime exited at $(date)" >> "$LOG"

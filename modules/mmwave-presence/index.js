@@ -1,7 +1,7 @@
 class mmWavePresenceModule {
     constructor(config = {}) {
         this.config = {
-            language: config.language || 'de',
+            language: config.language || 'en',
             offDelay: config.offDelay || 60,
             sensitivity: config.sensitivity || 40,
             hideUI: config.hideUI || false,
@@ -16,16 +16,16 @@ class mmWavePresenceModule {
     }
 
     render() {
-        // Wenn UI versteckt werden soll, Backend läuft weiter aber keine Anzeige
+        // If UI should be hidden, backend continues running but no display
         if (this.config.hideUI) {
-            // Erstelle leeres, unsichtbares Container-Element
+            // Create empty, invisible container element
             this.container = document.createElement('div');
             this.container.style.display = 'none';
             this.container.style.width = '0';
             this.container.style.height = '0';
             this.container.style.opacity = '0';
             this.container.style.pointerEvents = 'none';
-            this.startUpdating(); // Backend-Kommunikation läuft weiter
+            this.startUpdating(); // Backend communication continues
             return this.container;
         }
         
@@ -73,7 +73,7 @@ class mmWavePresenceModule {
         } catch (error) {
             console.error('Presence: Update failed', error);
             const text = this.container.querySelector('.presence-text');
-            if (text) text.textContent = 'Offine';
+            if (text) text.textContent = 'Offline';
         }
     }
 
