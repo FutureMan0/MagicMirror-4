@@ -1,0 +1,39 @@
+{
+    "name": "mmwave-presence",
+    "displayName": "mmWave Presence",
+    "version": "1.0.0",
+    "description": "Präsenzerkennung mit 24GHz mmWave Sensor (XIAO). Schaltet das Display bei Erkennung ein.",
+    "author": "Antigravity",
+    "config": {
+        "port": {
+            "type": "string",
+            "default": "/dev/ttyAMA0",
+            "description": "Serieller Port (z.B. /dev/ttyAMA0)"
+        },
+        "baudRate": {
+            "type": "number",
+            "default": 256000,
+            "description": "Baudrate (Standard: 256000)"
+        },
+        "sensitivity": {
+            "type": "number",
+            "default": 40,
+            "description": "Allgemeine Empfindlichkeit (0-100)"
+        },
+        "offDelay": {
+            "type": "number",
+            "default": 60,
+            "description": "Ausschaltverzögerung in Sekunden"
+        },
+        "checkInterval": {
+            "type": "number",
+            "default": 500,
+            "description": "Interval für Sensor-Abfrage (ms)"
+        },
+        "hideUI": {
+            "type": "boolean",
+            "default": false,
+            "description": "UI ausblenden (Backend läuft weiter)"
+        }
+    }
+}

@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Tab-Navigation Setup
   setupTabNavigation();
+  setupModeButtons();
 
   // Settings-Button Setup
   setupSettingsButton();
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadModules();
   await loadConfig();
   renderModuleList();
-  
+
   // Warte kurz, bis initGridSettings gelaufen ist
   setTimeout(() => {
     const mode = localStorage.getItem('layoutMode') || 'visual';
@@ -132,7 +133,7 @@ function switchTab(tabName) {
   // Layout Editor aktualisieren/initialisieren wenn Layout-Tab geöffnet wird
   if (tabName === 'layout') {
     const mode = window.getLayoutMode ? window.getLayoutMode() : 'visual';
-    
+
     if (mode === 'visual') {
       // Initialisiere Editoren falls noch nicht geschehen
       if (!visualEditorDesktop && !visualEditorMobile) {
@@ -155,6 +156,45 @@ function switchTab(tabName) {
   // App Store aktualisieren wenn App Store-Tab geöffnet wird
   if (tabName === 'appstore') {
     renderAppStore();
+  }
+}
+
+
+
+// Mode Buttons (Classic vs Visual)
+function setupModeButtons() {
+  const visualBtn = document.getElementById('mode-btn-visual');
+  const classicBtn = document.getElementById('mode-btn-classic');
+
+  if (visualBtn) {
+    visualBtn.addEventListener('click', () => {
+      setLayoutMode('visual');
+      updateModeButtons('visual');
+    });
+  }
+
+  if (classicBtn) {
+    classicBtn.addEventListener('click', () => {
+      setLayoutMode('classic');
+      updateModeButtons('classic');
+    });
+  }
+
+  // Initialer Status
+  const currentMode = localStorage.getItem('layoutMode') || 'visual';
+  updateModeButtons(currentMode);
+}
+
+function updateModeButtons(mode) {
+  const visualBtn = document.getElementById('mode-btn-visual');
+  const classicBtn = document.getElementById('mode-btn-classic');
+  const viewTitle = document.getElementById('view-title');
+
+  if (visualBtn) visualBtn.classList.toggle('active', mode === 'visual');
+  if (classicBtn) classicBtn.classList.toggle('active', mode === 'classic');
+
+  if (viewTitle) {
+    viewTitle.textContent = mode === 'visual' ? 'Layout Editor' : 'Live Preview';
   }
 }
 
@@ -233,7 +273,7 @@ async function loadConfig() {
     renderModuleList(); // Aktualisiere auch die Modul-Liste
     renderPreview();
     updateMirrorThemeUI(); // Update UI for Mirror Theme
-    
+
     // Visual Editor aktualisieren falls vorhanden
     if (visualEditor) {
       visualEditor.updateConfig(currentConfig);
@@ -477,9 +517,9 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   html += '<form class="settings-form" id="module-settings-form">';
 
   // Position Type Selector
-  const posType = typeof moduleConfig.position === 'string' ? 'legacy' : 
-                  (moduleConfig.position?.column !== undefined ? 'grid' : 'absolute');
-  
+  const posType = typeof moduleConfig.position === 'string' ? 'legacy' :
+    (moduleConfig.position?.column !== undefined ? 'grid' : 'absolute');
+
   html += '<div class="form-group">';
   html += `<label data-i18n="positionType">${t('positionType') || 'Positions-Typ'}</label>`;
   html += '<select name="positionType" id="position-type-select">';
@@ -761,7 +801,7 @@ async function saveModuleSettings() {
   const formData = new FormData(form);
 
   const moduleConfig = currentConfig.modules[selectedModule];
-  
+
   // Position basierend auf Typ setzen
   const posType = formData.get('positionType');
   if (posType === 'legacy') {
@@ -1020,6 +1060,8 @@ function renderAppStore() {
     });
   });
 }
+
+
 
 async function addModule(moduleName) {
   if (!currentConfig) return;
@@ -1318,7 +1360,7 @@ function initGridSettings() {
       if (visualMobile) {
         visualMobile.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
       }
-      
+
       // Rendere Preview
       setTimeout(() => renderPreview(), 100);
     } else {
@@ -1337,7 +1379,7 @@ function initGridSettings() {
       if (visualMobile) {
         visualMobile.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
       }
-      
+
       // Initialisiere Visual Editor falls noch nicht geschehen
       setTimeout(() => {
         if (!visualEditorDesktop && !visualEditorMobile) {
@@ -1371,7 +1413,7 @@ function initGridSettings() {
   // Lade aktuelle Grid-Einstellungen
   function loadGridSettings() {
     if (!currentConfig) return;
-    
+
     const gridSettings = currentConfig.gridSettings || {
       columns: 3,
       rows: 3,
@@ -1425,7 +1467,7 @@ function initGridSettings() {
 
       if (response.ok) {
         await loadConfig();
-        
+
         // Aktualisiere die aktive Ansicht
         const currentMode = getLayoutMode();
         if (currentMode === 'classic') {
@@ -1438,7 +1480,7 @@ function initGridSettings() {
             visualEditorMobile.updateConfig(currentConfig);
           }
         }
-        
+
         showNotification('✓ Grid-Einstellungen gespeichert!', 'success');
       }
     } catch (error) {
@@ -1446,7 +1488,7 @@ function initGridSettings() {
       alert('Fehler beim Speichern der Grid-Einstellungen.');
     }
   });
-  
+
   // Hilfsfunktion: Aktualisiere die aktive Layout-Ansicht
   function refreshActiveLayoutView() {
     const mode = getLayoutMode();
@@ -1462,7 +1504,7 @@ function initGridSettings() {
       }
     }
   }
-  
+
   // Mache Funktionen global verfügbar
   window.applyLayoutMode = applyLayoutMode;
   window.getLayoutMode = getLayoutMode;
@@ -1476,7 +1518,7 @@ let visualEditorMobile = null;
 
 function initVisualEditor() {
   console.log('Initializing visual editor...');
-  
+
   if (!window.VisualGridEditor) {
     console.error('VisualGridEditor class not found');
     return;
@@ -1509,7 +1551,7 @@ function initVisualEditor() {
       }
     );
   }
-  
+
   // Setze visualEditor auf den passenden Editor
   visualEditor = visualEditorDesktop || visualEditorMobile;
 }
@@ -1524,7 +1566,7 @@ async function saveConfigAndRefresh() {
 
     if (response.ok) {
       await loadConfig();
-      
+
       // Aktualisiere beide Editoren falls vorhanden
       if (visualEditorDesktop) {
         visualEditorDesktop.updateConfig(currentConfig);
@@ -1532,7 +1574,7 @@ async function saveConfigAndRefresh() {
       if (visualEditorMobile) {
         visualEditorMobile.updateConfig(currentConfig);
       }
-      
+
       showNotification('✓ Layout gespeichert!', 'success');
     }
   } catch (error) {

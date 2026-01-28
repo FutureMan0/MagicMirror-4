@@ -7,8 +7,16 @@
     "rows": 3,
     "gap": 12,
     "padding": 12,
-    "columnSizes": ["minmax(320px, 1fr)", "1fr", "1fr"],
-    "rowSizes": ["auto", "1fr", "1fr"]
+    "columnSizes": [
+      "minmax(320px, 1fr)",
+      "1fr",
+      "1fr"
+    ],
+    "rowSizes": [
+      "auto",
+      "1fr",
+      "1fr"
+    ]
   },
   "modules": [
     {
@@ -78,6 +86,25 @@
       "config": {
         "timeout": 60000,
         "dimTimeout": 300000
+      }
+    },
+    {
+      "module": "mmwave-presence",
+      "position": {
+        "column": 1,
+        "row": 3,
+        "columnSpan": 1,
+        "rowSpan": 1,
+        "align": "start",
+        "justify": "start"
+      },
+      "enabled": true,
+      "config": {
+        "port": "/dev/ttyAMA0",
+        "baudRate": 256000,
+        "sensitivity": 50,
+        "offDelay": 120,
+        "hideUI": true
       }
     }
   ]

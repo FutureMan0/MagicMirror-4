@@ -1,0 +1,101 @@
+.module-mmwave-presence {
+    color: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 200px;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.module-mmwave-presence.detected {
+    background: rgba(0, 255, 127, 0.05);
+    border-color: rgba(0, 255, 127, 0.2);
+    box-shadow: 0 0 20px rgba(0, 255, 127, 0.1);
+}
+
+.presence-header {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.presence-status {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.presence-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #444;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.presence-indicator.active {
+    background: #00ff7f;
+    box-shadow: 0 0 10px #00ff7f, 0 0 20px rgba(0, 255, 127, 0.5);
+}
+
+.presence-indicator.active::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    border: 2px solid #00ff7f;
+    animation: ripple 2s infinite;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.presence-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.presence-details {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.text-on {
+    color: #00ff7f;
+    font-weight: bold;
+}
+
+.text-off {
+    color: #ff4b2b;
+    font-weight: bold;
+}

@@ -53,7 +53,9 @@ const translations = {
     visualEditorMode: 'Visueller Editor (Experimentell)',
     layoutModeHint: 'Wähle einen Modus. Der Visuelle Editor ist experimentell – bei Problemen bitte das Klassische Grid verwenden.',
     visualEditorDesc: 'Visueller Editor mit Drag & Drop und Resize-Funktionen.',
-    visualEditorNote: 'Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum Klassischen Grid wechseln.'
+    visualEditorNote: 'Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum Klassischen Grid wechseln.',
+    addModule: '+ Modul hinzufügen',
+    searchPlaceholder: 'Suchen...'
   },
   en: {
     appTitle: 'MagicMirror⁴',
@@ -107,7 +109,9 @@ const translations = {
     visualEditorMode: 'Visual Editor (Experimental)',
     layoutModeHint: 'Choose a mode. The Visual Editor is experimental – if you encounter issues, please use the Classic Grid.',
     visualEditorDesc: 'Visual Editor with Drag & Drop and Resize functions.',
-    visualEditorNote: 'Note: This feature is experimental. If you encounter issues, please switch to the Classic Grid.'
+    visualEditorNote: 'Note: This feature is experimental. If you encounter issues, please switch to the Classic Grid.',
+    addModule: '+ Add Module',
+    searchPlaceholder: 'Search...'
   }
 };
 

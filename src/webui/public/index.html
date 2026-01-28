@@ -27,104 +27,86 @@
 
     <!-- Tab-basierte Inhalte -->
     <main class="app-content">
-      <!-- Tab 1: Module & Preview (auf Desktop nebeneinander, auf Mobile nur Module) -->
+      <!-- Tab 1: Module & Layout (Main View) -->
       <section id="tab-modules" class="tab-content active">
-        <div class="config-layout">
-          <aside class="module-sidebar">
-            <h2 data-i18n="modules">Module</h2>
-            <div id="module-list"></div>
+        <div class="desktop-layout-container">
+          <!-- Sidebar: Modules & App Store (Desktop only or prominent on tablets) -->
+          <aside class="desktop-sidebar">
+            <div class="sidebar-header">
+              <h2 data-i18n="modules">Module</h2>
+            </div>
+
+            <div class="sidebar-content">
+              <!-- Installed Modules List -->
+              <div id="sidebar-installed" class="sidebar-pane active">
+                <div id="module-list"></div>
+              </div>
+            </div>
           </aside>
 
+          <!-- Main Content Area -->
           <div class="config-main">
-            <!-- Klassisches Preview ODER Visueller Layout Editor -->
-            <div id="layout-view-container">
-              <!-- Klassisches Preview (optional sichtbar) -->
-              <div class="preview-section desktop-preview" id="classic-preview-desktop" style="display: none;">
-                <h2 data-i18n="livePreview">Live Preview</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;"
-                  data-i18n="dragDropHint">
-                  Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
-                <div id="preview-container-desktop" class="preview-container">
-                  <div class="preview-grid" id="preview-grid-desktop">
-                    <!-- Preview wird hier gerendert -->
-                  </div>
-                </div>
-              </div>
-
-              <!-- Visueller Layout Editor (optional sichtbar) -->
-              <div class="preview-section desktop-preview" id="visual-editor-desktop" style="display: none;">
-                <h2 data-i18n="layoutEditor">Layout Editor</h2>
-                <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
-                  <p data-i18n="visualEditorDesc">Visueller Editor mit Drag & Drop und Resize-Funktionen.</p>
-                  <p><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.<br><strong>Mobile:</strong>
-                    Tap auf Module für Quick-Actions.</p>
-                  <p style="margin-top: 5px; color: var(--accent-orange); font-weight: 500;"
-                    data-i18n="visualEditorNote">Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum
-                    Klassischen Grid wechseln.</p>
-                </div>
-                <div id="visual-editor-container-desktop">
-                  <!-- Visual Editor wird hier initialisiert -->
+            <!-- Layout Editor / Preview Header -->
+            <div class="view-header">
+              <h2 id="view-title" data-i18n="layoutEditor">Layout Editor</h2>
+              <div class="view-actions">
+                <!-- Toggle between Classic and Visual (moved from settings for better UX) -->
+                <div class="mode-switch-inline">
+                  <button class="mode-btn active" id="mode-btn-visual">Visual</button>
+                  <button class="mode-btn" id="mode-btn-classic">Classic</button>
                 </div>
               </div>
             </div>
 
-            <!-- Module Settings -->
-            <div class="settings-section" id="settings-section" style="margin-top: 30px;">
-              <h2 data-i18n="moduleSettings">Modul-Einstellungen</h2>
-              <p style="color: var(--text-secondary); margin-bottom: 15px;" data-i18n="selectModuleHint">Wähle ein Modul
-                links, um es zu konfigurieren.</p>
-              <div id="module-settings"></div>
+            <!-- Visueller Layout Editor -->
+            <div class="preview-section" id="visual-editor-desktop">
+              <div id="visual-editor-container-desktop">
+                <!-- Visual Editor wird hier initialisiert -->
+              </div>
+            </div>
+
+            <!-- Klassisches Preview (Fallback/Alternativ) -->
+            <div class="preview-section" id="classic-preview-desktop" style="display: none;">
+              <div id="preview-container-desktop" class="preview-container">
+                <div class="preview-grid" id="preview-grid-desktop">
+                  <!-- Preview wird hier gerendert -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Module Settings (Contextual) -->
+            <div class="settings-section" id="settings-section">
+              <div class="settings-header">
+                <h2 data-i18n="moduleSettings">Modul-Einstellungen</h2>
+                <button class="close-settings-btn" id="close-settings-btn">&times;</button>
+              </div>
+              <div id="module-settings">
+                <p class="empty-state" data-i18n="selectModuleHint">Wähle ein Modul links, um es zu konfigurieren.</p>
+              </div>
               <div class="settings-actions" id="settings-actions" style="display: none;">
-                <button class="btn-primary" id="save-settings-btn" data-i18n="save">Speichern</button>
                 <button class="btn-secondary" id="cancel-settings-btn" data-i18n="cancel">Abbrechen</button>
+                <button class="btn-primary" id="save-settings-btn" data-i18n="save">Speichern</button>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Tab 2: Preview/Layout (auf Mobile) -->
+      <!-- Tab 2: Mobile Layout (Only visible on Mobile) -->
       <section id="tab-layout" class="tab-content">
         <div id="layout-view-container-mobile">
-          <!-- Klassisches Preview (optional sichtbar) -->
-          <div class="preview-section" id="classic-preview-mobile" style="display: none;">
-            <h2 data-i18n="livePreview">Live Preview</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
-              Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
-            <div id="preview-container-mobile" class="preview-container">
-              <div class="preview-grid" id="preview-grid-mobile">
-                <!-- Preview wird hier gerendert -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Visueller Layout Editor (optional sichtbar) -->
-          <div class="preview-section" id="visual-editor-mobile" style="display: none;">
-            <h2 data-i18n="layoutEditor">Layout Editor</h2>
-            <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
-              <p data-i18n="visualEditorDesc">Visueller Editor mit Drag & Drop und Resize-Funktionen.</p>
-              <p><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.<br><strong>Mobile:</strong> Tap
-                auf Module für Quick-Actions.</p>
-              <p style="margin-top: 5px; color: var(--accent-orange); font-weight: 500;" data-i18n="visualEditorNote">
-                Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum Klassischen Grid wechseln.</p>
-            </div>
-            <div id="visual-editor-container-mobile">
-              <!-- Visual Editor wird hier initialisiert -->
-            </div>
+          <!-- Identical to desktop but optimized for mobile flow -->
+          <div class="preview-section" id="visual-editor-mobile">
+            <div id="visual-editor-container-mobile"></div>
           </div>
         </div>
       </section>
 
-      <!-- Tab 3: App Store -->
+      <!-- Tab 3: Mobile App Store (Fallback for mobile) -->
       <section id="tab-appstore" class="tab-content">
         <div class="appstore-section">
-          <h2 data-i18n="appStore">Module App Store</h2>
-          <p style="color: var(--text-secondary); margin-bottom: 20px;">Füge Module zur aktuellen Instanz hinzu oder
-            entferne sie.</p>
-
-          <div class="appstore-grid" id="appstore-grid">
-            <!-- Module werden hier dynamisch geladen -->
-          </div>
+          <h2 data-i18n="appStore">Store</h2>
+          <div class="appstore-grid" id="appstore-grid"></div>
         </div>
       </section>
 
