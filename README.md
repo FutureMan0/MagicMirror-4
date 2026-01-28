@@ -52,6 +52,18 @@ git clone https://github.com/FutureMan0/MagicMirror-4.git && cd MagicMirror-4 &&
 
 ---
 
+## 🧯 Troubleshooting (Raspberry Pi / PM2)
+
+### Electron exits with: `Missing X server or $DISPLAY`
+This means Electron was started **without a running X server** (often happens when PM2 starts on boot before the graphical session exists).
+
+**Fix (recommended):** use the included installer (`rpi-install.sh`). It sets up a kiosk-style **X11 session via systemd** and starts MM⁴ *inside* that X session.
+
+**Logs:**
+- `journalctl -u mm-kiosk -f`
+
+**If you previously used `pm2 startup`:** the installer disables the `pm2-<user>` service so it won’t restart Electron headless anymore.
+
 ## 🏪 The Module Ecosystem
 
 MM⁴ grows with your needs. Every module can be customized in seconds via the Web UI:
