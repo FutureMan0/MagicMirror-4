@@ -47,17 +47,38 @@ module.exports = {
         };
 
         // Load config from context if possible
+        let moduleEnabled = false;
         try {
             if (context && context.ConfigManager) {
                 const configManager = new context.ConfigManager(context.instanceName);
                 const fullConfig = configManager.loadConfig();
                 const moduleConfig = fullConfig.modules.find(m => m.name === 'mmwave-presence');
-                if (moduleConfig && moduleConfig.config) {
-                    config = { ...config, ...moduleConfig.config };
+                
+                // Check if module is enabled in config
+                if (moduleConfig) {
+                    moduleEnabled = true;
+                    if (moduleConfig.config) {
+                        config = { ...config, ...moduleConfig.config };
+                    }
+                } else {
+                    // Module not in config - ensure display is ON and exit
+                    addDebugLog('INFO', 'Module not found in config, ensuring display is ON');
+                    if (process.platform === 'linux') {
+                        exec('vcgencmd display_power 1', (err) => {
+                            if (err) {
+                                addDebugLog('WARN', 'Could not turn display on via vcgencmd');
+                            } else {
+                                addDebugLog('INFO', 'Display turned ON (module disabled)');
+                            }
+                        });
+                    }
+                    return; // Don't start backend if module is not in config
                 }
             }
         } catch (e) {
             console.error("Presence Backend: Error loading config", e);
+            // If config loading fails, assume module should run (backward compatibility)
+            moduleEnabled = true;
         }
 
         let lastPresence = Date.now();
@@ -576,11 +597,57 @@ module.exports = {
             res.json({ success: true, message: 'Presence triggered manually' });
         });
 
-        // Cleanup on exit
-        process.on('SIGINT', () => {
+        // Disable presence detection API (turns display back on and stops monitoring)
+        app.post('/api/presence/disable', (req, res) => {
+            addDebugLog('INFO', 'Presence detection disabled by API request');
+            
+            // Turn display back on
+            setDisplay(true);
+            
+            // Close serial port if open
             if (serialPort && serialPort.isOpen) {
                 serialPort.close();
             }
+            
+            // Stop monitoring
+            connectionStatus = 'disabled';
+            
+            res.json({ success: true, message: 'Presence detection disabled, display turned on' });
+        });
+
+        // Force display ON API (useful when module is removed)
+        app.post('/api/presence/display-on', (req, res) => {
+            addDebugLog('INFO', 'Display forced ON by API request');
+            setDisplay(true);
+            res.json({ success: true, message: 'Display turned on' });
+        });
+
+        // Cleanup function - ensures display is turned on when module stops
+        const cleanup = () => {
+            addDebugLog('INFO', 'Cleaning up presence module...');
+            
+            // Always turn display back on when module stops
+            if (!displayPower) {
+                addDebugLog('INFO', 'Turning display back ON before module shutdown');
+                displayPower = false; // Reset flag so setDisplay actually turns it on
+                setDisplay(true);
+            }
+            
+            // Close serial port
+            if (serialPort && serialPort.isOpen) {
+                serialPort.close();
+            }
+        };
+
+        // Cleanup on various exit signals
+        process.on('SIGINT', cleanup);
+        process.on('SIGTERM', cleanup);
+        process.on('exit', cleanup);
+        
+        // Also cleanup on uncaught exceptions
+        process.on('uncaughtException', (err) => {
+            addDebugLog('ERROR', 'Uncaught exception', err.message);
+            cleanup();
         });
     }
 };
