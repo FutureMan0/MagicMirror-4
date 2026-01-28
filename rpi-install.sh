@@ -174,6 +174,7 @@ install -d "$INSTALL_DIR/scripts/rpi"
 cat > "$INSTALL_DIR/scripts/rpi/mm-xsession.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+exec >>"$HOME/.mm-xsession.log" 2>&1
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$PROJECT_DIR"
@@ -208,6 +209,17 @@ Type=simple
 User=$REAL_USER
 WorkingDirectory=$INSTALL_DIR
 Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/%U
+ExecStartPre=/bin/mkdir -p /run/user/%U
+ExecStartPre=/bin/chown %u:%u /run/user/%U
+# Bind to tty1 so X really appears there (otherwise you may only see a blinking cursor)
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
 ExecStart=/usr/bin/xinit $INSTALL_DIR/scripts/rpi/mm-xsession.sh -- :0 vt1 -nolisten tcp
 Restart=always
 RestartSec=3
@@ -224,6 +236,7 @@ systemctl disable --now "pm2-$REAL_USER" >/dev/null 2>&1 || true
 
 systemctl disable --now getty@tty1.service >/dev/null 2>&1 || true
 systemctl enable --now mm-kiosk.service
+systemctl restart mm-kiosk.service || true
 
 # Mark Directory as safe for Git (prevents issues with user switching)
 sudo -u $REAL_USER git config --global --add safe.directory "$INSTALL_DIR"
