@@ -17,7 +17,8 @@
 | Feature | Description | The MM⁴ Advantage |
 | :--- | :--- | :--- |
 | **Dual-Screen Engine** | Native support for HDMI-0 & HDMI-1. | Control two monitors independently with a single Pi. |
-| **Web-Config 2.0** | Fully interactive web interface. | Change layouts via **Drag & Drop** live from your phone. |
+| **Web-Config 2.0** | Fully interactive web interface. | Change layouts via Drag & Drop live from your phone. |
+| **Visual Editor** | **Experimental** layout manager. | Move and resize modules freely in a visual canvas. |
 | **One-Click Update** | In-app system updates via GitHub. | Updates install themselves automatically with one click. |
 | **Next-Gen Design** | Glassmorphism & Canvas effects. | Looks like a high-end product, not like a script. |
 | **Auto-Kiosk** | Fully automated system optimization. | No coding required – the installer handles everything. |
@@ -59,6 +60,15 @@ MM⁴ grows with your needs. Every module can be customized in seconds via the W
 *   🌤️ **Weather**: Stunning background animations matching the current weather.
 *   📅 **WebUntis**: Your school schedule, perfectly visualized.
 *   🎵 **Spotify**: Streaming status with cover art & real-time sync.
+
+---
+
+## ⚠️ Note: Visual Editor (Experimental)
+
+The new **Visual Editor** allows for free positioning and resizing of modules. Please note:
+*   **Experimental Status:** This feature is currently in preview. 
+*   **Feedback:** If you encounter layout issues, please switch back to the **Classic Grid** in the Web UI settings.
+*   **Mobile Info:** While it works on mobile, a tablet or desktop is recommended for complex layout changes.
 
 ---
 

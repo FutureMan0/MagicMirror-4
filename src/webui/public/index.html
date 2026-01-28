@@ -41,7 +41,8 @@
               <!-- Klassisches Preview (optional sichtbar) -->
               <div class="preview-section desktop-preview" id="classic-preview-desktop" style="display: none;">
                 <h2 data-i18n="livePreview">Live Preview</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;" data-i18n="dragDropHint">
+                <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;"
+                  data-i18n="dragDropHint">
                   Ziehe Module aus der Liste auf die gewünschte Position im Grid.</p>
                 <div id="preview-container-desktop" class="preview-container">
                   <div class="preview-grid" id="preview-grid-desktop">
@@ -49,15 +50,18 @@
                   </div>
                 </div>
               </div>
-              
+
               <!-- Visueller Layout Editor (optional sichtbar) -->
               <div class="preview-section desktop-preview" id="visual-editor-desktop" style="display: none;">
                 <h2 data-i18n="layoutEditor">Layout Editor</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
-                  Visueller Editor mit Drag & Drop und Resize-Funktionen.
-                  <br><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.
-                  <br><strong>Mobile:</strong> Tap auf Module für Quick-Actions.
-                </p>
+                <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
+                  <p data-i18n="visualEditorDesc">Visueller Editor mit Drag & Drop und Resize-Funktionen.</p>
+                  <p><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.<br><strong>Mobile:</strong>
+                    Tap auf Module für Quick-Actions.</p>
+                  <p style="margin-top: 5px; color: var(--accent-orange); font-weight: 500;"
+                    data-i18n="visualEditorNote">Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum
+                    Klassischen Grid wechseln.</p>
+                </div>
                 <div id="visual-editor-container-desktop">
                   <!-- Visual Editor wird hier initialisiert -->
                 </div>
@@ -93,15 +97,17 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Visueller Layout Editor (optional sichtbar) -->
           <div class="preview-section" id="visual-editor-mobile" style="display: none;">
             <h2 data-i18n="layoutEditor">Layout Editor</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
-              Visueller Editor mit Drag & Drop und Resize-Funktionen.
-              <br><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.
-              <br><strong>Mobile:</strong> Tap auf Module für Quick-Actions.
-            </p>
+            <div style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.9rem;">
+              <p data-i18n="visualEditorDesc">Visueller Editor mit Drag & Drop und Resize-Funktionen.</p>
+              <p><strong>Desktop/iPad:</strong> Ziehe Module und nutze Resize-Handles.<br><strong>Mobile:</strong> Tap
+                auf Module für Quick-Actions.</p>
+              <p style="margin-top: 5px; color: var(--accent-orange); font-weight: 500;" data-i18n="visualEditorNote">
+                Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum Klassischen Grid wechseln.</p>
+            </div>
             <div id="visual-editor-container-mobile">
               <!-- Visual Editor wird hier initialisiert -->
             </div>
@@ -158,38 +164,49 @@
               <!-- Layout-Modus Auswahl -->
               <div class="form-row" style="margin-bottom: 20px;">
                 <label style="display: flex; flex-direction: column;">
-                  <span style="margin-bottom: 8px; font-weight: 500;">Layout-Modus:</span>
-                  <select id="layout-mode" style="padding: 10px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px; font-size: 0.95rem;">
-                    <option value="classic">Klassisches Grid (Preview)</option>
-                    <option value="visual" selected>Visueller Layout-Manager</option>
+                  <span style="margin-bottom: 8px; font-weight: 500;" data-i18n="layoutMode">Layout-Modus:</span>
+                  <select id="layout-mode"
+                    style="padding: 10px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px; font-size: 0.95rem;">
+                    <option value="classic" data-i18n="classicGridMode">Klassisches Grid (Vorschau)</option>
+                    <option value="visual" selected data-i18n="visualEditorMode">Visueller Editor (Experimentell)
+                    </option>
                   </select>
-                  <small style="color: var(--text-secondary); margin-top: 5px; font-size: 0.85rem;">
-                    Wähle, ob du das klassische Preview-Grid oder den neuen visuellen Editor verwenden möchtest.
+                  <small style="color: var(--text-secondary); margin-top: 5px; font-size: 0.85rem;"
+                    data-i18n="layoutModeHint">
+                    Wähle einen Modus. Der Visuelle Editor ist experimentell – bei Problemen bitte das Klassische Grid
+                    verwenden.
                   </small>
                 </label>
               </div>
-              
-              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+
+              <div class="form-row"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                 <label style="display: flex; flex-direction: column;">
                   <span data-i18n="columns" style="margin-bottom: 5px;">Spalten:</span>
-                  <input type="number" id="grid-columns" min="1" max="10" value="3" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                  <input type="number" id="grid-columns" min="1" max="10" value="3"
+                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
                 </label>
                 <label style="display: flex; flex-direction: column;">
                   <span data-i18n="rows" style="margin-bottom: 5px;">Zeilen:</span>
-                  <input type="number" id="grid-rows" min="1" max="10" value="3" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                  <input type="number" id="grid-rows" min="1" max="10" value="3"
+                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
                 </label>
               </div>
-              <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+              <div class="form-row"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                 <label style="display: flex; flex-direction: column;">
                   <span data-i18n="gap" style="margin-bottom: 5px;">Abstand (px):</span>
-                  <input type="number" id="grid-gap" min="0" max="50" value="12" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                  <input type="number" id="grid-gap" min="0" max="50" value="12"
+                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
                 </label>
                 <label style="display: flex; flex-direction: column;">
                   <span data-i18n="padding" style="margin-bottom: 5px;">Padding (px):</span>
-                  <input type="number" id="grid-padding" min="0" max="50" value="12" style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
+                  <input type="number" id="grid-padding" min="0" max="50" value="12"
+                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
                 </label>
               </div>
-              <button id="save-grid-settings-btn" class="btn-primary" data-i18n="applyGridSettings">Grid-Einstellungen anwenden</button>
+              <button id="save-grid-settings-btn" class="btn-primary" data-i18n="applyGridSettings">Grid-Einstellungen
+                anwenden</button>
             </div>
           </div>
 
