@@ -53,6 +53,13 @@ apt install -y \
   xserver-xorg x11-xserver-utils xinit openbox unclutter \
   libnss3 libasound2 libatk-adaptor libgdk-pixbuf2.0-0 libgtk-3-0 libgbm1
 
+# Install Emoji fonts (try multiple packages as availability varies)
+echo -e "${GREEN}Installing Emoji fonts...${NC}"
+apt install -y fonts-noto-color-emoji 2>/dev/null || \
+apt install -y fonts-noto-emoji 2>/dev/null || \
+apt install -y fonts-emojione 2>/dev/null || \
+echo -e "${YELLOW}Warning: Could not install emoji fonts. Emojis may not display correctly.${NC}"
+
 # Ask update question only after whiptail is available
 if [ "$ASK_KEEP_ECOSYSTEM" -eq 1 ]; then
   if whiptail --title "MagicMirror⁴ Update" --yesno "Existing installation detected.\n\nKeep existing ecosystem.config.js?\n\nYes = Update without reconfiguration\nNo = Reconfigure (backup will be created)" 15 70; then

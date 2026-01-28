@@ -20,6 +20,11 @@
   font-size: 4.5rem;
   display: inline-block;
   flex-shrink: 0;
+  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-feature-settings: "liga", "kern";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .weather-temp-container {
@@ -61,6 +66,9 @@
   font-size: 1.2rem;
   opacity: 0.6;
   margin-bottom: 2px;
+  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-feature-settings: "liga", "kern";
+  text-rendering: optimizeLegibility;
 }
 
 .detail-content {
@@ -110,6 +118,9 @@
 .sun-icon {
   font-size: 1rem;
   opacity: 0.6;
+  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-feature-settings: "liga", "kern";
+  text-rendering: optimizeLegibility;
 }
 
 .sun-time-content {
@@ -145,6 +156,9 @@
 .forecast-icon {
   font-size: 1.3rem;
   display: inline-block;
+  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-feature-settings: "liga", "kern";
+  text-rendering: optimizeLegibility;
 }
 
 .weather-separator {
@@ -231,6 +245,9 @@
 }
 
 .forecast-rain {
+  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-feature-settings: "liga", "kern";
+  text-rendering: optimizeLegibility;
   font-size: 0.7rem;
   color: var(--text-secondary);
   min-width: 45px;
