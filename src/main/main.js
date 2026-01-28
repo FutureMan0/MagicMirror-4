@@ -127,37 +127,54 @@ function startWebServer() {
     try {
       const { exec } = require('child_process');
       
+      // Get project directory (two levels up from src/main/main.js)
+      const projectDir = path.join(__dirname, '../..');
+      
+      // Get current user (not root)
+      const currentUser = process.env.USER || process.env.SUDO_USER || 'pi';
+      
       // Step 1: Stash local changes if any (prevents merge conflicts)
-      exec('git stash push -m "Auto-stashed before update"', (stashError, stashStdout, stashStderr) => {
+      exec(`cd "${projectDir}" && git stash push -m "Auto-stashed before update"`, (stashError, stashStdout, stashStderr) => {
         const hasLocalChanges = !stashError && stashStdout.includes('Saved working directory');
         
-        // Step 2: Pull latest changes and install dependencies
-        exec('git pull && npm install', (error, stdout, stderr) => {
-          if (error) {
+        // Step 2: Pull latest changes
+        exec(`cd "${projectDir}" && git pull`, (pullError, pullStdout, pullStderr) => {
+          if (pullError) {
             return res.status(500).json({ 
-              error: error.message, 
-              details: stderr,
+              error: pullError.message, 
+              details: pullStderr,
               note: hasLocalChanges ? 'Local changes were stashed. Use "git stash list" to see them.' : ''
             });
           }
           
-          let logMessage = stdout;
-          if (hasLocalChanges) {
-            logMessage += '\n\nNote: Local changes were automatically stashed. Use "git stash list" to review them.';
-          }
-          
-          res.json({ 
-            success: true, 
-            log: logMessage,
-            stashedChanges: hasLocalChanges
-          });
-
-          // Restart after a short delay
-          setTimeout(() => {
-            exec('pm2 restart all', (e) => {
-              if (e) console.error('Auto-Restart failed:', e);
+          // Step 3: Install dependencies (as the correct user, not root)
+          exec(`cd "${projectDir}" && sudo -u ${currentUser} npm install`, (npmError, npmStdout, npmStderr) => {
+            if (npmError) {
+              return res.status(500).json({ 
+                error: npmError.message, 
+                details: npmStderr,
+                note: 'Git pull succeeded but npm install failed. Try running manually: cd ~/MagicMirror-4 && npm install'
+              });
+            }
+            
+            let logMessage = pullStdout + '\n\n' + npmStdout;
+            if (hasLocalChanges) {
+              logMessage += '\n\nNote: Local changes were automatically stashed. Use "git stash list" to review them.';
+            }
+            
+            res.json({ 
+              success: true, 
+              log: logMessage,
+              stashedChanges: hasLocalChanges
             });
-          }, 2000);
+
+            // Restart after a short delay
+            setTimeout(() => {
+              exec('pm2 restart all', (e) => {
+                if (e) console.error('Auto-Restart failed:', e);
+              });
+            }, 2000);
+          });
         });
       });
     } catch (error) {
