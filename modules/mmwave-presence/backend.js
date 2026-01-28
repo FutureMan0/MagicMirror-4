@@ -1,4 +1,5 @@
 const { exec } = require('child_process');
+const fs = require('fs');
 let SerialPort = null;
 let ReadlineParser = null;
 
@@ -11,6 +12,23 @@ try {
     console.warn('Presence Backend: serialport not available. Install with: npm install serialport');
 }
 
+// Debug logging
+let debugLog = [];
+const MAX_DEBUG_LOG = 100;
+const addDebugLog = (level, message, data = null) => {
+    const entry = {
+        timestamp: new Date().toISOString(),
+        level,
+        message,
+        data
+    };
+    debugLog.push(entry);
+    if (debugLog.length > MAX_DEBUG_LOG) {
+        debugLog.shift();
+    }
+    console.log(`[Presence ${level}] ${message}`, data || '');
+};
+
 /**
  * mmWave Presence Sensor Backend
  * 24GHz mmWave Sensor for XIAO (Seeed Studio)
@@ -20,7 +38,7 @@ try {
 module.exports = {
     registerRoutes: (app, context) => {
         let config = {
-            port: '/dev/ttyAMA0',      // UART port (GPIO14/15)
+            port: '/dev/ttyAMA0',      // UART port (GPIO14/15) - will auto-detect ttyAMA1 if needed
             baudRate: 256000,          // Default baudrate (can be changed via command)
             sensitivity: 40,            // Motion/Static sensitivity (0-100)
             maxDistanceGate: 8,         // Maximum detection distance gate (1-8, each = 0.75m)
@@ -47,6 +65,10 @@ module.exports = {
         let displayPower = true;
         let serialPort = null;
         let buffer = Buffer.alloc(0);
+        let connectionStatus = 'disconnected';
+        let lastError = null;
+        let bytesReceived = 0;
+        let framesReceived = 0;
 
         // Protocol constants (from documentation)
         const FRAME_HEADER = Buffer.from([0xF4, 0xF3, 0xF2, 0xF1]);
@@ -264,9 +286,11 @@ module.exports = {
 
                 // Validate frame tail
                 if (tail.equals(FRAME_TAIL)) {
+                    framesReceived++;
+                    addDebugLog('DEBUG', `Valid frame received (${framesReceived} total)`, frame.slice(0, 20).toString('hex'));
                     parseFrame(frame);
                 } else {
-                    console.warn('Presence: Invalid frame tail');
+                    addDebugLog('WARN', 'Invalid frame tail', { expected: FRAME_TAIL.toString('hex'), got: tail.toString('hex') });
                 }
 
                 // Remove processed frame from buffer
@@ -275,20 +299,113 @@ module.exports = {
         };
 
         /**
+         * Find available serial ports
+         */
+        const findAvailablePorts = (callback) => {
+            if (!SerialPort) {
+                callback([]);
+                return;
+            }
+
+            SerialPort.list().then((ports) => {
+                const availablePorts = ports
+                    .filter(port => port.path.startsWith('/dev/tty'))
+                    .map(port => ({
+                        path: port.path,
+                        manufacturer: port.manufacturer || 'Unknown',
+                        pnpId: port.pnpId || ''
+                    }));
+                callback(availablePorts);
+            }).catch((err) => {
+                addDebugLog('ERROR', 'Failed to list serial ports', err.message);
+                callback([]);
+            });
+        };
+
+        /**
+         * Check if port exists
+         */
+        const checkPortExists = (portPath) => {
+            try {
+                return fs.existsSync(portPath);
+            } catch (e) {
+                return false;
+            }
+        };
+
+        /**
          * Start serial communication
          */
         const startSerial = () => {
             if (!SerialPort) {
-                console.error('Presence: serialport library not available. Install with: npm install serialport');
+                addDebugLog('ERROR', 'serialport library not available. Install with: npm install serialport');
+                connectionStatus = 'error';
+                lastError = 'serialport library not installed';
                 return;
             }
 
             if (process.platform !== 'linux') {
-                console.warn('Presence Backend: Not running on Linux. Hardware sensor disabled.');
+                addDebugLog('WARN', 'Not running on Linux. Hardware sensor disabled.');
+                connectionStatus = 'disabled';
                 return;
             }
 
-            console.log(`Presence: Opening sensor on ${config.port} at ${config.baudRate} baud...`);
+            // Check if port exists, try alternatives if not
+            if (!checkPortExists(config.port)) {
+                addDebugLog('WARN', `Serial port ${config.port} does not exist, trying alternatives...`);
+                
+                // Try common alternatives
+                const alternatives = ['/dev/ttyAMA1', '/dev/ttyS0', '/dev/ttyUSB0'];
+                let foundAlternative = false;
+                
+                for (const altPort of alternatives) {
+                    if (checkPortExists(altPort)) {
+                        addDebugLog('INFO', `Found alternative port: ${altPort}, using it instead`);
+                        config.port = altPort;
+                        foundAlternative = true;
+                        break;
+                    }
+                }
+                
+                if (!foundAlternative) {
+                    connectionStatus = 'error';
+                    lastError = `Port ${config.port} not found and no alternatives available`;
+                    
+                    // Check kernel command line for UART disable
+                    const kernelCmdline = fs.readFileSync('/proc/cmdline', 'utf8');
+                    const uartDisabled = kernelCmdline.includes('8250.nr_uarts=0');
+                    
+                    // Try to find any available ports
+                    findAvailablePorts((ports) => {
+                        if (ports.length > 0) {
+                            addDebugLog('INFO', `Found ${ports.length} available serial port(s):`, ports.map(p => p.path).join(', '));
+                            addDebugLog('INFO', `Try setting config.port to: ${ports[0].path}`);
+                            lastError = `Port ${config.port} not found. Available: ${ports.map(p => p.path).join(', ')}`;
+                        } else {
+                            addDebugLog('ERROR', 'No serial ports found. UART is disabled.');
+                            if (uartDisabled) {
+                                addDebugLog('INFO', 'UART is disabled in kernel (8250.nr_uarts=0)');
+                                addDebugLog('INFO', 'To enable UART for mmWave sensor:');
+                                addDebugLog('INFO', '1. Edit: sudo nano /boot/firmware/cmdline.txt');
+                                addDebugLog('INFO', '2. Remove "8250.nr_uarts=0" from the line');
+                                addDebugLog('INFO', '3. Add to /boot/firmware/config.txt: enable_uart=1');
+                                addDebugLog('INFO', '4. Reboot: sudo reboot');
+                                lastError = 'UART disabled (8250.nr_uarts=0). See debug log for instructions.';
+                            } else {
+                                addDebugLog('INFO', 'Enable UART: sudo raspi-config -> Interface Options -> Serial Port');
+                                addDebugLog('INFO', 'Or add to /boot/firmware/config.txt: enable_uart=1');
+                            }
+                        }
+                    });
+                    
+                    setTimeout(() => startSerial(), 10000); // Retry after 10 seconds
+                    return;
+                }
+            }
+
+            addDebugLog('INFO', `Attempting to open ${config.port} at ${config.baudRate} baud`);
+            connectionStatus = 'connecting';
+            lastError = null;
 
             try {
                 serialPort = new SerialPort({
@@ -296,12 +413,17 @@ module.exports = {
                     baudRate: config.baudRate,
                     dataBits: 8,
                     stopBits: 1,
-                    parity: 'none'
+                    parity: 'none',
+                    autoOpen: false
                 });
 
                 serialPort.on('open', () => {
-                    console.log(`Presence: Serial port ${config.port} opened successfully`);
+                    addDebugLog('SUCCESS', `Serial port ${config.port} opened successfully`);
+                    connectionStatus = 'connected';
+                    lastError = null;
                     buffer = Buffer.alloc(0);
+                    bytesReceived = 0;
+                    framesReceived = 0;
 
                     // Configure sensor after connection
                     setTimeout(() => {
@@ -310,11 +432,15 @@ module.exports = {
                 });
 
                 serialPort.on('data', (data) => {
+                    bytesReceived += data.length;
+                    addDebugLog('DEBUG', `Received ${data.length} bytes (total: ${bytesReceived})`, data.slice(0, 16).toString('hex'));
                     processData(data);
                 });
 
                 serialPort.on('error', (err) => {
-                    console.error(`Presence: Serial port error: ${err.message}`);
+                    addDebugLog('ERROR', `Serial port error: ${err.message}`, err);
+                    connectionStatus = 'error';
+                    lastError = err.message;
                     setTimeout(() => {
                         if (serialPort && serialPort.isOpen) {
                             serialPort.close();
@@ -324,14 +450,27 @@ module.exports = {
                 });
 
                 serialPort.on('close', () => {
-                    console.log('Presence: Serial port closed');
+                    addDebugLog('WARN', 'Serial port closed');
+                    connectionStatus = 'disconnected';
                     setTimeout(() => {
                         startSerial(); // Reconnect
                     }, 5000);
                 });
 
+                // Open the port
+                serialPort.open((err) => {
+                    if (err) {
+                        addDebugLog('ERROR', `Failed to open serial port: ${err.message}`, err);
+                        connectionStatus = 'error';
+                        lastError = err.message;
+                        setTimeout(() => startSerial(), 5000);
+                    }
+                });
+
             } catch (err) {
-                console.error(`Presence: Failed to open serial port ${config.port}:`, err.message);
+                addDebugLog('ERROR', `Failed to create serial port: ${err.message}`, err);
+                connectionStatus = 'error';
+                lastError = err.message;
                 setTimeout(() => startSerial(), 5000); // Retry
             }
         };
@@ -356,13 +495,76 @@ module.exports = {
                 lastPresence: lastPresence,
                 displayOn: displayPower,
                 secondsSincePresence: Math.floor((Date.now() - lastPresence) / 1000),
+                connectionStatus: connectionStatus,
                 port: config.port,
+                portExists: checkPortExists(config.port),
                 baudRate: config.baudRate,
+                isConnected: serialPort && serialPort.isOpen,
+                bytesReceived: bytesReceived,
+                framesReceived: framesReceived,
+                lastError: lastError,
                 config: {
                     offDelay: config.offDelay,
                     sensitivity: config.sensitivity,
                     maxDistanceGate: config.maxDistanceGate
                 }
+            });
+        });
+
+        // Debug API - returns detailed debug log
+        app.get('/api/presence/debug', (req, res) => {
+            findAvailablePorts((ports) => {
+                // Check kernel config
+                let kernelCmdline = '';
+                let uartDisabled = false;
+                try {
+                    kernelCmdline = fs.readFileSync('/proc/cmdline', 'utf8');
+                    uartDisabled = kernelCmdline.includes('8250.nr_uarts=0');
+                } catch (e) {
+                    // Ignore
+                }
+
+                // Check boot config
+                let bootConfigExists = false;
+                let bootConfigContent = '';
+                try {
+                    const bootConfigPath = '/boot/firmware/config.txt';
+                    if (fs.existsSync(bootConfigPath)) {
+                        bootConfigExists = true;
+                        bootConfigContent = fs.readFileSync(bootConfigPath, 'utf8');
+                    }
+                } catch (e) {
+                    // Ignore
+                }
+
+                res.json({
+                    debugLog: debugLog.slice(-50), // Last 50 entries
+                    connectionStatus: connectionStatus,
+                    port: config.port,
+                    portExists: checkPortExists(config.port),
+                    availablePorts: ports,
+                    serialportInstalled: SerialPort !== null,
+                    platform: process.platform,
+                    bytesReceived: bytesReceived,
+                    framesReceived: framesReceived,
+                    bufferSize: buffer.length,
+                    lastError: lastError,
+                    systemInfo: {
+                        kernelCmdline: kernelCmdline.trim(),
+                        uartDisabled: uartDisabled,
+                        bootConfigExists: bootConfigExists,
+                        enableUartInConfig: bootConfigContent.includes('enable_uart=1'),
+                        instructions: uartDisabled ? [
+                            'UART is disabled in kernel (8250.nr_uarts=0)',
+                            'To enable:',
+                            '1. sudo nano /boot/firmware/cmdline.txt',
+                            '2. Remove "8250.nr_uarts=0"',
+                            '3. sudo nano /boot/firmware/config.txt',
+                            '4. Add: enable_uart=1',
+                            '5. sudo reboot'
+                        ] : []
+                    }
+                });
             });
         });
 
