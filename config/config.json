@@ -48,7 +48,7 @@
       },
       "enabled": true,
       "config": {
-        "city": "Klagenfurt,AT",
+        "city": "St. Veit an der Glan,AT",
         "units": "metric",
         "forecastDays": 5,
         "showEffects": true

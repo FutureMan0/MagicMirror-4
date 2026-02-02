@@ -41,12 +41,18 @@ class WeatherEffects {
     // Bestimme Effekt basierend auf Wetter-Code
     if (weatherCode >= 200 && weatherCode < 300) {
       this.currentEffect = 'thunderstorm';
+    } else if (weatherCode >= 300 && weatherCode < 400) {
+      this.currentEffect = 'drizzle';
     } else if (weatherCode >= 500 && weatherCode < 600) {
       this.currentEffect = 'rain';
     } else if (weatherCode >= 600 && weatherCode < 700) {
       this.currentEffect = 'snow';
+    } else if (weatherCode >= 700 && weatherCode < 800) {
+      this.currentEffect = 'fog';
     } else if (weatherCode === 800) {
       this.currentEffect = 'sun';
+    } else if (weatherCode >= 801) {
+      this.currentEffect = 'clouds';
     } else {
       this.currentEffect = null;
     }
@@ -64,11 +70,20 @@ class WeatherEffects {
         case 'rain':
           this.animateRain();
           break;
+        case 'drizzle':
+          this.animateDrizzle();
+          break;
         case 'snow':
           this.animateSnow();
           break;
+        case 'fog':
+          this.animateFog();
+          break;
         case 'sun':
           this.animateSun();
+          break;
+        case 'clouds':
+          this.animateClouds();
           break;
         case 'thunderstorm':
           this.animateThunderstorm();
@@ -106,6 +121,40 @@ class WeatherEffects {
 
       particle.y += particle.speed;
       particle.x += 1; // Leichter schräger Regen
+
+      if (particle.y > this.canvas.height) {
+        particle.y = -particle.length;
+        particle.x = Math.random() * this.canvas.width;
+      }
+      return true;
+    });
+    this.ctx.globalAlpha = 1.0;
+  }
+
+  animateDrizzle() {
+    // Leichterer Regen - weniger Tropfen, langsamer
+    if (this.particles.length < 80) {
+      this.particles.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * -this.canvas.height,
+        speed: 5 + Math.random() * 8,
+        length: 10 + Math.random() * 15,
+        opacity: 0.05 + Math.random() * 0.15
+      });
+    }
+
+    this.ctx.strokeStyle = '#00D4FF';
+    this.ctx.lineWidth = 0.5;
+
+    this.particles = this.particles.filter(particle => {
+      this.ctx.globalAlpha = particle.opacity;
+      this.ctx.beginPath();
+      this.ctx.moveTo(particle.x, particle.y);
+      this.ctx.lineTo(particle.x + 0.5, particle.y + particle.length);
+      this.ctx.stroke();
+
+      particle.y += particle.speed;
+      particle.x += 0.5;
 
       if (particle.y > this.canvas.height) {
         particle.y = -particle.length;
@@ -190,6 +239,71 @@ class WeatherEffects {
         this.ctx.clearRect(x - 2, 0, 4, this.canvas.height);
       }, 100);
     }
+  }
+
+  animateFog() {
+    // Erstelle neue Nebel-Partikel
+    if (this.particles.length < 50) {
+      this.particles.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * this.canvas.height,
+        size: 50 + Math.random() * 100,
+        speed: 0.2 + Math.random() * 0.5,
+        opacity: 0.01 + Math.random() * 0.03,
+        pulsePhase: Math.random() * Math.PI * 2
+      });
+    }
+
+    this.ctx.fillStyle = '#AAB7C4';
+
+    this.particles = this.particles.filter(particle => {
+      this.ctx.globalAlpha = particle.opacity * (0.5 + Math.sin(particle.pulsePhase) * 0.5);
+      this.ctx.beginPath();
+      this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      particle.y += particle.speed;
+      particle.pulsePhase += 0.02;
+
+      if (particle.y > this.canvas.height + particle.size) {
+        particle.y = -particle.size;
+        particle.x = Math.random() * this.canvas.width;
+      }
+      return true;
+    });
+    this.ctx.globalAlpha = 1.0;
+  }
+
+  animateClouds() {
+    // Erstelle neue Wolken
+    if (this.particles.length < 30) {
+      this.particles.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * this.canvas.height * 0.4,
+        width: 100 + Math.random() * 200,
+        height: 50 + Math.random() * 100,
+        speed: 0.5 + Math.random() * 1,
+        opacity: 0.03 + Math.random() * 0.07
+      });
+    }
+
+    this.ctx.fillStyle = '#CCCCCC';
+
+    this.particles = this.particles.filter(particle => {
+      this.ctx.globalAlpha = particle.opacity;
+      this.ctx.beginPath();
+      this.ctx.ellipse(particle.x, particle.y, particle.width, particle.height, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      particle.x += particle.speed;
+
+      if (particle.x > this.canvas.width + particle.width) {
+        particle.x = -particle.width;
+        particle.y = Math.random() * this.canvas.height * 0.4;
+      }
+      return true;
+    });
+    this.ctx.globalAlpha = 1.0;
   }
 
   stop() {

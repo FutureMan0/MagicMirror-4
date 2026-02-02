@@ -151,51 +151,105 @@ body::before {
 
 /* CLOCK */
 .module-clock {
-    text-align: left;
+  text-align: left;
 }
 
 .clock-time {
-    font-size: 5.5rem !important;
-    font-weight: 700 !important;
-    color: var(--cp-yellow) !important;
-    margin: 0;
-    line-height: 1;
-    filter: drop-shadow(0 0 5px rgba(252, 238, 10, 0.5));
+  font-size: 5.5rem !important;
+  font-weight: 700 !important;
+  color: var(--cp-yellow) !important;
+  margin: 0;
+  line-height: 1;
+  filter: drop-shadow(0 0 5px rgba(252, 238, 10, 0.5));
+}
+
+.clock-time-part {
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.clock-time-part.seconds {
+  position: relative;
+}
+
+.clock-time-part.seconds::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: var(--cp-cyan);
+  border-radius: 50%;
+  animation: pulse-seconds 1s ease-in-out infinite;
+}
+
+@keyframes pulse-seconds {
+  0%, 100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.5);
+    opacity: 0.5;
+  }
+}
+
+.clock-separator {
+  animation: blink-separator 1s ease-in-out infinite;
+}
+
+@keyframes blink-separator {
+  0%, 49%, 51%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .clock-date {
-    font-size: 1.4rem !important;
-    color: var(--cp-cyan) !important;
-    margin-top: 10px;
-    opacity: 0.8;
+  font-size: 1.4rem !important;
+  color: var(--cp-cyan) !important;
+  margin-top: 10px;
+  opacity: 0.8;
 }
 
 /* WEATHER */
 .weather-temp {
-    font-size: 4rem !important;
-    color: var(--cp-white) !important;
-    font-weight: 700 !important;
-    background: linear-gradient(to bottom, #fff, var(--cp-cyan));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+  font-size: 4rem !important;
+  color: var(--cp-white) !important;
+  font-weight: 700 !important;
+  background: linear-gradient(to bottom, #fff, var(--cp-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: opacity 0.3s ease;
 }
 
 .weather-details-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
 .weather-detail {
-    background: rgba(0, 240, 255, 0.05);
-    border: 1px solid rgba(0, 240, 255, 0.2);
-    padding: 10px !important;
-    transform: skew(-15deg);
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 10px !important;
+  transform: skew(-15deg);
+  transition: all 0.3s ease;
+}
+
+.weather-detail:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.4);
+  transform: skew(-15deg) scale(1.02);
 }
 
 .weather-detail * {
-    transform: skew(15deg);
+  transform: skew(15deg);
 }
 
 /* UNTIS - THE SLANT */

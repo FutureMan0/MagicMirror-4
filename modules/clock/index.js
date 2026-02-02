@@ -33,6 +33,13 @@ class ClockModule {
 
     const timeElement = document.createElement('div');
     timeElement.className = 'clock-time';
+    timeElement.innerHTML = `
+      <span class="clock-time-hours"></span>
+      <span class="clock-time-separator">:</span>
+      <span class="clock-time-minutes"></span>
+      <span class="clock-time-separator">:</span>
+      <span class="clock-time-seconds"></span>
+    `;
 
     this.container.appendChild(timeElement);
 
@@ -74,8 +81,19 @@ class ClockModule {
 
     const timeElement = this.container.querySelector('.clock-time');
     if (timeElement) {
-      timeElement.textContent = timeString;
-      timeElement.setAttribute('data-time', timeString);
+      // Teile die Zeit in Stunden, Minuten und Sekunden für Animation
+      const timeParts = timeString.split(':');
+      if (timeParts.length === 3) {
+        timeElement.innerHTML = `
+          <span class="clock-time-part hours">${timeParts[0]}</span>
+          <span class="clock-separator">:</span>
+          <span class="clock-time-part minutes">${timeParts[1]}</span>
+          <span class="clock-separator">:</span>
+          <span class="clock-time-part seconds" data-seconds="${seconds}">${timeParts[2]}</span>
+        `;
+      } else {
+        timeElement.textContent = timeString;
+      }
     }
 
     // Format Datum

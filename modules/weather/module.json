@@ -29,6 +29,16 @@
       "type": "boolean",
       "default": true,
       "description": "Wetter-Effekte anzeigen"
+    },
+    "showAlerts": {
+      "type": "boolean",
+      "default": true,
+      "description": "Wetter-Warnungen anzeigen"
+    },
+    "alertRefreshInterval": {
+      "type": "number",
+      "default": 300000,
+      "description": "Aktualisierungsintervall für Warnungen (ms)"
     }
   }
 }

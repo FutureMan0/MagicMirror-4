@@ -54,6 +54,14 @@ class WeatherModule {
     this.container = document.createElement('div');
     this.container.className = 'module-weather';
 
+    // Lade-Animation
+    this.container.innerHTML = `
+      <div class="weather-loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Wetter wird geladen...</div>
+      </div>
+    `;
+
     // Hauptbereich mit aktuellen Wetter
     const mainWeather = document.createElement('div');
     mainWeather.className = 'weather-main';
@@ -170,6 +178,11 @@ class WeatherModule {
         forecast: forecastData
       };
 
+      // Wetter-Warnungen laden (falls aktiviert)
+      if (this.config.showAlerts) {
+        await this.fetchWeatherAlerts();
+      }
+
       this.updateDisplay();
 
       // Trigger Wetter-Effekte
@@ -183,15 +196,62 @@ class WeatherModule {
     }
   }
 
+  async fetchWeatherAlerts() {
+    if (!this.config.apiKey) return;
+
+    try {
+      // Versuche, Wetter-Warnungen zu laden
+      const alertsUrl = `https://api.openweathermap.org/data/2.5/onecall?q=${this.config.city}&appid=${this.config.apiKey}&lang=${this.config.language}`;
+      const response = await fetch(alertsUrl);
+
+      if (response.ok) {
+        const data = await response.json();
+        this.weatherData.alerts = data.alerts || [];
+        console.log('Wetter-Warnungen geladen:', this.weatherData.alerts);
+      } else {
+        // Fallback: keine Warnungen verfügbar
+        this.weatherData.alerts = [];
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Wetter-Warnungen:', error);
+      this.weatherData.alerts = [];
+    }
+  }
+
   updateDisplay() {
     if (!this.weatherData || !this.container) return;
+
+    // Entferne Lade-Animation
+    const loadingElement = this.container.querySelector('.weather-loading');
+    if (loadingElement) {
+      loadingElement.style.opacity = '0';
+      setTimeout(() => loadingElement.remove(), 300);
+    }
+
+    // Zeige Hauptwetter
+    const mainWeather = this.container.querySelector('.weather-main');
+    if (mainWeather) {
+      mainWeather.style.display = 'block';
+    }
 
     const current = this.weatherData.current;
 
     // Temperatur
     const tempElement = this.container.querySelector('.weather-temp');
     if (tempElement) {
-      tempElement.textContent = `${Math.round(current.main.temp)}°C`;
+      const newTemp = `${Math.round(current.main.temp)}°C`;
+      const oldTemp = tempElement.textContent;
+      
+      if (oldTemp !== newTemp) {
+        // Animierte Änderung
+        tempElement.style.transition = 'opacity 0.3s ease';
+        tempElement.style.opacity = '0';
+        
+        setTimeout(() => {
+          tempElement.textContent = newTemp;
+          tempElement.style.opacity = '1';
+        }, 300);
+      }
     }
 
     // Wetterbeschreibung
@@ -298,8 +358,57 @@ class WeatherModule {
       locationElement.textContent = `${current.name.toUpperCase()}, ${current.sys.country}`;
     }
 
+    // Wetter-Warnungen anzeigen
+    this.displayWeatherAlerts();
+
     // Vorhersage
     this.updateForecast();
+  }
+
+  displayWeatherAlerts() {
+    // Prüfe ob bereits ein Warn-Banner existiert
+    const existingBanner = this.container.querySelector('.weather-alerts-container');
+    if (existingBanner) {
+      existingBanner.remove();
+    }
+
+    if (!this.weatherData.alerts || this.weatherData.alerts.length === 0) {
+      return;
+    }
+
+    // Erstelle Warn-Banner Container
+    const alertsContainer = document.createElement('div');
+    alertsContainer.className = 'weather-alerts-container';
+
+    // Erstelle Banner für jede Warnung
+    this.weatherData.alerts.forEach(alert => {
+      const alertBanner = document.createElement('div');
+      alertBanner.className = 'weather-alert-banner';
+      
+      const startDate = new Date(alert.start * 1000);
+      const endDate = new Date(alert.end * 1000);
+      const startTimeStr = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+      const endTimeStr = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+
+      alertBanner.innerHTML = `
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+          <div class="alert-title">${alert.event || 'Wetter-Warnung'}</div>
+          <div class="alert-description">${alert.description || ''}</div>
+          <div class="alert-time">
+            🕐 ${startTimeStr} - ${endTimeStr}
+          </div>
+        </div>
+      `;
+
+      alertsContainer.appendChild(alertBanner);
+    });
+
+    // Füge den Container nach dem Ort ein
+    const locationElement = this.container.querySelector('.weather-location');
+    if (locationElement) {
+      locationElement.insertAdjacentElement('afterend', alertsContainer);
+    }
   }
 
   getWindDirection(deg) {
@@ -384,6 +493,19 @@ class WeatherModule {
         ${f.rainProb > 0 ? `<span class="forecast-rain">💧 ${f.rainProb}%</span>` : '<span class="forecast-rain-placeholder"></span>'}
       </div>
     `).join('');
+
+    // Hover-Effekte für Vorhersage-Karten hinzufügen
+    forecastElement.querySelectorAll('.forecast-day').forEach(day => {
+      day.addEventListener('mouseenter', () => {
+        day.style.transform = 'scale(1.05)';
+        day.style.boxShadow = '0 4px 12px rgba(0, 240, 255, 0.3)';
+      });
+      
+      day.addEventListener('mouseleave', () => {
+        day.style.transform = 'scale(1)';
+        day.style.boxShadow = 'none';
+      });
+    });
   }
 
   getWeatherIcon(main, id) {
