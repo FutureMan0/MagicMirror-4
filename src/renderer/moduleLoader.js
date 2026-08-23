@@ -146,10 +146,19 @@ class RendererModuleLoader {
       existingStyle.remove();
     }
 
-    // Erstelle neues Style-Element
     const styleElement = document.createElement('style');
     styleElement.id = styleId;
-    styleElement.textContent = css;
+
+    // Modul-CSS wird nach dem Theme-Stylesheet in den <head> gehängt und
+    // würde deshalb bei gleicher Spezifität gewinnen. Genau deswegen stand im
+    // alten cyberpunk.css 21 mal !important. In @layer module verpackt kann
+    // ein Theme (@layer theme) unbedingt durchgreifen - ohne dass die Module
+    // dafür angepasst werden müssen.
+    //
+    // Module dürfen ihre eigenen Layer mitbringen; @layer verschachtelt sich
+    // sauber zu module.<eigener-name>.
+    styleElement.textContent = `@layer module {\n${css}\n}`;
+
     document.head.appendChild(styleElement);
   }
 

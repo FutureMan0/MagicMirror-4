@@ -19,8 +19,10 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "node --test",
-    "verify": "npm run lint && npm test",
-    "routes": "node scripts/collect-routes.js"
+    "verify": "npm run lint && npm run check:tokens && npm test",
+    "routes": "node scripts/collect-routes.js",
+    "fonts:build": "node scripts/build-fonts.mjs",
+    "check:tokens": "node scripts/check-tokens.mjs"
   },
   "keywords": [
     "magic-mirror",

@@ -1,332 +1,197 @@
-:root {
-  --bg-primary: #000000;
-  --text-primary: #FFFFFF;
-  --text-secondary: #888888;
-  --accent-cyan: #00D4FF;
-  --accent-red: #FF4444;
-  --accent-green: #44FF88;
-  --font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+/*
+ * Grundschicht des Spiegels: Reset, Seitenlayout, Rasterung, Modul-Rahmen.
+ *
+ * Alles hier liegt in @layer base und lässt sich damit von jedem Theme
+ * überschreiben, ohne dass ein einziges !important nötig wäre. Die
+ * Layer-Reihenfolge steht in tokens.css - das muss vorher geladen sein.
+ *
+ * Modul-spezifische Regeln gehören NICHT hierher, sondern in das
+ * styles.css des jeweiligen Moduls.
+ */
 
-  /* Perf-Schalter: dekorative Effekte haengen an diesen beiden Variablen,
-     damit sie sich zentral abschalten lassen (siehe html[data-perf="low"]). */
-  --mm-surface-filter: none;
-  --mm-anim-ambient: running;
-  
-  /* Grid System Custom Properties (werden dynamisch von JS gesetzt) */
-  --grid-columns: 3;
-  --grid-rows: 3;
-  --grid-gap: 12px;
-  --grid-padding: 12px;
-  --grid-column-template: minmax(320px, 1fr) 1fr 1fr;
-  --grid-row-template: auto 1fr 1fr;
-}
-
-/* Schwache Hardware (Raspberry Pi) oder ausdrueckliche Nutzerpraeferenz:
-   Dauer-Animationen anhalten und teure Filter abschalten. Ein Schalter,
-   der auf jedes Theme wirkt - auch auf spaeter hinzugefuegte. */
-html[data-perf="low"] {
-  --mm-surface-filter: none;
-  --mm-anim-ambient: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --mm-anim-ambient: paused;
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
-}
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  overflow: hidden;
-  width: 100vw;
-  height: 100vh;
-}
-
-#modules-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.modules-grid {
-  display: grid;
-  /* Grid-Template wird dynamisch von JS über CSS Custom Properties gesetzt */
-  grid-template-columns: var(--grid-column-template, minmax(320px, 1fr) 1fr 1fr);
-  grid-template-rows: var(--grid-row-template, auto 1fr 1fr);
-  width: 100%;
-  height: 100%;
-  padding: var(--grid-padding, 12px);
-  gap: var(--grid-gap, 12px);
-  align-items: stretch;
-  box-sizing: border-box;
-}
-
-.modules-absolute {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.module-container {
-  pointer-events: auto;
-  padding: 15px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  transition: opacity 0.3s ease;
-  max-height: 100%;
-  overflow: auto;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+  body {
+    background-color: var(--mm-color-bg);
+    color: var(--mm-color-text);
+    font-family: var(--mm-font-sans);
+    font-size: var(--mm-size-base);
+    line-height: var(--mm-leading-normal);
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    /* Ein Spiegel wird nicht bedient - eine versehentlich markierte Zeile
+       bliebe sonst sichtbar stehen. */
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  #modules-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
   }
-}
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+  .modules-grid {
+    display: grid;
+    /* Die Templates setzt buildGridCSS() zur Laufzeit als Custom Properties. */
+    grid-template-columns: var(--grid-column-template, minmax(320px, 1fr) 1fr 1fr);
+    grid-template-rows: var(--grid-row-template, auto 1fr 1fr);
+    width: 100%;
+    height: 100%;
+    padding: var(--grid-padding, var(--mm-space-4));
+    gap: var(--grid-gap, var(--mm-space-4));
+    align-items: stretch;
+    box-sizing: border-box;
   }
-  to {
-    transform: rotate(360deg);
+
+  .modules-absolute {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
   }
-}
 
-.module-container {
-  animation: fadeIn 0.5s ease-out;
-}
-
-/* Wetter-Lade-Animation */
-.weather-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  animation: fadeIn 0.3s ease-in;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(0, 212, 255, 0.3);
-  border-top: 3px solid var(--accent-cyan);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-
-.loading-text {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-/* Vorhersage-Karten */
-.forecast-day {
-  border-radius: 4px;
-  padding: 8px;
-}
-
-/* Wetter-Warnungs-Banner */
-.weather-alerts-container {
-  margin: 15px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  animation: slideInDown 0.5s ease-out;
-}
-
-@keyframes slideInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
+  /*
+   * Der Rahmen um jedes Modul. Alle sichtbaren Eigenschaften hängen an
+   * --mm-surface-*, damit ein Theme das Erscheinungsbild sämtlicher Module
+   * an einer Stelle festlegt.
+   */
+  .module-container {
+    pointer-events: auto;
+    padding: var(--mm-surface-padding);
+    border-radius: var(--mm-surface-radius);
+    background: var(--mm-surface-bg);
+    border: var(--mm-surface-border);
+    box-shadow: var(--mm-surface-shadow);
+    backdrop-filter: var(--mm-surface-filter);
+    transition: opacity var(--mm-dur-normal) var(--mm-ease-standard);
+    max-height: 100%;
+    overflow: auto;
+    min-width: 0;
+    max-width: 100%;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  /* Scrollbar-Optik. Sichtbar wird sie nur, wenn ein Modul überläuft. */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
-}
 
-.weather-alert-banner {
-  background: linear-gradient(135deg, rgba(255, 68, 68, 0.2), rgba(255, 68, 68, 0.1));
-  border-left: 4px solid var(--accent-red);
-  border-right: 1px solid rgba(255, 68, 68, 0.3);
-  border-top: 1px solid rgba(255, 68, 68, 0.3);
-  border-bottom: 2px solid var(--accent-red);
-  padding: 12px 15px;
-  border-radius: 4px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  position: relative;
-  isolation: isolate;
-}
-
-.weather-alert-banner::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border: 2px solid rgba(255, 68, 68, 0.4);
-  border-radius: 6px;
-  pointer-events: none;
-  opacity: 0;
-  animation: pulse-alert 2s ease-in-out infinite;
-  animation-play-state: var(--mm-anim-ambient, running);
-}
-
-@keyframes pulse-alert {
-  0%, 100% {
-    opacity: 0;
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
-  50% {
-    opacity: 1;
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--mm-color-border-strong);
+    border-radius: var(--mm-radius-sm);
   }
-}
 
-.alert-icon {
-  font-size: 1.5rem;
-  animation: shake 4s ease-in-out infinite;
-  animation-play-state: var(--mm-anim-ambient, running);
-}
-
-@keyframes shake {
-  0%, 12%, 100% {
-    transform: rotate(0deg);
+  /* Platzhalter für Module, die nicht geladen werden konnten. */
+  .module-placeholder {
+    padding: var(--mm-space-5);
+    border: 1px solid var(--mm-color-danger);
+    border-radius: var(--mm-radius-md);
+    background: rgba(255, 68, 68, 0.08);
   }
-  3%, 9% {
-    transform: rotate(-5deg);
+
+  .module-error-title {
+    font-weight: var(--mm-weight-medium);
+    color: var(--mm-color-danger);
+    text-transform: uppercase;
+    letter-spacing: var(--mm-tracking-wide);
+    font-size: var(--mm-size-sm);
+    margin-bottom: var(--mm-space-2);
   }
-  6% {
-    transform: rotate(5deg);
+
+  .module-error-message {
+    color: var(--mm-color-text-muted);
+    font-size: var(--mm-size-sm);
   }
-}
 
-.alert-content {
-  flex: 1;
-}
+  .module-container {
+    animation: fadeIn var(--mm-dur-slow) var(--mm-ease-decel);
+  }
 
-.alert-title {
-  font-weight: 700;
-  color: var(--accent-red);
-  font-size: 1.1rem;
-  margin-bottom: 5px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 
-.alert-description {
-  color: var(--text-primary);
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
+  /* ==================== Kopplung ==================== */
+  /* Eingeblendet, wenn am Handy eine Kopplung gestartet wurde. Der Code ist
+     bewusst nur hier zu sehen - nicht in der HTTP-Antwort. */
+  .pairing-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--mm-z-toast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.92);
+  }
 
-.alert-time {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  font-family: monospace;
-}
+  .pairing-card {
+    text-align: center;
+    padding: var(--mm-space-7) var(--mm-space-8);
+    border: 1px solid var(--mm-color-accent);
+    border-radius: var(--mm-radius-lg);
+    background: var(--mm-color-bg);
+    max-width: 90vw;
+  }
 
-/* ==================== Kopplung ==================== */
-/* Wird eingeblendet, wenn am Handy eine Kopplung gestartet wurde. Der Code
-   ist bewusst nur hier zu sehen - nicht in der HTTP-Antwort. */
-.pairing-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: var(--mm-z-toast, 1000);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.92);
-}
+  .pairing-title {
+    font-size: var(--mm-size-lg);
+    letter-spacing: var(--mm-tracking-wide);
+    text-transform: uppercase;
+    color: var(--mm-color-text-muted);
+    margin-bottom: var(--mm-space-6);
+  }
 
-.pairing-card {
-  text-align: center;
-  padding: 32px 40px;
-  border: 1px solid var(--accent-cyan);
-  border-radius: 12px;
-  background: #000;
-  max-width: 90vw;
-}
+  .pairing-qr {
+    background: #ffffff;
+    padding: var(--mm-space-4);
+    border-radius: var(--mm-radius-md);
+    display: inline-block;
+    line-height: 0;
+  }
 
-.pairing-title {
-  font-size: 1.4rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 20px;
-}
+  .pairing-qr svg {
+    display: block;
+    width: 260px;
+    height: 260px;
+  }
 
-.pairing-qr {
-  background: #fff;
-  padding: 12px;
-  border-radius: 8px;
-  display: inline-block;
-  line-height: 0;
-}
+  .pairing-code {
+    margin-top: var(--mm-space-6);
+    font-size: var(--mm-size-2xl);
+    font-weight: var(--mm-weight-medium);
+    letter-spacing: var(--mm-tracking-wider);
+    color: var(--mm-color-text);
+    font-variant-numeric: tabular-nums;
+  }
 
-.pairing-qr svg {
-  display: block;
-  width: 260px;
-  height: 260px;
-}
+  .pairing-hint {
+    margin-top: var(--mm-space-3);
+    font-size: var(--mm-size-sm);
+    color: var(--mm-color-text-muted);
+    word-break: break-all;
+  }
 
-.pairing-code {
-  margin-top: 20px;
-  font-size: 2.2rem;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.pairing-hint {
-  margin-top: 10px;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  word-break: break-all;
-}
-
-.pairing-countdown {
-  margin-top: 16px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  .pairing-countdown {
+    margin-top: var(--mm-space-5);
+    font-size: var(--mm-size-xs);
+    color: var(--mm-color-text-faint);
+  }
 }

@@ -37,12 +37,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Theme-Picker Setup (WebUI)
   setupThemePicker();
 
-  // Mirror Theme-Picker Setup
-  setupMirrorThemePicker();
-
   // Lade zuerst Module, dann Config
   await loadModules();
   await loadConfig();
+
+  // Erst danach die Theme-Auswahl aufbauen: sie markiert das aktive Theme
+  // und braucht dafür die geladene Konfiguration.
+  await setupMirrorThemePicker();
   renderModuleList();
 
   // Warte kurz, bis initGridSettings gelaufen ist
@@ -295,15 +296,61 @@ async function loadConfig() {
 }
 
 // Mirror Theme System
-function setupMirrorThemePicker() {
-  const themeButtons = document.querySelectorAll('#mirror-theme-picker button[data-mirror-theme]');
+//
+// Die Auswahl stand frueher fest im HTML. Ein neues Theme war damit
+// unsichtbar, bis jemand die Datei anfasste. Jetzt kommt die Liste aus
+// GET /api/themes, das themes/ scannt.
+let availableThemes = [];
 
-  themeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const theme = button.getAttribute('data-mirror-theme');
-      setMirrorTheme(theme);
-    });
-  });
+async function setupMirrorThemePicker() {
+  const picker = document.getElementById('mirror-theme-picker');
+  if (!picker) return;
+
+  try {
+    const response = await fetch('/api/themes');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    availableThemes = await response.json();
+  } catch (error) {
+    console.error('Themes konnten nicht geladen werden:', error);
+    picker.textContent = 'Themes konnten nicht geladen werden.';
+    return;
+  }
+
+  picker.innerHTML = '';
+  picker.classList.add('theme-cards');
+
+  for (const theme of availableThemes) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'theme-card';
+    card.dataset.mirrorTheme = theme.id;
+
+    const swatch = document.createElement('span');
+    swatch.className = 'theme-card-swatch';
+    swatch.dataset.mode = theme.mode;
+
+    const name = document.createElement('span');
+    name.className = 'theme-card-name';
+    name.textContent = theme.name;
+
+    const description = document.createElement('span');
+    description.className = 'theme-card-description';
+    description.textContent = theme.description || '';
+
+    card.append(swatch, name, description);
+
+    if (theme.mode === 'light') {
+      const badge = document.createElement('span');
+      badge.className = 'theme-card-badge';
+      badge.textContent = 'hell';
+      card.appendChild(badge);
+    }
+
+    card.addEventListener('click', () => setMirrorTheme(theme.id));
+    picker.appendChild(card);
+  }
+
+  updateMirrorThemeUI();
 }
 
 function updateMirrorThemeUI() {
@@ -313,7 +360,9 @@ function updateMirrorThemeUI() {
   const buttons = document.querySelectorAll('#mirror-theme-picker button');
   buttons.forEach(btn => btn.classList.remove('active'));
 
-  const activeBtn = document.querySelector(`#mirror-theme-picker button[data-mirror-theme="${currentTheme}"]`);
+  const activeBtn = document.querySelector(
+    `#mirror-theme-picker button[data-mirror-theme="${CSS.escape(currentTheme)}"]`
+  );
   if (activeBtn) activeBtn.classList.add('active');
 }
 

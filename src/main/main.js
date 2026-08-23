@@ -6,6 +6,7 @@ const ModuleLoader = require('./moduleLoader');
 const { applyGpuFlags } = require('./gpu');
 const updater = require('./updater');
 const { Auth, getLanAddress } = require('./auth');
+const ThemeManager = require('./themeManager');
 const QRCode = require('qrcode');
 const express = require('express');
 const WebSocket = require('ws');
@@ -250,6 +251,13 @@ function startWebServer() {
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Themes werden aus dem Verzeichnis gelesen, nicht in der Oberflaeche
+  // aufgezaehlt. Ein neuer Ordner unter themes/ taucht damit sofort auf.
+  expressApp.get('/api/themes', (req, res) => {
+    const themeManager = new ThemeManager(path.join(__dirname, '../../themes'));
+    res.json(themeManager.scanThemes());
   });
 
   expressApp.get('/api/modules', (req, res) => {

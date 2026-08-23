@@ -110,6 +110,15 @@ function installDom() {
   };
   global.window = global.window || {};
   global.window.MagicMirrorModules = global.window.MagicMirrorModules || {};
+  // Mehrere Module leiten aus dem Protokoll ihre API-Basis-URL ab
+  // (file:// -> http://localhost:3000). Ohne location wirft schon der
+  // Konstruktor.
+  global.window.location = global.window.location || {
+    protocol: 'http:',
+    host: 'localhost:3000',
+    href: 'http://localhost:3000/',
+    search: ''
+  };
   return { StubElement, documentElement };
 }
 

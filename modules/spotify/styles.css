@@ -1,5 +1,5 @@
 .module-spotify {
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   min-width: 350px;
   text-align: center;
 }
@@ -8,7 +8,7 @@
 .spotify-empty {
   text-align: center;
   padding: 20px;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
 }
 
 .spotify-container {
@@ -22,19 +22,19 @@
   width: 100%;
   margin-bottom: 20px;
   padding-left: 10px;
-  border-left: 2px solid var(--text-primary);
+  border-left: 2px solid var(--mm-color-text);
 }
 
 .spotify-title {
   font-size: 1.8rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   margin-bottom: 5px;
 }
 
 .spotify-artist {
   font-size: 1.1rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   opacity: 0.9;
 }
 
@@ -44,7 +44,7 @@
   margin: 20px 0;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--mm-shadow-lg);
 }
 
 .spotify-cover img {
@@ -60,7 +60,7 @@
   gap: 15px;
   width: 100%;
   padding: 15px;
-  background: rgba(0, 212, 255, 0.1);
+  background: color-mix(in srgb, var(--mm-color-accent) 12%, transparent);
   border-radius: 10px;
   margin-bottom: 10px;
 }
@@ -78,7 +78,7 @@
 
 .waveform-bar {
   width: 4px;
-  background: var(--text-primary);
+  background: var(--mm-color-text);
   border-radius: 2px;
   animation: waveform 1s ease-in-out infinite;
 }
@@ -103,7 +103,7 @@
 .spotify-progress {
   width: 100%;
   height: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--mm-color-border-strong);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 5px;
@@ -111,7 +111,7 @@
 
 .spotify-progress-bar {
   height: 100%;
-  background: var(--accent-cyan);
+  background: var(--mm-color-accent);
   transition: width 0.3s ease;
 }
 
@@ -120,7 +120,7 @@
   justify-content: space-between;
   width: 100%;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   margin-bottom: 10px;
 }
 
@@ -129,7 +129,7 @@
   align-items: center;
   gap: 5px;
   font-size: 0.85rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   opacity: 0.8;
 }
 

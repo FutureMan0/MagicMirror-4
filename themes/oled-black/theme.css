@@ -1,0 +1,53 @@
+/*
+ * OLED Black.
+ *
+ * Auf einem OLED-Panel ist Schwarz ein abgeschalteter Pixel: kein Licht, kein
+ * Verbrauch, kein Einbrennen. Deshalb hier keine flächigen Hintergründe und
+ * eine bewusst reduzierte Spitzenhelligkeit - ein Spiegel läuft rund um die
+ * Uhr mit fast unverändertem Bild, und volles Weiß würde sich mit der Zeit
+ * einbrennen.
+ */
+@layer theme {
+  :root {
+    --mm-color-bg: #000000;
+    --mm-color-bg-elevated: #000000;
+    --mm-color-surface: transparent;
+    --mm-color-surface-2: rgba(255, 255, 255, 0.05);
+    --mm-color-border: rgba(255, 255, 255, 0.08);
+    --mm-color-border-strong: rgba(255, 255, 255, 0.16);
+
+    /* Kein reines Weiß - siehe Einbrennen. */
+    --mm-color-text: #d8d8d8;
+    --mm-color-text-muted: rgba(216, 216, 216, 0.52);
+    --mm-color-text-faint: rgba(216, 216, 216, 0.3);
+
+    --mm-color-accent: #7fb8d4;
+    --mm-color-success: #6fc79a;
+    --mm-color-warning: #d4b06a;
+    --mm-color-danger: #d47a7a;
+
+    --mm-cat-1:  #6d9dc5;
+    --mm-cat-2:  #c58b6d;
+    --mm-cat-3:  #6dc5a0;
+    --mm-cat-4:  #a58bc5;
+    --mm-cat-5:  #c5b76d;
+    --mm-cat-6:  #c56d9d;
+    --mm-cat-7:  #6db4c5;
+    --mm-cat-8:  #9dc56d;
+    --mm-cat-9:  #c59a6d;
+    --mm-cat-10: #8b8bc5;
+    --mm-cat-11: #6dc5b7;
+    --mm-cat-12: #b76dc5;
+
+    --mm-surface-bg: transparent;
+    --mm-surface-border: none;
+    --mm-surface-shadow: none;
+    --mm-surface-filter: none;
+
+    --mm-shadow-sm: none;
+    --mm-shadow-md: none;
+    --mm-shadow-lg: none;
+    --mm-glow: none;
+    --mm-anim-ambient: paused;
+  }
+}

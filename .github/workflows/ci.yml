@@ -44,6 +44,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Ein Theme kann nur umfärben, was über Tokens läuft. Rohe Hex-Werte in
+      # Modul-Stylesheets sind für jedes Theme unerreichbar - und fallen im
+      # Standard-Theme niemandem auf.
+      - name: Token-Disziplin
+        run: npm run check:tokens
+
       - name: Tests
         run: npm test
 

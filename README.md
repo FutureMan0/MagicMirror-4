@@ -110,6 +110,47 @@ MM⁴ grows with your needs. Every module can be customized in seconds via the W
 
 ---
 
+## 🎨 Themes
+
+Sechs mitgelieferte Themes, umschaltbar in den Einstellungen der Web-Oberfläche:
+
+| Theme | | |
+| :--- | :--- | :--- |
+| **Minimal** | dunkel | Nur Typografie. Keine Flächen, keine Rahmen, keine Dauer-Animationen — und damit die sparsamste Variante. |
+| **OLED Black** | dunkel | Reines Schwarz und gedämpfte Helligkeit. Auf OLED-Panels bleibt der Hintergrund unbeleuchtet und brennt nicht ein. |
+| **Newspaper** | **hell** | Serifensatz mit Haarlinien statt Kästen. Wirkt wie eine gedruckte Titelseite. |
+| **Nature** | dunkel | Warme Erdtöne, weiche Verläufe, Serifen-Überschriften. |
+| **Glass** | dunkel | Milchglas-Flächen und weiche Schatten. |
+| **Cyberpunk** | dunkel | HUD-Optik mit geschnittenen Ecken, Cyan und Gelb, Rajdhani in Versalien. |
+
+### Ein eigenes Theme
+
+Ein Theme belegt Design-Tokens neu — es muss die Module nicht kennen:
+
+```
+themes/mein-theme/
+  theme.css     @layer theme { :root { --mm-color-accent: ...; } }
+  theme.json    { "name": "Mein Theme", "mode": "dark", "description": "..." }
+```
+
+Der Ordner genügt; die Auswahl in der Web-Oberfläche wird aus `themes/`
+gelesen. Sämtliche Tokens stehen in `src/renderer/styles/tokens.css`.
+
+Zwei Dinge, die den Unterschied machen:
+
+* **Kein `!important` nötig.** Modul-CSS liegt in `@layer module`, Themes in
+  `@layer theme` — die Layer-Reihenfolge schlägt Spezifität und
+  Quellreihenfolge. Die erste Fassung des Cyberpunk-Themes brauchte dafür noch
+  21 `!important`.
+* **`npm run check:tokens`** schlägt fehl, sobald ein Modul-Stylesheet eine
+  rohe Farbe enthält. Was nicht über ein Token läuft, kann kein Theme
+  umfärben — und im Standard-Theme fällt das niemandem auf.
+
+Auf schwacher Hardware setzt MM⁴ automatisch `data-perf="low"` und schaltet
+damit für **jedes** Theme Blur, Schatten und Dauer-Animationen ab.
+
+---
+
 ## ⚠️ Note: Visual Editor (Experimental)
 
 The new **Visual Editor** allows for free positioning and resizing of modules. Please note:
