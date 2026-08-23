@@ -31,6 +31,7 @@ const browserGlobals = {
   alert: 'readonly',
   confirm: 'readonly',
   crypto: 'readonly',
+  CSS: 'readonly',
   FormData: 'readonly',
   btoa: 'readonly',
   atob: 'readonly',

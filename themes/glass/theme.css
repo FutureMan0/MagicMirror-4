@@ -1,0 +1,35 @@
+/*
+ * Glass.
+ *
+ * Das einzige Theme, das backdrop-filter benutzt. Auf Pi-Klasse-Grafik ist
+ * das die teuerste Eigenschaft überhaupt - deshalb setzt es --mm-surface-filter
+ * nur hier, und der Perf-Schalter (@layer overrides, html[data-perf="low"])
+ * gewinnt dagegen, weil overrides nach theme kommt. Auf dem Pi bleibt damit
+ * automatisch eine schlichte, aber flüssige Fassung übrig.
+ */
+@layer theme {
+  :root {
+    --mm-color-bg: #05070c;
+    --mm-color-bg-elevated: #0b0f18;
+    --mm-color-surface: rgba(255, 255, 255, 0.07);
+    --mm-color-surface-2: rgba(255, 255, 255, 0.12);
+    --mm-color-border: rgba(255, 255, 255, 0.14);
+    --mm-color-border-strong: rgba(255, 255, 255, 0.3);
+
+    --mm-color-text: #f2f5fa;
+    --mm-color-text-muted: rgba(242, 245, 250, 0.66);
+    --mm-color-text-faint: rgba(242, 245, 250, 0.4);
+
+    --mm-color-accent: #7aa7ff;
+    --mm-color-accent-contrast: #05070c;
+
+    --mm-surface-bg: rgba(255, 255, 255, 0.06);
+    --mm-surface-border: 1px solid var(--mm-color-border);
+    --mm-surface-radius: var(--mm-radius-lg);
+    --mm-surface-padding: var(--mm-space-5);
+    --mm-surface-shadow: var(--mm-shadow-md);
+    --mm-surface-filter: blur(14px) saturate(140%);
+
+    --mm-weight-light: 200;
+  }
+}

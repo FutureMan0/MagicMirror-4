@@ -1,0 +1,7 @@
+{
+  "name": "Newspaper",
+  "description": "Heller Serifensatz mit Haarlinien statt Kästen. Wirkt wie eine gedruckte Titelseite und ist zugleich der Beweis, dass das Token-Set auch hell funktioniert.",
+  "mode": "light",
+  "author": "MagicMirror⁴",
+  "supports": { "blur": false, "ambientMotion": false }
+}

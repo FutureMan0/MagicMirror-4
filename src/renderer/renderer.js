@@ -144,26 +144,36 @@ function calculateGridArea(start, span) {
   return `${start}`;
 }
 
-function applyTheme() {
-  const themeLink = document.getElementById('theme-stylesheet');
-  const currentTheme = config.theme || 'default';
+// Metadaten der verfügbaren Themes, damit der Renderer den Hell/Dunkel-Modus
+// kennt. Wird beim ersten Bedarf geholt und danach gemerkt.
+let themeCatalog = null;
 
-  if (currentTheme !== 'default') {
-    if (!themeLink) {
-      const link = document.createElement('link');
-      link.id = 'theme-stylesheet';
-      link.rel = 'stylesheet';
-      link.href = `../../themes/${currentTheme}.css`;
-      document.head.appendChild(link);
-    } else {
-      themeLink.href = `../../themes/${currentTheme}.css`;
-    }
-  } else {
-    // Wenn Theme "default" ist, entferne das Stylesheet
-    if (themeLink) {
-      themeLink.remove();
+async function getThemeMeta(themeId) {
+  if (!themeCatalog) {
+    try {
+      const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+      const response = await fetch(`${apiBase}/api/themes`);
+      themeCatalog = response.ok ? await response.json() : [];
+    } catch {
+      // Ohne Server läuft der Spiegel trotzdem - nur ohne Modus-Angabe.
+      themeCatalog = [];
     }
   }
+  return themeCatalog.find((theme) => theme.id === themeId) || {};
+}
+
+async function applyTheme() {
+  const themeId = config.theme || 'default';
+  const meta = await getThemeMeta(themeId);
+  await window.mmThemeEngine.applyTheme(themeId, meta);
+}
+
+// Vergleicht zwei Konfigurationen und meldet, ob sich ausschließlich das
+// Theme unterscheidet.
+function onlyThemeChanged(previous, next) {
+  if (previous.theme === next.theme) return false;
+  const strip = (cfg) => JSON.stringify({ ...cfg, theme: null });
+  return strip(previous) === strip(next);
 }
 
 let isRendering = false;
@@ -180,7 +190,7 @@ async function renderModules() {
       moduleLoader.destroyAll();
     }
 
-    applyTheme();
+    await applyTheme();
 
     const container = document.getElementById('modules-container');
     if (!container || !config || !config.modules) return;
@@ -294,8 +304,18 @@ document.addEventListener('DOMContentLoaded', () => {
       renderModules();
     });
 
-    window.electronAPI.onConfigUpdate((newConfig) => {
+    window.electronAPI.onConfigUpdate(async (newConfig) => {
+      const previous = config;
       config = newConfig;
+
+      // Wenn sich ausschließlich das Theme geändert hat, reicht der Tausch
+      // des Stylesheets. Vorher wurde dafür jedes Modul zerstört und neu
+      // erzeugt - inklusive aller Netzwerkabfragen.
+      if (previous && onlyThemeChanged(previous, newConfig)) {
+        await applyTheme();
+        return;
+      }
+
       renderModules();
     });
 

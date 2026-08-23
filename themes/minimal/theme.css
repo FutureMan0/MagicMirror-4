@@ -1,0 +1,18 @@
+/*
+ * Minimal - der Standard.
+ *
+ * Ein Spiegel zeigt nur, was leuchtet. Alles, was nicht Inhalt ist, ist hier
+ * weggelassen: keine Kästen, keine Rahmen, kein Blur, kein Schatten. Das ist
+ * zugleich die sparsamste Variante auf dem Pi.
+ */
+@layer theme {
+  :root {
+    --mm-surface-bg: transparent;
+    --mm-surface-border: none;
+    --mm-surface-shadow: none;
+    --mm-surface-filter: none;
+    --mm-surface-padding: var(--mm-space-4);
+
+    --mm-anim-ambient: paused;
+  }
+}

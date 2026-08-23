@@ -1,24 +1,24 @@
 .module-mmwave-presence {
-    color: #fff;
-    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--mm-color-text);
+    font-family: var(--mm-font-sans);
     padding: 20px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--mm-color-surface);
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--mm-color-border);
     min-width: 200px;
     transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .module-mmwave-presence.detected {
-    background: rgba(0, 255, 127, 0.05);
-    border-color: rgba(0, 255, 127, 0.2);
-    box-shadow: 0 0 20px rgba(0, 255, 127, 0.1);
+    background: color-mix(in srgb, var(--mm-color-success) 8%, transparent);
+    border-color: color-mix(in srgb, var(--mm-color-success) 25%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--mm-color-success) 12%, transparent);
 }
 
 .presence-header {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--mm-color-text-muted);
     margin-bottom: 15px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -38,14 +38,14 @@
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: #444;
+    background: var(--mm-color-border-strong);
     position: relative;
     transition: background-color 0.3s ease;
 }
 
 .presence-indicator.active {
-    background: #00ff7f;
-    box-shadow: 0 0 10px #00ff7f, 0 0 20px rgba(0, 255, 127, 0.5);
+    background: var(--mm-color-success);
+    box-shadow: 0 0 10px var(--mm-color-success), 0 0 20px color-mix(in srgb, var(--mm-color-success) 50%, transparent);
 }
 
 .presence-indicator.active::after {
@@ -56,7 +56,7 @@
     right: -4px;
     bottom: -4px;
     border-radius: 50%;
-    border: 2px solid #00ff7f;
+    border: 2px solid var(--mm-color-success);
     animation: ripple 2s infinite;
     animation-play-state: var(--mm-anim-ambient, running);
 }
@@ -80,7 +80,7 @@
 
 .presence-details {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--mm-color-text-muted);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -92,11 +92,11 @@
 }
 
 .text-on {
-    color: #00ff7f;
+    color: var(--mm-color-success);
     font-weight: bold;
 }
 
 .text-off {
-    color: #ff4b2b;
+    color: var(--mm-color-danger);
     font-weight: bold;
 }

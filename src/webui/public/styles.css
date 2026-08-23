@@ -1521,3 +1521,90 @@ body {
 .auth-fallback input {
   margin-bottom: 10px;
 }
+
+/* ==================== Theme-Auswahl ==================== */
+.theme-picker.theme-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.theme-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "swatch name"
+    "swatch description";
+  align-items: center;
+  gap: 2px 12px;
+  padding: 14px;
+  text-align: left;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 10px;
+  background: var(--bg-secondary, #1a1a1a);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.theme-card:hover {
+  border-color: var(--accent-cyan);
+}
+
+.theme-card.active {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.theme-card-swatch {
+  grid-area: swatch;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #333);
+  flex-shrink: 0;
+}
+
+/* Kleine Vorschau: dunkle Themes zeigen einen dunklen Verlauf, das helle
+   einen hellen. Mehr braucht es nicht, um die beiden auseinanderzuhalten. */
+.theme-card-swatch[data-mode="dark"] {
+  background: linear-gradient(135deg, #000 0%, #1a1a1a 60%, #00d4ff 100%);
+}
+
+.theme-card-swatch[data-mode="light"] {
+  background: linear-gradient(135deg, #f4f1ea 0%, #d8d2c4 60%, #8c2f1f 100%);
+}
+
+.theme-card-name {
+  grid-area: name;
+  font-weight: 500;
+  font-size: 0.98rem;
+}
+
+.theme-card-description {
+  grid-area: description;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.theme-card-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-dark, #111);
+  border: 1px solid var(--border-color, #333);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 767px) {
+  .theme-picker.theme-cards {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,5 +1,5 @@
 .module-untis {
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   width: fit-content;
   max-width: 100%;
   max-height: 100%;
@@ -20,7 +20,7 @@
 .untis-empty {
   text-align: center;
   padding: 20px;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
 }
 
 .untis-week-view {
@@ -52,7 +52,7 @@
 }
 
 .untis-today {
-  color: var(--accent-red);
+  color: var(--mm-color-danger);
   font-weight: 700;
 }
 
@@ -79,13 +79,13 @@
   justify-content: center;
   padding: 2px;
   font-size: 0.6rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   min-height: 30px;
   position: relative;
 }
 
 .untis-current-slot {
-  color: var(--accent-red, #ff4444);
+  color: var(--mm-color-danger);
   font-weight: 700;
 }
 
@@ -95,10 +95,10 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--accent-red, #ff4444);
+  background: var(--mm-color-danger);
   z-index: 100;
   pointer-events: none;
-  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--mm-color-danger) 60%, transparent);
 }
 
 .untis-time {
@@ -108,7 +108,7 @@
 
 .untis-period {
   font-size: 0.5rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
 }
 
 /* Container für mehrere Stunden zur gleichen Zeit */
@@ -132,10 +132,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   overflow: hidden;
   box-sizing: border-box;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--mm-shadow-sm);
 }
 
 /* Text in Stunden */
@@ -187,7 +187,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent-red, #ff4444);
+  background: var(--mm-color-danger);
   z-index: 10;
   pointer-events: none;
 }
@@ -197,9 +197,9 @@
   left: 0;
   top: -10px;
   font-size: 0.75rem;
-  color: var(--accent-red, #ff4444);
+  color: var(--mm-color-danger);
   font-weight: 700;
-  background: var(--bg-primary, #111);
+  background: var(--mm-color-bg);
   padding: 0 4px;
 }
 
@@ -211,19 +211,19 @@
 .untis-day-title {
   font-size: 1.2rem;
   margin-bottom: 15px;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
 }
 
 .untis-lesson-card {
   padding: 12px;
   margin-bottom: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--mm-color-surface);
   border-radius: 4px;
 }
 
 .untis-lesson-time {
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   margin-bottom: 5px;
 }
 
@@ -235,7 +235,7 @@
 
 .untis-lesson-details {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
 }
 
 /* Nächste-Stunde Ansicht */
@@ -246,7 +246,7 @@
 
 .untis-next-label {
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -254,7 +254,7 @@
 
 .untis-next-time {
   font-size: 1rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   margin-bottom: 15px;
 }
 
@@ -266,11 +266,63 @@
 
 .untis-next-details {
   font-size: 1.1rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   margin-bottom: 5px;
 }
 
 .untis-next-room {
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
+}
+/* ==================== Fach-Kategorien ====================
+   getLessonCategory() in index.js liefert einen stabilen Namen, hier wird
+   daraus eine Farbe. Vorher standen Hex-Werte als Inline-Style am Element -
+   und Inline-Styles schlagen jede Stylesheet-Regel, also konnte kein Theme
+   die Stundentafel jemals umfärben.
+
+   Die Zuordnung geht über --mm-cat-*: ein Theme belegt diese zwölf Tokens
+   neu und färbt damit den gesamten Stundenplan um, ohne dieses Modul zu
+   kennen. */
+.untis-lesson,
+.untis-lesson-card {
+  --untis-category-color: var(--mm-cat-fallback);
+}
+
+.untis-cat-math          { --untis-category-color: var(--mm-cat-1); }
+.untis-cat-it            { --untis-category-color: var(--mm-cat-2); }
+.untis-cat-electronics   { --untis-category-color: var(--mm-cat-3); }
+.untis-cat-science       { --untis-category-color: var(--mm-cat-4); }
+.untis-cat-lang-de       { --untis-category-color: var(--mm-cat-5); }
+.untis-cat-lang-en       { --untis-category-color: var(--mm-cat-6); }
+.untis-cat-economics     { --untis-category-color: var(--mm-cat-7); }
+.untis-cat-sports        { --untis-category-color: var(--mm-cat-8); }
+.untis-cat-religion      { --untis-category-color: var(--mm-cat-9); }
+.untis-cat-arts          { --untis-category-color: var(--mm-cat-10); }
+.untis-cat-lab           { --untis-category-color: var(--mm-cat-11); }
+.untis-cat-communication { --untis-category-color: var(--mm-cat-12); }
+.untis-cat-elective      { --untis-category-color: var(--mm-cat-1); }
+.untis-cat-default       { --untis-category-color: var(--mm-cat-fallback); }
+
+/* Entfall und Vertretung sind keine Kategorie, sondern ein Zustand - sie
+   gehören an die Bedeutungsfarben, nicht an die Datenpalette. */
+.untis-cat-cancelled     { --untis-category-color: var(--mm-color-danger); }
+.untis-cat-substitution  { --untis-category-color: var(--mm-color-warning); }
+
+/* Überall mit Rückfallwert: greift keine Kategorie-Klasse, ist die Variable
+   nicht gesetzt und die ganze Deklaration wäre sonst ungültig. */
+.untis-lesson {
+  background-color: var(--untis-category-color, var(--mm-cat-fallback));
+}
+
+.untis-lesson-card {
+  border-left: 4px solid var(--untis-category-color, var(--mm-cat-fallback));
+}
+
+.untis-next-subject {
+  color: var(--untis-category-color, var(--mm-color-text));
+}
+
+/* Ohne erkannte Kategorie liest sich Fließtext besser als ein Graustich. */
+.untis-next-subject.untis-cat-default {
+  color: var(--mm-color-text);
 }
