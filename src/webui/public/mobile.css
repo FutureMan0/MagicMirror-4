@@ -1,0 +1,236 @@
+/*
+ * Was eine Web-Oberfläche von einer App unterscheidet.
+ *
+ * Weniger die Breite als die Kleinigkeiten: dass ein Tippen sofort reagiert,
+ * dass nichts unter der Statusleiste klebt, dass die Seite beim Scrollen nicht
+ * gummiartig wegfedert.
+ */
+
+/* ---------- Sichere Bereiche ---------- */
+/* Randlose Displays haben Aussparungen. Ohne env() liegt der Kopfbereich
+   unter der Statusleiste und die Navigation unter dem Home-Indikator. */
+.config-header {
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-left: calc(16px + env(safe-area-inset-left));
+  padding-right: calc(16px + env(safe-area-inset-right));
+}
+
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+  min-height: calc(56px + env(safe-area-inset-bottom));
+}
+
+/* ---------- Höhe ---------- */
+/* 100vh rechnet auf iOS mit eingeklappter Adressleiste - der untere Rand
+   liegt dann außerhalb des Sichtbaren. dvh folgt der echten Höhe. */
+html,
+body {
+  min-height: 100dvh;
+}
+
+.config-container {
+  min-height: 100dvh;
+}
+
+/* ---------- Berührung ---------- */
+* {
+  /* Entfernt die 300-ms-Verzögerung, mit der Browser auf einen Doppeltipp
+     warten. Ohne das wirkt jede Eingabe zäh. */
+  touch-action: manipulation;
+}
+
+.config-header,
+.bottom-nav,
+.mode-switch-inline {
+  /* Bedienelemente sollen nicht markierbar sein - ein langer Druck darf keine
+     Textauswahl auslösen. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ohne den grauen Kasten des Browsers braucht es eine eigene Rückmeldung,
+   sonst wirkt das Tippen unbeantwortet. */
+button:active:not([disabled]) {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.app-content {
+  /* Verhindert das Wegfedern am Rand und das native Neuladen von oben -
+     letzteres würde mit der eigenen Geste kollidieren. */
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Der Editor braucht die Fläche für sich; dort ist Scrollen und Zoomen
+   ausdrücklich unerwünscht. */
+#visual-editor-container-desktop,
+#visual-editor-container-mobile {
+  touch-action: none;
+}
+
+/* ---------- Ziehen zum Neuladen ---------- */
+.pull-indicator {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-secondary, #1a1a1a);
+  border: 1px solid var(--border-color, #333);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pull-indicator.ready {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.pull-indicator.spinning {
+  animation: pull-spin 0.8s linear infinite;
+}
+
+@keyframes pull-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Sheets statt Dialoge ---------- */
+/* Auf einem Handy ist ein zentrierter Dialog schwer erreichbar - ein von
+   unten hereinfahrendes Blatt liegt im Daumenbereich. */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.sheet-body {
+  width: 100%;
+  max-width: 520px;
+  padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  background: var(--bg-secondary, #1a1a1a);
+  border-top: 1px solid var(--border-color, #333);
+  animation: sheet-in 0.22s cubic-bezier(0, 0, 0.2, 1);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-body h3 {
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.sheet-body p {
+  margin-bottom: 18px;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sheet-actions button {
+  flex: 1;
+}
+
+@media (min-width: 600px) {
+  /* Auf breiten Schirmen mittig statt am unteren Rand. */
+  .sheet {
+    align-items: center;
+  }
+
+  .sheet-body {
+    border-radius: 16px;
+    border: 1px solid var(--border-color, #333);
+  }
+}
+
+/* ---------- Hinweis zu neuer Version ---------- */
+.pwa-toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 1700;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-secondary, #1a1a1a);
+  border: 1px solid var(--accent-cyan);
+  font-size: 0.9rem;
+}
+
+.pwa-toast span {
+  flex: 1;
+}
+
+.pwa-toast-action {
+  padding: 6px 12px;
+  border: 1px solid var(--accent-cyan);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent-cyan);
+  font-size: 0.85rem;
+}
+
+.pwa-toast-dismiss {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+/* ---------- Berührungsziele ---------- */
+/* Unter 44 px trifft man auf einem Handy zuverlässig daneben. */
+@media (max-width: 767px) {
+  .bottom-nav button,
+  .mode-btn,
+  .theme-card,
+  .module-list-item,
+  .settings-actions button {
+    min-height: var(--touch-target-min, 44px);
+  }
+
+  .module-list-item input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* ---------- Als installierte App ---------- */
+.pwa-standalone .config-header {
+  /* Ohne Browser-Leiste darüber darf der Kopfbereich kompakter sein. */
+  padding-top: calc(8px + env(safe-area-inset-top));
+}

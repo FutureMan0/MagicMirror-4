@@ -1,0 +1,50 @@
+<div class="offline-page">
+  <h1>Keine Verbindung</h1>
+  <p>
+    Der Spiegel ist gerade nicht erreichbar. Das kann heißen, dass dieses Gerät
+    nicht im selben Netzwerk ist — oder dass der Spiegel neu startet, etwa nach
+    einem Update.
+  </p>
+  <p>Die Seite versucht es beim nächsten Öffnen erneut.</p>
+  <button onclick="location.reload()">Erneut versuchen</button>
+</div>
+
+<style>
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: #05080c;
+    color: #f2f5fa;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  .offline-page {
+    max-width: 380px;
+    text-align: center;
+  }
+
+  .offline-page h1 {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
+  }
+
+  .offline-page p {
+    color: rgba(242, 245, 250, 0.66);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .offline-page button {
+    margin-top: 12px;
+    padding: 12px 22px;
+    border: 1px solid #00d4ff;
+    border-radius: 8px;
+    background: transparent;
+    color: #00d4ff;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+</style>
