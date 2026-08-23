@@ -8,29 +8,62 @@ const updater = require('./updater');
 const { Auth, getLanAddress } = require('./auth');
 const ThemeManager = require('./themeManager');
 const { createBusBridge } = require('./busBridge');
+const { createWsHub } = require('./wsHub');
 const QRCode = require('qrcode');
 const express = require('express');
-const WebSocket = require('ws');
 
 let mainWindow = null;
 let configManager = null;
 let moduleLoader = null;
 let webServer = null;
-let wss = null;
 let auth = null;
+let wsHub = null;
 
 // Ein Bus fuer den gesamten Hauptprozess. Modul-Backends bekommen ihn im
 // Kontext und koennen damit den Spiegel und die Web-UI erreichen, ohne beide
 // zu kennen.
 const { bus, receiveFromRenderer } = createBusBridge({
   getWindows: () => BrowserWindow.getAllWindows(),
-  getWebSocketServer: () => wss,
-  WebSocket
+  getWsHub: () => wsHub
 });
 
 // Warnungen sammeln, sobald der Bus existiert. Modul-Backends melden schon
 // beim Registrieren ihrer Routen - also bevor die Startprobe zuhoeren
 // koennte.
+// Aufraeumarbeiten, die Modul-Backends anmelden. Sie duerfen das NICHT ueber
+// eigene process.on('SIGTERM')-Handler tun: ein Signal-Handler ersetzt das
+// Standardverhalten, und wenn er nicht selbst beendet, laesst sich die App
+// gar nicht mehr stoppen. Genau das ist passiert - pm2 und systemd haetten
+// auf dem Pi jedes Mal bis zum SIGKILL warten muessen.
+const shutdownHooks = [];
+let shuttingDown = false;
+
+function registerShutdownHook(fn) {
+  if (typeof fn === 'function') shutdownHooks.push(fn);
+}
+
+function shutdown(reason, exitCode = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`Beende (${reason}) …`);
+
+  for (const hook of shutdownHooks) {
+    try {
+      hook();
+    } catch (error) {
+      console.error('Aufräumen fehlgeschlagen:', error.message);
+    }
+  }
+
+  // Kurze Frist fuer Aufraeumarbeiten, danach wird beendet - egal was noch
+  // laeuft.
+  const force = setTimeout(() => app.exit(exitCode), 2000);
+  force.unref?.();
+
+  app.exit(exitCode);
+}
+
 const startupWarnings = [];
 bus.on('system:warning', (payload) => {
   if (!payload || !payload.message) return;
@@ -79,7 +112,6 @@ function logCrash(kind, detail) {
 
 function createWindow() {
   configManager = new ConfigManager(instanceName);
-  const config = configManager.loadConfig();
 
   const displays = screen.getAllDisplays();
   const targetDisplay = displays[screenIndex] || displays[0];
@@ -326,13 +358,15 @@ function startWebServer() {
       // braucht aber die echten Werte.
       const savedConfig = instanceConfigManager.loadConfigForRenderer();
 
-      if (wss) {
-        wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'config-updated', instance }));
-          }
-        });
-      }
+      // Ueber den Bus statt von Hand an alle Verbundenen: so bekommen nur
+      // Abonnenten die Nachricht, und "origin" verhindert, dass der eigene
+      // Speichervorgang die gerade offene Bearbeitung ueberschreibt.
+      bus.emit('config:changed', {
+        instance,
+        origin: req.get('X-MM-Client-Id') || null,
+        config: instanceConfigManager.loadConfig({ redact: true })
+      });
+
       if (mainWindow && instance === instanceName) {
         mainWindow.webContents.send('config-update', savedConfig);
       }
@@ -362,7 +396,14 @@ function startWebServer() {
   });
 
   const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
-  loader.registerBackendRoutes(expressApp, { instanceName, ConfigManager, fetch, bus });
+  loader.registerBackendRoutes(expressApp, {
+    instanceName,
+    ConfigManager,
+    fetch,
+    bus,
+    // Statt eigener Signal-Handler: hier anmelden.
+    onShutdown: registerShutdownHook
+  });
 
   // Update Endpoints. Die eigentliche Arbeit liegt in src/main/updater.js -
   // dort werden ausschliesslich execFile-Aufrufe mit Argument-Arrays benutzt,
@@ -400,7 +441,7 @@ function startWebServer() {
     console.log(`Web Config Server läuft auf http://localhost:${port}`);
   });
 
-  wss = new WebSocket.Server({ server: webServer });
+  wsHub = createWsHub({ server: webServer, auth });
 }
 
 // IPC Handlers
@@ -469,6 +510,9 @@ process.on('uncaughtException', (err) => {
   app.exit(1);
 });
 
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 process.on('unhandledRejection', (reason) => {
   logCrash('unhandledRejection', reason && reason.stack ? reason.stack : String(reason));
 });
@@ -486,7 +530,20 @@ function runSmokeMode() {
 
     // Eine klar erkennbare Zeile - der Rest von stdout ist Electron-Rauschen.
     process.stdout.write(`MM4_SMOKE_RESULT ${JSON.stringify(result)}\n`);
-    app.exit(result.ok ? 0 : 1);
+
+    // Scheitert das Hochfahren, hat weiteres Warten keinen Zweck.
+    if (!result.ok) {
+      app.exit(1);
+      return;
+    }
+
+    // Sonst am Leben bleiben: die Startprobe prueft anschliessend noch den
+    // Live-Kanal, und dafuer muss der Server laufen. Beendet wird von aussen.
+    process.stdout.write('MM4_SMOKE_READY\n');
+
+    // Sicherheitsnetz, falls der Aufrufer verschwindet.
+    const guard = setTimeout(() => app.exit(0), 60000);
+    guard.unref?.();
   };
 
   const timer = setTimeout(() => {

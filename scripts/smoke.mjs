@@ -14,6 +14,7 @@
  *   xvfb-run -a npm run smoke      # in CI
  */
 import { spawn } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +24,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 
 const TIMEOUT_MS = parseInt(process.env.MM_SMOKE_TIMEOUT || '60000', 10);
+const PORT = process.env.MM_SMOKE_PORT || '31730';
 
 let cleanup = () => {};
 
@@ -142,6 +144,7 @@ const child = spawn(
 let stdout = '';
 let stderr = '';
 let resultLine = null;
+let ready = false;
 
 child.stdout.on('data', (chunk) => {
   const text = chunk.toString();
@@ -150,6 +153,10 @@ child.stdout.on('data', (chunk) => {
   for (const line of text.split('\n')) {
     if (line.startsWith('MM4_SMOKE_RESULT ')) {
       resultLine = line.slice('MM4_SMOKE_RESULT '.length).trim();
+    }
+    if (line.trim() === 'MM4_SMOKE_READY') {
+      ready = true;
+      checkLiveChannel();
     }
   }
 });
@@ -161,7 +168,9 @@ child.stderr.on('data', (chunk) => {
 const killTimer = setTimeout(() => {
   child.kill('SIGKILL');
   fail(
-    `Die App hat sich nach ${TIMEOUT_MS} ms nicht gemeldet.`,
+    ready
+      ? `Die App war bereit, endete aber nicht innerhalb von ${TIMEOUT_MS} ms.`
+      : `Die App hat sich nach ${TIMEOUT_MS} ms nicht gemeldet.`,
     `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`
   );
 }, TIMEOUT_MS);
@@ -171,12 +180,107 @@ child.on('error', (error) => {
   fail(`Electron liess sich nicht starten: ${error.message}`);
 });
 
+/**
+ * Prüft den Live-Kanal.
+ *
+ * Die eigentliche Startprobe endet, sobald die Module stehen - der WebSocket
+ * bleibt damit ungeprüft. Genau der ist aber das, was die Web-Oberfläche
+ * aktuell hält: bricht er still, merkt es niemand, weil die Oberfläche beim
+ * Laden ja trotzdem Daten bekommt.
+ */
+async function checkLiveChannel() {
+  const problems = [];
+
+  try {
+    const { WebSocket } = await import('ws');
+    const socket = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
+
+    const events = [];
+    let welcomed = false;
+
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('keine Verbindung binnen 10 s')), 10000);
+      socket.on('open', () => { clearTimeout(timer); resolve(); });
+      socket.on('error', (error) => { clearTimeout(timer); reject(error); });
+    });
+
+    socket.on('message', (raw) => {
+      const message = JSON.parse(raw.toString());
+      if (message.type === 'welcome') welcomed = true;
+      if (message.type === 'event') events.push(message);
+    });
+
+    socket.send(JSON.stringify({ type: 'hello', clientId: 'smoke' }));
+    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config:*', 'system:*'] }));
+    await delay(500);
+
+    if (!welcomed) problems.push('Der Hub hat die Begrüßung nicht beantwortet.');
+
+    // Eine echte Änderung schreiben und schauen, ob sie ankommt.
+    const current = await fetch(`http://127.0.0.1:${PORT}/api/config?instance=smoke`);
+    if (!current.ok) {
+      problems.push(`GET /api/config antwortete mit ${current.status}.`);
+    } else {
+      const config = await current.json();
+      const saved = await fetch(`http://127.0.0.1:${PORT}/api/config?instance=smoke`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+
+      if (!saved.ok) {
+        problems.push(`PUT /api/config antwortete mit ${saved.status}.`);
+      } else {
+        await delay(1000);
+        if (!events.some(event => event.topic === 'config:changed')) {
+          problems.push('Nach dem Speichern kam kein config:changed an.');
+        }
+      }
+    }
+
+    socket.close();
+  } catch (error) {
+    problems.push(`Live-Kanal nicht erreichbar: ${error.message}`);
+  }
+
+  if (problems.length > 0) {
+    child.kill('SIGKILL');
+    fail('Der Live-Kanal funktioniert nicht.', problems.map(p => `  - ${p}`).join('\n'));
+  }
+
+  console.log('Live-Kanal: Verbindung, Abo und Ereignis nach dem Speichern in Ordnung.');
+  stopChild();
+}
+
+/**
+ * Beendet die App. Erst freundlich, dann bestimmt.
+ *
+ * Ein Modul, das SIGTERM abfängt und nicht beendet, macht die Anwendung
+ * unstoppbar - auf dem Pi müssten pm2 und systemd jedes Mal bis zum SIGKILL
+ * warten. Hier wird das sichtbar gemacht statt hingenommen.
+ */
+function stopChild() {
+  child.kill('SIGTERM');
+
+  const escalate = setTimeout(() => {
+    console.error(
+      '\nDie App hat auf SIGTERM nicht reagiert und wurde hart beendet.\n'
+      + 'Meist fängt ein Modul das Signal ab, ohne selbst zu beenden.'
+    );
+    child.kill('SIGKILL');
+    process.exitCode = 1;
+  }, 5000);
+
+  child.once('exit', () => clearTimeout(escalate));
+}
+
 child.on('exit', (code, signal) => {
   clearTimeout(killTimer);
 
   if (!resultLine) {
     fail(
-      `Die App endete ohne Ergebnis (Code ${code}, Signal ${signal}).`,
+      `Die App endete ohne Ergebnis (Code ${code}, Signal ${signal}).`
+      + (ready ? ' Sie war bereits bereit - der Abbruch kam danach.' : ''),
       `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`
     );
   }

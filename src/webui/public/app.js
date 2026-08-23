@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Erst danach die Theme-Auswahl aufbauen: sie markiert das aktive Theme
   // und braucht dafür die geladene Konfiguration.
   await setupMirrorThemePicker();
+  setupLiveView();
   renderModuleList();
 
   // Warte kurz, bis initGridSettings gelaufen ist
@@ -294,6 +295,102 @@ async function loadConfig() {
     console.error('Fehler beim Laden der Konfiguration:', error);
   }
 }
+
+/**
+ * Live-Ansicht des Spiegels.
+ *
+ * Zeigt denselben Renderer, der auch auf dem Spiegel laeuft - ueber HTTP in
+ * einem iframe. Der Layout-Editor zeigt sonst nur Kaestchen mit Modulnamen;
+ * ob eine Uhr wirklich passt oder ein Theme zu dunkel ist, sieht man daran
+ * nicht.
+ *
+ * Der Rahmen laedt in voller Aufloesung und wird als Ganzes skaliert. Ein
+ * einfach verkleinerter iframe wuerde stattdessen ein Handy-Layout rendern -
+ * also gerade nicht das, was am Spiegel zu sehen ist.
+ */
+function setupLiveView() {
+  const section = document.getElementById('live-view');
+  const toggle = document.getElementById('toggle-live-view');
+  const frame = document.getElementById('live-view-iframe');
+  const reload = document.getElementById('live-view-reload');
+  const hint = document.getElementById('live-view-hint');
+  if (!section || !toggle || !frame) return;
+
+  const MIRROR_WIDTH = 1920;
+  let visible = localStorage.getItem('liveViewVisible') === '1';
+
+  function url() {
+    return `/mirror/index.html?instance=${encodeURIComponent(currentInstance)}&preview=1`;
+  }
+
+  function rescale() {
+    const wrapper = frame.parentElement;
+    if (!wrapper) return;
+    const scale = wrapper.clientWidth / MIRROR_WIDTH;
+    wrapper.style.setProperty('--live-view-scale', String(scale));
+  }
+
+  function apply() {
+    section.hidden = !visible;
+    toggle.classList.toggle('active', visible);
+    localStorage.setItem('liveViewVisible', visible ? '1' : '0');
+
+    if (visible) {
+      // Erst beim Einblenden laden: sonst laeuft im Hintergrund dauerhaft ein
+      // zweiter Spiegel samt aller Netzabfragen mit.
+      if (frame.getAttribute('src') !== url()) frame.setAttribute('src', url());
+      rescale();
+      if (hint) hint.textContent = 'zeigt den Spiegel, wie er gerade aussieht';
+    } else {
+      frame.removeAttribute('src');
+    }
+  }
+
+  toggle.addEventListener('click', () => {
+    visible = !visible;
+    apply();
+  });
+
+  reload?.addEventListener('click', () => {
+    frame.setAttribute('src', url());
+  });
+
+  window.addEventListener('resize', rescale);
+
+  // Beim Wechsel der Instanz die andere Anzeige zeigen.
+  document.getElementById('instance-select')?.addEventListener('change', () => {
+    if (visible) frame.setAttribute('src', url());
+  });
+
+  apply();
+}
+
+// Eine Aenderung von einem anderen Geraet - oder vom Spiegel selbst -
+// erreicht diese Oberflaeche jetzt sofort, statt bis zum naechsten Neuladen
+// unsichtbar zu bleiben.
+document.addEventListener('mm:config', (event) => {
+  const payload = event.detail || {};
+  if (payload.instance && payload.instance !== currentInstance) return;
+
+  // Waehrend eine Bearbeitung offen ist, nicht dazwischenfunken - sonst
+  // verschwinden Eingaben unter den Fingern.
+  const settingsOpen = document.getElementById('settings-actions')?.style.display !== 'none';
+  if (settingsOpen) {
+    showNotification('Die Konfiguration wurde anderswo geändert. Nach dem Speichern neu laden.');
+    return;
+  }
+
+  if (!payload.config) return;
+
+  currentConfig = payload.config;
+  renderModuleList();
+  updateMirrorThemeUI();
+  if (window.refreshActiveLayoutView) {
+    window.refreshActiveLayoutView();
+  } else {
+    renderPreview();
+  }
+});
 
 // Mirror Theme System
 //
@@ -948,7 +1045,12 @@ async function saveModuleSettings() {
   try {
     const response = await fetch(`/api/config?instance=${currentInstance}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Der Server gibt die Kennung im Ereignis zurueck; diese Oberflaeche
+        // ignoriert dann ihr eigenes Echo und ueberschreibt sich nicht selbst.
+        'X-MM-Client-Id': window.mmLive ? window.mmLive.clientId : ''
+      },
       body: JSON.stringify(currentConfig)
     });
 

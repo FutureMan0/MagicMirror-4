@@ -133,6 +133,52 @@ test('Modul-Dateien werden nur nach Whitelist ausgeliefert', () => {
   );
 });
 
+// Der WebSocket-Kanal muss denselben Schutz haben wie die HTTP-Seite - sonst
+// waere der Bus ein offener Kanal ins Netzwerk.
+test('der WebSocket-Hub bekommt die Anmeldung durchgereicht', () => {
+  assert.match(
+    mainSource, /createWsHub\(\{[^}]*auth[^}]*\}\)/,
+    'ohne auth im Hub kann sich jeder im Netzwerk verbinden'
+  );
+
+  const bridge = fs.readFileSync(path.join(ROOT, 'src/main/busBridge.js'), 'utf8');
+  assert.doesNotMatch(
+    bridge, /wss\.clients/,
+    'die Bruecke sendet wieder blind an alle Verbundenen, statt Abos zu beachten'
+  );
+});
+
+test('Konfigurationsaenderungen tragen ihre Herkunft', () => {
+  assert.match(
+    mainSource, /origin:\s*req\.get\('X-MM-Client-Id'\)/,
+    'ohne origin ueberschreibt der eigene Speichervorgang die offene Bearbeitung'
+  );
+});
+
+// Ein Signal-Handler ersetzt das Standardverhalten. Beendet er nicht selbst,
+// laesst sich die Anwendung gar nicht mehr stoppen - pm2 und systemd muessten
+// jedes Mal bis zum SIGKILL warten.
+test('nur der Hauptprozess behandelt Beendigungssignale', () => {
+  assert.match(mainSource, /process\.on\('SIGTERM'/, 'der Hauptprozess behandelt SIGTERM nicht');
+  assert.match(mainSource, /function shutdown\(/, 'kein zentrales Beenden');
+  assert.match(mainSource, /onShutdown:\s*registerShutdownHook/, 'Module koennen sich nicht anmelden');
+
+  const modulesDir = path.join(ROOT, 'modules');
+  for (const name of fs.readdirSync(modulesDir)) {
+    const backend = path.join(modulesDir, name, 'backend.js');
+    if (!fs.existsSync(backend)) continue;
+
+    const source = fs.readFileSync(backend, 'utf8').replace(/\/\/[^\n]*/g, '');
+    for (const signal of ['SIGTERM', 'SIGINT', 'uncaughtException']) {
+      assert.doesNotMatch(
+        source,
+        new RegExp(`process\\.on\\(\\s*'${signal}'`),
+        `${name}/backend.js faengt ${signal} ab - das macht die Anwendung unstoppbar`
+      );
+    }
+  }
+});
+
 test('kein exec() mit Shell-String mehr im Hauptprozess', () => {
   assert.doesNotMatch(
     mainSource,
