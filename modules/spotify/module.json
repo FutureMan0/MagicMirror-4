@@ -8,17 +8,12 @@
     "clientId": {
       "type": "string",
       "default": "",
-      "description": "Spotify Client ID"
-    },
-    "clientSecret": {
-      "type": "string",
-      "default": "",
-      "description": "Spotify Client Secret"
+      "description": "Client ID aus dem Spotify-Dashboard. Ein Client Secret wird nicht mehr gebraucht."
     },
     "refreshToken": {
       "type": "string",
       "default": "",
-      "description": "Spotify Refresh Token (wird nach OAuth gesetzt)"
+      "description": "Wird beim Verbinden automatisch gesetzt."
     },
     "showCover": {
       "type": "boolean",
@@ -39,6 +34,16 @@
       "type": "number",
       "default": 5000,
       "description": "Update-Intervall in Millisekunden"
+    },
+    "showControls": {
+      "type": "boolean",
+      "default": true,
+      "description": "Wiedergabe am Handy steuern (Play, Pause, Weiter)"
+    },
+    "redirectUri": {
+      "type": "string",
+      "default": "",
+      "description": "Nur bei eigenem Fork nötig — sonst leer lassen."
     }
   },
   "apiVersion": 2,
@@ -47,19 +52,16 @@
       "key": "clientId",
       "env": "SPOTIFY_CLIENT_ID",
       "label": "Client ID",
-      "exposeToRenderer": true
-    },
-    {
-      "key": "clientSecret",
-      "env": "SPOTIFY_CLIENT_SECRET",
-      "label": "Client Secret",
-      "exposeToRenderer": true
+      "exposeToRenderer": false
     },
     {
       "key": "refreshToken",
       "env": "SPOTIFY_REFRESH_TOKEN",
       "label": "Refresh Token",
-      "exposeToRenderer": true
+      "exposeToRenderer": false
     }
+  ],
+  "provides": [
+    "spotify:connected"
   ]
 }

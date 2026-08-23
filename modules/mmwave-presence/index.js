@@ -1,3 +1,11 @@
+// Bewusst `var` und nicht `const`: unter file:// werden Module als klassische
+// Scripts geladen und teilen sich einen globalen Scope. Ein zweites `const`
+// desselben Namens wuerde das Modul mit einem SyntaxError scheitern lassen.
+// Als ES-Modul (der Normalfall) ist die Deklaration ohnehin modul-lokal.
+var h = (typeof window !== 'undefined' && window.mmHtml)
+  ? window.mmHtml
+  : (strings, ...values) => strings.reduce((out, chunk, i) => out + String(values[i - 1] ?? '') + chunk);
+
 class mmWavePresenceModule {
     constructor(config = {}) {
         this.config = {
@@ -113,7 +121,7 @@ class mmWavePresenceModule {
         if (this.lastPresence) {
             const last = new Date(this.lastPresence);
             const timeStr = last.toLocaleTimeString(this.config.language, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            details.innerHTML = `
+            details.innerHTML = h`
         <div class="detail-item">
           <span>Last Presence:</span>
           <span>${timeStr}</span>

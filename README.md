@@ -74,6 +74,31 @@ Ein gekoppeltes Gerät bleibt 30 Tage angemeldet.
 
 ---
 
+## 🎵 Spotify verbinden
+
+Geht vollständig am Handy, in vier Schritten im Modul-Dialog:
+
+1. **App anlegen** im Spotify-Dashboard (Name frei wählbar).
+2. **Redirect URI eintragen** — steht im Dialog zum Kopieren. Sie muss exakt
+   stimmen, deshalb kopieren statt abtippen.
+3. **Client ID einfügen.** Ein Client Secret wird nicht mehr gebraucht.
+4. **Verbinden.**
+
+> Spotify verlangt für eigene Apps ein **Premium-Konto**. Ohne das endet der
+> Vorgang in einem 403, dessen Ursache nirgends steht.
+
+**Warum eine fremde Rückleitungsadresse?** Spotify erlaubt seit dem 27.11.2025
+nur noch `https://` oder wörtliche Loopback-Adressen als Redirect URI — die
+LAN-Adresse des Pi ist damit ausgeschlossen. Die Rückleitung läuft deshalb über
+eine statische HTTPS-Seite, die nichts tut außer weiterzuleiten: sie liest die
+Adresse deines Spiegels aus dem `state` und schickt dich dorthin zurück. Die
+Zugangsdaten selbst laufen nie über sie.
+
+Klappt der automatische Rücksprung nicht — Chromes HTTPS-First-Mode kann
+dazwischenfunken —, steht auf der Seite ein Code zum Einfügen.
+
+---
+
 ## 📱 Als App aufs Handy
 
 Die Web-Oberfläche ist eine installierbare PWA.
