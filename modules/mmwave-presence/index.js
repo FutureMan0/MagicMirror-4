@@ -59,9 +59,19 @@ class mmWavePresenceModule {
         return this.container;
     }
 
+    get apiBase() {
+        return (typeof window !== 'undefined' && window.location.protocol === 'file:')
+            ? 'http://localhost:3000'
+            : '';
+    }
+
     async updateStatus() {
+        // Bei verstecktem Fenster nichts abfragen - spart auf dem Pi einen
+        // dauerhaften HTTP-Roundtrip.
+        if (typeof document !== 'undefined' && document.hidden) return;
+
         try {
-            const response = await fetch('/api/presence/status');
+            const response = await fetch(`${this.apiBase}/api/presence/status`);
             if (!response.ok) throw new Error('Network error');
             const data = await response.json();
 
@@ -72,6 +82,7 @@ class mmWavePresenceModule {
             this.updateUI();
         } catch (error) {
             console.error('Presence: Update failed', error);
+            if (!this.container) return;
             const text = this.container.querySelector('.presence-text');
             if (text) text.textContent = 'Offline';
         }
@@ -83,6 +94,10 @@ class mmWavePresenceModule {
         const indicator = this.container.querySelector('.presence-indicator');
         const text = this.container.querySelector('.presence-text');
         const details = this.container.querySelector('.presence-details');
+
+        // hideUI: der Container hat bewusst keine Kindelemente. Die Daten
+        // fliessen trotzdem weiter, nur gezeichnet wird nichts.
+        if (!indicator || !text || !details) return;
 
         if (this.presence) {
             indicator.classList.add('active');
@@ -116,11 +131,15 @@ class mmWavePresenceModule {
 
     startUpdating() {
         this.updateStatus();
-        this.updateTimer = setInterval(() => this.updateStatus(), 2000);
+        this.updateTimer = setInterval(() => this.updateStatus(), 5000);
     }
 
     destroy() {
-        if (this.updateTimer) clearInterval(this.updateTimer);
+        if (this.updateTimer) {
+            clearInterval(this.updateTimer);
+            this.updateTimer = null;
+        }
+        this.container = null;
     }
 }
 
