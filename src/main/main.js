@@ -256,7 +256,21 @@ function startWebServer() {
   };
 
   // Statische Dateien bleiben oeffentlich - sonst laedt die Anmeldeseite nicht.
-  expressApp.use(express.static(path.join(__dirname, '../webui/public')));
+  expressApp.use(express.static(path.join(__dirname, '../webui/public'), {
+    setHeaders(res, filePath) {
+      // Nicht jede Umgebung kennt .webmanifest; ohne den richtigen Typ
+      // ignorieren Browser das Manifest stillschweigend und die App laesst
+      // sich nicht installieren.
+      if (filePath.endsWith('.webmanifest')) {
+        res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      }
+      // Der Service Worker darf nicht aus dem Zwischenspeicher kommen -
+      // sonst bleibt eine kaputte Fassung haengen.
+      if (filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    }
+  }));
 
   // Der Spiegel selbst wird ueber HTTP ausgeliefert statt per file:// geladen.
   // Das loest gleich mehreres auf einmal:

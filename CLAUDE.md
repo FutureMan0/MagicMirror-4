@@ -154,6 +154,31 @@ Anmeldung ist dieselbe wie auf der HTTP-Seite. `config:changed` trägt ein
 ignoriert sein eigenes Echo, sonst überschreibt der eigene Speichervorgang die
 gerade offene Bearbeitung.
 
+## Die Web-Oberfläche als App
+
+`src/webui/public/` ist eine installierbare PWA. Zwei Regeln, die dabei
+wichtiger sind als alles andere:
+
+* **Bei jeder Änderung an einer Shell-Datei `VERSION` in `sw.js` erhöhen.** Es
+  gibt keinen Build-Schritt, der das tut. Ohne Erhöhung bekommen installierte
+  Geräte die alte Fassung — besonders heimtückisch nach einem Update über die
+  Oberfläche, weil die App dann neu startet und trotzdem die alte Hülle lädt.
+* **Der Service Worker fasst `/api/` nicht an.** Ein zwischengespeicherter
+  Konfigurationsstand wäre schlimmer als gar keine Offline-Fähigkeit: man sähe
+  einen Zustand, den es nicht mehr gibt, und schriebe ihn womöglich zurück.
+  Offline-Daten leben in der App-Schicht und sind dort als solche
+  gekennzeichnet. Ein Test wacht darüber.
+
+Ebenfalls per Test abgesichert: dass nichts von einem fremden Server geladen
+wird (SortableJS liegt unter `vendor/`), dass jede Datei aus `SHELL_ASSETS`
+existiert, und dass der Worker nicht ungefragt übernimmt — ein Wechsel mitten
+in einer offenen Bearbeitung würde sie verwerfen.
+
+Icons erzeugt `npm run icons:build` — direkt in einen Pixelpuffer gezeichnet
+und mit `zlib` als PNG geschrieben, ohne Bildbibliothek. `sharp` oder
+ImageMagick wären eine native Abhängigkeit, die auf dem Pi übersetzt werden
+müsste, für etwas, das sich praktisch nie ändert.
+
 ## Prüfen
 
 ```bash

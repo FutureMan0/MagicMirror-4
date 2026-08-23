@@ -109,6 +109,29 @@ export default [
     rules
   },
   {
+    // Ein Service Worker laeuft in einem eigenen globalen Scope - weder
+    // window noch document existieren dort.
+    files: ['src/webui/public/sw.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'script',
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        fetch: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        AbortController: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        console: 'readonly'
+      }
+    },
+    rules
+  },
+  {
     // i18n.js deklariert die geteilten Globals - dort duerfen sie nicht
     // zusaetzlich als vordefiniert gelten, sonst meldet ESLint no-redeclare.
     files: ['src/webui/public/i18n.js'],

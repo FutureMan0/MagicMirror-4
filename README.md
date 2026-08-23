@@ -74,6 +74,26 @@ Ein gekoppeltes Gerät bleibt 30 Tage angemeldet.
 
 ---
 
+## 📱 Als App aufs Handy
+
+Die Web-Oberfläche ist eine installierbare PWA.
+
+1. `http://<pi-ip>:3000` öffnen und koppeln (siehe oben).
+2. Etwas speichern — danach fragt die App, ob sie auf den Home-Bildschirm soll.
+   Auf iOS steht dort stattdessen die Anleitung über *Teilen*.
+3. Ab dann startet MM⁴ im Vollbild, ohne Browser-Leiste.
+
+Sie funktioniert kurz auch ohne Verbindung: die Oberfläche lädt weiter, zeigt
+den zuletzt bekannten Stand und **sperrt dabei die Speichern-Knöpfe**. Wer
+offline weiterklickt, würde sonst einen Stand überschreiben, den er nie
+gesehen hat.
+
+> **Hinweis zum Offline-Betrieb:** Browser erlauben Service Worker nur über
+> HTTPS oder auf `localhost`. Im Heimnetz per IP ist die Offline-Hülle deshalb
+> inaktiv — installieren und alles andere funktioniert trotzdem.
+
+---
+
 ## 🧯 Troubleshooting (Raspberry Pi / PM2)
 
 ### Electron exits with: `Missing X server or $DISPLAY`

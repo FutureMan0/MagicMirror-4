@@ -365,6 +365,25 @@ function setupLiveView() {
   apply();
 }
 
+/**
+ * Laedt Module und Konfiguration neu, ohne die Seite zu verwerfen.
+ *
+ * Ein location.reload() wuerde die Wisch-Geste zwar auch bedienen, aber die
+ * Verbindung neu aufbauen und die Ansicht zuruecksetzen - fuer ein
+ * "aktualisieren" ist das zu viel.
+ */
+window.reloadEverything = async function reloadEverything() {
+  await loadModules();
+  await loadConfig();
+  renderModuleList();
+  updateMirrorThemeUI();
+  if (window.refreshActiveLayoutView) {
+    window.refreshActiveLayoutView();
+  } else {
+    renderPreview();
+  }
+};
+
 // Eine Aenderung von einem anderen Geraet - oder vom Spiegel selbst -
 // erreicht diese Oberflaeche jetzt sofort, statt bis zum naechsten Neuladen
 // unsichtbar zu bleiben.
@@ -1062,6 +1081,7 @@ async function saveModuleSettings() {
         renderPreview();
       }
       hideSettings();
+      document.dispatchEvent(new CustomEvent('mm:saved'));
     }
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
