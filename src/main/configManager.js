@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('node:crypto');
 const { normalizeManifest } = require('../shared/manifest');
 require('dotenv').config();
 
@@ -161,6 +162,17 @@ class ConfigManager {
     // Der Renderer bekommt die Werte über IPC; in eine HTTP-Antwort gehören
     // sie nie.
     config.env = redact ? {} : envVars;
+
+    // Jeder Modul-Eintrag bekommt eine feste Kennung.
+    //
+    // Ohne sie liesse sich beim Abgleich einer geaenderten Konfiguration nur
+    // ueber den Array-Index vergleichen - und ein nach oben geschobenes Modul
+    // saehe dann aus wie "alle ausgetauscht", also wuerde alles neu gebaut.
+    if (config.modules) {
+      for (const mod of config.modules) {
+        if (!mod.id) mod.id = crypto.randomUUID();
+      }
+    }
 
     // Deklarierte Geheimnisse aus der .env in die Modul-Konfiguration
     // einsetzen. Vorher stand hier ein switch mit vier fest verdrahteten

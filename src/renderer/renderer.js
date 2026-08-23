@@ -6,6 +6,12 @@ let moduleLoader = null;
 // Renderer braucht daraus vor allem die Privatsphäre-Stufe.
 let moduleInfo = new Map();
 
+// Was gerade angezeigt wird: Schlüssel -> { container, entry }. Der Abgleich
+// braucht das, um zu erkennen, was schon da ist.
+let rendered = new Map();
+let gridEl = null;
+let absoluteEl = null;
+
 // Wetter-Effekte werden erst erzeugt, wenn ein Modul sie tatsächlich anfordert.
 // Vorher lief hier beim Start unbedingt ein vollflächiger Canvas mit, auch wenn
 // gar kein Wetter-Modul aktiv war.
@@ -172,12 +178,67 @@ async function applyTheme() {
   await window.mmThemeEngine.applyTheme(themeId, meta);
 }
 
-// Vergleicht zwei Konfigurationen und meldet, ob sich ausschließlich das
-// Theme unterscheidet.
-function onlyThemeChanged(previous, next) {
-  if (previous.theme === next.theme) return false;
-  const strip = (cfg) => JSON.stringify({ ...cfg, theme: null });
-  return strip(previous) === strip(next);
+/** Baut den Rahmen eines Moduls samt seiner Attribute. */
+function createModuleContainer(moduleConfig) {
+  const element = document.createElement('div');
+  element.className = 'module-container';
+  element.dataset.moduleName = moduleConfig.module;
+
+  // Nach diesen Attributen blendet privacy.css aus - ohne Neuaufbau.
+  // Fehlt die Angabe, gilt das Modul als heikel.
+  const info = moduleInfo.get(moduleConfig.module) || {};
+  element.dataset.privacyLevel = info.privacyLevel || 'sensitive';
+  if (info.showInShower) element.dataset.showInShower = 'true';
+
+  // Optionale Modulseite - nur gesetzt, wenn die Konfiguration eine nennt.
+  if (moduleConfig.page) element.dataset.page = String(moduleConfig.page);
+
+  return element;
+}
+
+/**
+ * Setzt einen Rahmen an seinen Platz. Getrennt vom Erzeugen, weil eine
+ * verschobene Kachel nur neu platziert werden muss - nicht neu gebaut.
+ */
+function placeModuleContainer(element, moduleConfig) {
+  const parsed = parsePosition(moduleConfig.position, config.gridSettings);
+
+  // Alte Platzierung zurücksetzen, sonst bleiben Reste stehen, wenn ein Modul
+  // von absolut auf Raster wechselt.
+  element.style.gridColumn = '';
+  element.style.gridRow = '';
+  element.style.justifySelf = '';
+  element.style.alignSelf = '';
+  element.style.position = '';
+  element.style.left = '';
+  element.style.top = '';
+  element.style.width = '';
+  element.style.height = '';
+  element.style.zIndex = '';
+
+  if (parsed && parsed.type === 'grid') {
+    element.style.gridColumn = parsed.gridColumn;
+    element.style.gridRow = parsed.gridRow;
+    element.style.justifySelf = parsed.justifySelf;
+    element.style.alignSelf = parsed.alignSelf;
+    gridEl.appendChild(element);
+    return;
+  }
+
+  if (parsed && parsed.type === 'absolute') {
+    element.style.position = 'absolute';
+    if (parsed.x) element.style.left = parsed.x;
+    if (parsed.y) element.style.top = parsed.y;
+    if (parsed.width) element.style.width = parsed.width;
+    if (parsed.height) element.style.height = parsed.height;
+    if (parsed.zIndex) element.style.zIndex = parsed.zIndex;
+    absoluteEl.appendChild(element);
+    return;
+  }
+
+  // Ohne verwertbare Angabe ins Raster - die automatische Platzierung
+  // übernimmt.
+  gridEl.appendChild(element);
 }
 
 let isRendering = false;
@@ -213,6 +274,10 @@ async function renderModules() {
     absoluteContainer.className = 'modules-absolute';
     container.appendChild(absoluteContainer);
 
+    gridEl = gridContainer;
+    absoluteEl = absoluteContainer;
+    rendered = new Map();
+
     // Grid-CSS dynamisch anwenden
     buildGridCSS(config.gridSettings);
 
@@ -233,44 +298,8 @@ async function renderModules() {
     for (const [moduleIndex, moduleConfig] of config.modules.entries()) {
       if (moduleConfig.enabled === false) continue;
 
-      const moduleContainer = document.createElement('div');
-      moduleContainer.className = 'module-container';
-      moduleContainer.dataset.moduleName = moduleConfig.module;
-
-      // Nach diesen Attributen blendet privacy.css aus - ohne Neuaufbau.
-      // Fehlt die Angabe, gilt das Modul als heikel.
-      const info = moduleInfo.get(moduleConfig.module) || {};
-      moduleContainer.dataset.privacyLevel = info.privacyLevel || 'sensitive';
-      if (info.showInShower) moduleContainer.dataset.showInShower = 'true';
-
-      // Optionale Modulseite - nur gesetzt, wenn die Konfiguration eine nennt.
-      if (moduleConfig.page) moduleContainer.dataset.page = String(moduleConfig.page);
-
-      // Parse Position mit neuer Funktion
-      const parsedPos = parsePosition(moduleConfig.position, config.gridSettings);
-
-      if (parsedPos) {
-        if (parsedPos.type === 'grid') {
-          // Grid-basierte Position
-          moduleContainer.style.gridColumn = parsedPos.gridColumn;
-          moduleContainer.style.gridRow = parsedPos.gridRow;
-          moduleContainer.style.justifySelf = parsedPos.justifySelf;
-          moduleContainer.style.alignSelf = parsedPos.alignSelf;
-          gridContainer.appendChild(moduleContainer);
-        } else if (parsedPos.type === 'absolute') {
-          // Absolute Position
-          moduleContainer.style.position = 'absolute';
-          if (parsedPos.x) moduleContainer.style.left = parsedPos.x;
-          if (parsedPos.y) moduleContainer.style.top = parsedPos.y;
-          if (parsedPos.width) moduleContainer.style.width = parsedPos.width;
-          if (parsedPos.height) moduleContainer.style.height = parsedPos.height;
-          if (parsedPos.zIndex) moduleContainer.style.zIndex = parsedPos.zIndex;
-          absoluteContainer.appendChild(moduleContainer);
-        }
-      } else {
-        // Fallback: zum Grid hinzufügen
-        gridContainer.appendChild(moduleContainer);
-      }
+      const moduleContainer = createModuleContainer(moduleConfig);
+      placeModuleContainer(moduleContainer, moduleConfig);
 
       try {
         const result = await moduleLoader.createModuleInstance(
@@ -278,7 +307,7 @@ async function renderModules() {
           moduleConfig.config || {},
           envConfig,
           config.language || 'en',
-          `${moduleConfig.module}#${moduleIndex}`
+          window.mmReconciler.keyOf(moduleConfig, moduleIndex)
         );
 
         if (result.element) {
@@ -290,6 +319,10 @@ async function renderModules() {
 
         if (result.ok) {
           mounted.push(moduleConfig.module);
+          rendered.set(window.mmReconciler.keyOf(moduleConfig, moduleIndex), {
+            container: moduleContainer,
+            entry: moduleConfig
+          });
         } else {
           failed.push({ module: moduleConfig.module, error: result.error });
         }
@@ -314,6 +347,114 @@ async function renderModules() {
     }
   } finally {
     isRendering = false;
+  }
+}
+
+/**
+ * Wendet eine geänderte Konfiguration an - und fasst dabei nur an, was sich
+ * wirklich geändert hat.
+ *
+ * Vorher lief jede Änderung über renderModules(): alle Module zerstören,
+ * alles neu aufbauen. Wer am Handy eine Einstellung der Uhr verstellte, löste
+ * damit aus, dass das Wetter neu geladen und der Stundenplan neu abgefragt
+ * wurde - und für einen Moment stand der halbe Spiegel leer.
+ */
+async function applyConfig(nextConfig) {
+  const previous = config;
+  config = nextConfig;
+
+  // Ohne bisherigen Stand oder ohne Reconciler bleibt nur der Komplettaufbau.
+  if (!previous || !window.mmReconciler || rendered.size === 0) {
+    return renderModules();
+  }
+
+  const changes = window.mmReconciler.diff(previous, nextConfig);
+
+  if (window.mmReconciler.isEmpty(changes)) return;
+
+  document.documentElement.lang = nextConfig.language || 'en';
+
+  // Sprache betrifft jedes Modul - da lohnt der Abgleich nicht.
+  if (changes.language) return renderModules();
+
+  if (changes.theme) await applyTheme();
+  if (changes.grid) buildGridCSS(nextConfig.gridSettings);
+
+  for (const { key } of changes.removed) {
+    const current = rendered.get(key);
+    if (!current) continue;
+
+    moduleLoader.destroyInstance(key);
+    current.container.remove();
+    rendered.delete(key);
+  }
+
+  // Nur umplatzieren: Rasterposition liegt im Style, nicht in der
+  // DOM-Reihenfolge - ein Verschieben kostet damit nichts.
+  for (const { key, entry } of changes.moved) {
+    const current = rendered.get(key);
+    if (!current) continue;
+
+    placeModuleContainer(current.container, entry);
+    current.entry = entry;
+  }
+
+  for (const change of changes.patched) {
+    const current = rendered.get(change.key);
+    if (!current) continue;
+
+    const instance = moduleLoader.getInstance(change.key);
+    const decision = window.mmReconciler.decide(instance, change.entry, change.changed);
+
+    if (change.moved) placeModuleContainer(current.container, change.entry);
+    current.entry = change.entry;
+
+    if (decision === 'patch') {
+      // Das Modul übernimmt die neuen Werte selbst.
+      Object.assign(instance.config, change.entry.config || {});
+      instance.requestUpdate ? instance.requestUpdate() : instance.update?.();
+      continue;
+    }
+
+    await remountModule(change.key, change.entry, current.container);
+  }
+
+  for (const { key, entry } of changes.added) {
+    const container = createModuleContainer(entry);
+    placeModuleContainer(container, entry);
+    rendered.set(key, { container, entry });
+    await remountModule(key, entry, container);
+  }
+}
+
+/** Baut genau ein Modul neu auf, ohne die übrigen anzufassen. */
+async function remountModule(key, entry, container) {
+  moduleLoader.destroyInstance(key);
+  container.textContent = '';
+
+  try {
+    const result = await moduleLoader.createModuleInstance(
+      entry.module,
+      entry.config || {},
+      config.env || {},
+      config.language || 'en',
+      key
+    );
+
+    if (result.element) {
+      container.appendChild(result.element);
+    } else if (result.headless) {
+      container.remove();
+      rendered.delete(key);
+      return;
+    }
+
+    if (!result.ok) {
+      container.appendChild(createErrorPlaceholder(entry.module, result.error));
+    }
+  } catch (error) {
+    console.error(`Fehler bei Modul ${entry.module}:`, error);
+    container.appendChild(createErrorPlaceholder(entry.module, error.message));
   }
 }
 
@@ -391,14 +532,7 @@ function connectLivePreview(instance) {
       if (instance && payload.instance && payload.instance !== instance) return;
       if (!payload.config) return;
 
-      const previous = config;
-      config = payload.config;
-
-      if (previous && onlyThemeChanged(previous, config)) {
-        applyTheme();
-      } else {
-        renderModules();
-      }
+      applyConfig(payload.config);
     }
 
     if (message.topic === 'presence:display' && !document.documentElement.dataset.preview) {
@@ -430,19 +564,8 @@ document.addEventListener('DOMContentLoaded', () => {
       renderModules();
     });
 
-    window.electronAPI.onConfigUpdate(async (newConfig) => {
-      const previous = config;
-      config = newConfig;
-
-      // Wenn sich ausschließlich das Theme geändert hat, reicht der Tausch
-      // des Stylesheets. Vorher wurde dafür jedes Modul zerstört und neu
-      // erzeugt - inklusive aller Netzwerkabfragen.
-      if (previous && onlyThemeChanged(previous, newConfig)) {
-        await applyTheme();
-        return;
-      }
-
-      renderModules();
+    window.electronAPI.onConfigUpdate((newConfig) => {
+      applyConfig(newConfig);
     });
 
     // Dimmen laeuft jetzt ueber den Bus. Die eigenen IPC-Kanaele
