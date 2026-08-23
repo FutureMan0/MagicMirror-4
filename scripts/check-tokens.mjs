@@ -70,7 +70,9 @@ function rootLines(css) {
 
 const targets = [
   ...await collect(path.join(ROOT, 'modules'), (f) => f.endsWith('.css')),
-  ...await collect(path.join(ROOT, 'themes'), (f) => f.endsWith('.css'))
+  ...await collect(path.join(ROOT, 'themes'), (f) => f.endsWith('.css')),
+  // Die gemeinsame Optik der Daten-Module unterliegt denselben Regeln.
+  path.join(ROOT, 'src/renderer/styles/data-module.css')
 ];
 
 const problems = [];

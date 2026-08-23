@@ -128,6 +128,7 @@ function installDom() {
   require('../../src/shared/bus.js');
   require('../../src/renderer/html.js');
   require('../../src/renderer/sdk.js');
+  require('../../src/renderer/lib/DataModule.js');
 
   return { StubElement, documentElement };
 }

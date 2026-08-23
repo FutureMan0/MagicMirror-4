@@ -89,7 +89,25 @@ export default [
     ignores: ['node_modules/**', 'dist/**', 'logs/**', 'src/webui/public/vendor/**']
   },
   {
-    files: ['src/main/**/*.js', 'modules/**/backend.js', 'scripts/**/*.js', 'tests/**/*.js'],
+    // Tests richten sich per installDom() eine Renderer-Umgebung ein und
+    // benutzen danach document und window wie im Browser.
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'commonjs',
+      globals: {
+        ...nodeGlobals,
+        document: 'readonly',
+        window: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        WebSocket: 'readonly'
+      }
+    },
+    rules
+  },
+  {
+    files: ['src/main/**/*.js', 'modules/**/backend.js', 'scripts/**/*.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'commonjs',
