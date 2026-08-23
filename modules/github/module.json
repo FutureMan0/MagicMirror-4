@@ -13,7 +13,9 @@
       "exposeToRenderer": false
     }
   ],
-  "provides": ["data:github"],
+  "provides": [
+    "data:github"
+  ],
   "config": {
     "repos": {
       "type": "string",
@@ -32,11 +34,6 @@
       "max": 10,
       "description": "Anzahl der angezeigten Commits je Repository"
     },
-    "showPullRequests": {
-      "type": "boolean",
-      "default": true,
-      "description": "Offene Pull Requests anzeigen"
-    },
     "showStars": {
       "type": "boolean",
       "default": true,
@@ -47,6 +44,11 @@
       "default": 300000,
       "min": 60000,
       "description": "Aktualisierungsintervall in Millisekunden"
+    },
+    "showOpenIssues": {
+      "type": "boolean",
+      "default": true,
+      "description": "Anzahl offener Vorgänge anzeigen (GitHub zählt Pull Requests mit)"
     }
   }
 }

@@ -129,6 +129,7 @@ function installDom() {
   require('../../src/renderer/html.js');
   require('../../src/renderer/sdk.js');
   require('../../src/renderer/lib/DataModule.js');
+  require('../../src/renderer/lib/ForgeModule.js');
 
   return { StubElement, documentElement };
 }
