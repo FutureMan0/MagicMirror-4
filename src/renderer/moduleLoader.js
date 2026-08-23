@@ -37,10 +37,11 @@ class RendererModuleLoader {
       const ModuleClass = window.MagicMirrorModules[moduleName];
       this.moduleClasses.set(moduleName, ModuleClass);
 
-      // Lade Styles
-      const stylesResult = await window.electronAPI.getModuleStyles(moduleName);
-      if (stylesResult.success && stylesResult.styles) {
-        this.injectStyles(moduleName, stylesResult.styles);
+      // Lade Styles. Ueber IPC, wenn wir in Electron laufen - sonst per HTTP,
+      // damit dieselbe Ansicht auch in einem normalen Browser funktioniert.
+      const styles = await this.fetchModuleStyles(moduleName);
+      if (styles) {
+        this.injectStyles(moduleName, styles);
       }
 
       console.log(`Modul ${moduleName} erfolgreich geladen`);
@@ -63,6 +64,24 @@ class RendererModuleLoader {
       script.onerror = (error) => reject(new Error(`Script konnte nicht geladen werden: ${error}`));
       document.head.appendChild(script);
     });
+  }
+
+  /**
+   * Holt das Stylesheet eines Moduls - per IPC oder per HTTP.
+   */
+  async fetchModuleStyles(moduleName) {
+    if (window.electronAPI && window.electronAPI.getModuleStyles) {
+      const result = await window.electronAPI.getModuleStyles(moduleName);
+      return result.success ? result.styles : '';
+    }
+
+    try {
+      const response = await fetch(`../../modules/${moduleName}/styles.css`);
+      // Ein Modul ohne Stylesheet ist voellig in Ordnung.
+      return response.ok ? await response.text() : '';
+    } catch {
+      return '';
+    }
   }
 
   /**
@@ -107,31 +126,18 @@ class RendererModuleLoader {
   }
 
   /**
-   * Merge Modul-Config mit Environment-Config und globaler Sprache
+   * Merge Modul-Config mit globaler Sprache.
+   *
+   * Hier stand ein switch, der für weather, untis und spotify die
+   * Zugangsdaten aus dem env-Objekt in die Modul-Konfiguration schob. Damit
+   * musste jedes neue Modul mit API-Schlüssel den Kern anfassen.
+   *
+   * Der Hauptprozess setzt die deklarierten Werte jetzt schon beim Laden der
+   * Konfiguration ein (siehe ConfigManager) - und lässt die weg, die laut
+   * Manifest gar nicht in den Browser gehören.
    */
   mergeConfig(moduleName, config, envConfig, language) {
-    const merged = { ...config, language };
-
-    // Modul-spezifische Env-Mappings
-    switch (moduleName) {
-      case 'weather':
-        if (!merged.apiKey && envConfig.openweathermapApiKey) {
-          merged.apiKey = envConfig.openweathermapApiKey;
-        }
-        break;
-      case 'untis':
-        if (!merged.server && envConfig.untisServer) merged.server = envConfig.untisServer;
-        if (!merged.username && envConfig.untisUsername) merged.username = envConfig.untisUsername;
-        if (!merged.password && envConfig.untisPassword) merged.password = envConfig.untisPassword;
-        if (!merged.school && envConfig.untisSchool) merged.school = envConfig.untisSchool;
-        break;
-      case 'spotify':
-        if (!merged.clientId && envConfig.spotifyClientId) merged.clientId = envConfig.spotifyClientId;
-        if (!merged.clientSecret && envConfig.spotifyClientSecret) merged.clientSecret = envConfig.spotifyClientSecret;
-        break;
-    }
-
-    return merged;
+    return { ...config, language };
   }
 
   /**

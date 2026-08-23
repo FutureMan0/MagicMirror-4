@@ -1,5 +1,21 @@
-class ClockModule {
+// Referenzimplementierung fuer die Modul-API v2.
+//
+// Erbt von MMModule und bekommt damit: Timer, die sich beim Zerstoeren selbst
+// abraeumen, Bus-Abos mit demselben Automatismus, einen Logger mit Namensraum
+// und requestUpdate(). Faellt MMModule aus (etwa in einem Test ohne
+// Renderer-Umgebung), greift eine leere Basisklasse - das Modul bleibt
+// lauffaehig.
+const ModuleBase = (typeof window !== 'undefined' && window.MMModule) || class {};
+
+class ClockModule extends ModuleBase {
+  // Diese Schluessel lassen sich im laufenden Betrieb aendern, ohne das Modul
+  // neu aufzubauen.
+  static patchable = ['timeFormat', 'showDate', 'dateFormat', 'language'];
+  static moduleName = 'clock';
+
   constructor(config = {}) {
+    super(config);
+
     this.config = {
       timeFormat: config.timeFormat || 'HH:mm:ss',
       showDate: config.showDate !== false,
@@ -20,7 +36,6 @@ class ClockModule {
     };
 
     this.container = null;
-    this.updateInterval = null;
 
     // Stabile Referenzen auf die Zeit-Spans. Sie werden einmal in render()
     // erzeugt und danach nur noch per textContent beschrieben - ein
@@ -111,7 +126,16 @@ class ClockModule {
     }
 
     this.update();
-    this.updateInterval = setInterval(() => this.update(), 1000);
+
+    // Am gemeinsamen Sekundentakt haengen statt einen eigenen Timer zu
+    // starten - bei mehreren Modulen laeuft so trotzdem nur eine Schleife.
+    // Ohne Bus (etwa im Test) auf einen eigenen Timer zurueckfallen, der vom
+    // SDK beim Zerstoeren automatisch abgeraeumt wird.
+    if (this.bus) {
+      this.subscribe('tick:second', () => this.update());
+    } else if (this.timers) {
+      this.timers.every(1000, () => this.update());
+    }
 
     return this.container;
   }
@@ -168,10 +192,9 @@ class ClockModule {
   }
 
   destroy() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
+    // Timer und Bus-Abos raeumt die Basisklasse ab.
+    if (super.destroy) super.destroy();
+
     this.partElements = [];
     this.suffixElement = null;
     this.dateElement = null;

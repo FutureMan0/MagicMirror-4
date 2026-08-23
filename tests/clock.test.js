@@ -113,14 +113,55 @@ test('update() schreibt nur geaenderte Werte und ersetzt keine DOM-Knoten', () =
   });
 });
 
-test('destroy() raeumt Intervall und Referenzen ab', () => {
+// Die Basisklasse raeumt Timer und Bus-Abos ab. Frueher musste jedes Modul
+// daran selbst denken - und ein vergessenes clearInterval liess die Uhr im
+// Sekundentakt weiterlaufen, obwohl sie laengst entfernt war.
+test('destroy() raeumt Timer, Abos und Referenzen ab', () => {
   withFrozenClock(() => {
     freeze(2026, 7, 23, 15, 4, 9);
     const clock = new ClockModule({});
     clock.render();
+
+    assert.ok(clock.timers.intervals.size > 0, 'ohne Bus muss ein eigener Timer laufen');
+
     clock.destroy();
-    assert.equal(clock.updateInterval, null);
+
+    assert.equal(clock.timers.intervals.size, 0, 'Timer laeuft weiter');
     assert.equal(clock.container, null);
     assert.doesNotThrow(() => clock.update(), 'update() nach destroy() darf nicht werfen');
+  });
+});
+
+test('mit Bus haengt die Uhr am gemeinsamen Takt statt an einem eigenen Timer', () => {
+  withFrozenClock(() => {
+    freeze(2026, 7, 23, 15, 4, 9);
+
+    const { Bus } = require('../src/shared/bus.js');
+    const bus = new Bus();
+    const previous = global.window.mmBus;
+    global.window.mmBus = {
+      on: (pattern, listener) => bus.on(pattern, listener),
+      emit: (topic, payload) => bus.emit(topic, payload)
+    };
+
+    try {
+      const clock = new ClockModule({});
+      clock.render();
+
+      assert.equal(clock.timers.intervals.size, 0, 'mit Bus darf kein eigener Timer laufen');
+
+      const root = clock.container;
+      freeze(2026, 7, 23, 15, 4, 10);
+      root.resetWrites();
+      bus.emit('tick:second', {});
+      assert.equal(root.totalWrites(), 1, 'der Takt erreicht die Uhr nicht');
+
+      clock.destroy();
+      root.resetWrites();
+      bus.emit('tick:second', {});
+      assert.equal(root.totalWrites(), 0, 'nach destroy() wird weiter gezeichnet');
+    } finally {
+      global.window.mmBus = previous;
+    }
   });
 });

@@ -37,6 +37,13 @@ const addDebugLog = (level, message, data = null) => {
  */
 module.exports = {
     registerRoutes: (app, context) => {
+        // Der Bus erreicht Spiegel und Web-UI, ohne dass dieses Modul eines
+        // von beiden kennen muss.
+        const bus = context && context.bus;
+        const publish = (topic, payload) => {
+            if (bus) bus.emit(topic, payload);
+        };
+
         let config = {
             port: '/dev/ttyAMA0',      // UART port (GPIO14/15) - will auto-detect ttyAMA1 if needed
             baudRate: 256000,          // Default baudrate (can be changed via command)
@@ -116,16 +123,10 @@ module.exports = {
 
             console.log(`Presence: Turning display ${power ? 'ON' : 'OFF'}`);
 
-            // Notify renderer for software dimming
-            try {
-                const { BrowserWindow } = require('electron');
-                const wins = BrowserWindow.getAllWindows();
-                wins.forEach(win => {
-                    win.webContents.send(power ? 'presence-detected' : 'presence-lost');
-                });
-            } catch (ipcErr) {
-                console.error("Presence: Could not send IPC to renderer", ipcErr.message);
-            }
+            // Frueher wurde hier direkt in jedes BrowserWindow gesendet.
+            // Ueber den Bus erreicht dasselbe Ereignis zusaetzlich die
+            // Web-Oberflaeche - und das Frontend muss nicht mehr pollen.
+            publish('presence:display', { on: power });
 
             // Control Raspberry Pi display hardware
             exec(`vcgencmd display_power ${power ? 1 : 0}`, (err) => {
@@ -256,12 +257,19 @@ module.exports = {
                     if (!isPersonPresent) {
                         isPersonPresent = true;
                         console.log(`Presence: Person detected (Status: ${targetStatus}, Motion: ${motionDistance}cm, Static: ${staticDistance}cm)`);
+                        publish('presence:changed', {
+                            present: true,
+                            lastPresence,
+                            motionDistance,
+                            staticDistance
+                        });
                         setDisplay(true);
                     }
                 } else if (targetStatus === TARGET_NONE) {
                     if (isPersonPresent) {
                         isPersonPresent = false;
                         console.log('Presence: No target detected');
+                        publish('presence:changed', { present: false, lastPresence });
                     }
                 }
             }
