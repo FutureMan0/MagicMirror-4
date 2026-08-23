@@ -130,6 +130,7 @@ function installDom() {
   require('../../src/renderer/sdk.js');
   require('../../src/renderer/lib/DataModule.js');
   require('../../src/renderer/lib/ForgeModule.js');
+  require('../../src/renderer/reconciler.js');
 
   return { StubElement, documentElement };
 }
