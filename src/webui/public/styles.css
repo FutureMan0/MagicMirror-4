@@ -1817,3 +1817,94 @@ body {
   color: #00ff88;
   font-size: 0.9rem;
 }
+
+/* ==================== Steuerung ==================== */
+.control-section h2 {
+  margin-bottom: 16px;
+}
+
+.control-notice {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  background: var(--bg-secondary, #1a1a1a);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.control-error {
+  border-color: var(--accent-red, #ff4444);
+  color: var(--accent-red, #ff4444);
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.control-tile {
+  padding: 16px 14px;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  background: var(--bg-secondary, #1a1a1a);
+  /* Grosszügig: mit dem Daumen trifft man kleine Ziele nicht zuverlässig. */
+  min-height: var(--touch-target-min, 44px);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.control-tile-tappable {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.control-tile-tappable:active {
+  transform: scale(0.97);
+}
+
+/* Eingeschaltet über die Akzentfarbe - erkennbar ohne Symbol, das nicht
+   jedes Thema mitbringt. */
+.control-tile[data-state="on"] {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.control-tile[data-state="on"] .control-tile-state {
+  color: var(--accent-cyan);
+}
+
+.control-tile[data-state="unavailable"] {
+  opacity: 0.45;
+}
+
+.control-tile-name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.control-tile-state {
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.control-cover {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.control-cover button {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 0.9rem;
+}
