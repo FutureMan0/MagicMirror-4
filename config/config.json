@@ -135,6 +135,28 @@
         "showStars": true,
         "allowInsecureTls": false
       }
+    },
+    {
+      "module": "unraid",
+      "position": {
+        "column": 2,
+        "row": 3,
+        "columnSpan": 1,
+        "rowSpan": 1,
+        "align": "start",
+        "justify": "start"
+      },
+      "enabled": false,
+      "config": {
+        "serverUrl": "",
+        "allowInsecureTls": true,
+        "showSystem": true,
+        "showArray": true,
+        "showDocker": true,
+        "showVms": false,
+        "maxDisks": 8,
+        "warnTemp": 45
+      }
     }
   ]
 }
