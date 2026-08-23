@@ -3,13 +3,37 @@ const fs = require('fs');
 let SerialPort = null;
 let ReadlineParser = null;
 
-// Try to load serialport (only available on Linux/RPi)
+// serialport ist eine optionale Abhaengigkeit und laeuft im Hauptprozess -
+// das Binding muss deshalb zu Electrons ABI passen, nicht zu System-Node.
+//
+// Der Unterschied ist wichtig: "nicht installiert" ist ein normaler Zustand
+// (Entwicklungsrechner ohne Sensor). "Installiert, aber nicht ladbar" heisst
+// dagegen, dass der Rebuild fehlt - der Spiegel laeuft dann weiter, der
+// Sensor tut aber stillschweigend nichts. Genau dieser Fall soll auffallen.
+let serialportProblem = null;
+
 try {
     const serialport = require('serialport');
     SerialPort = serialport.SerialPort;
     ReadlineParser = serialport.ReadlineParser;
 } catch (e) {
-    console.warn('Presence Backend: serialport not available. Install with: npm install serialport');
+    let installed = false;
+    try {
+        require.resolve('serialport/package.json');
+        installed = true;
+    } catch {
+        installed = false;
+    }
+
+    if (installed) {
+        serialportProblem =
+            'serialport ist installiert, laesst sich unter Electron aber nicht laden '
+            + `(${e.message}). Vermutlich fehlt der Rebuild fuer Electrons ABI: `
+            + 'node scripts/rebuild-native.mjs';
+        console.error('Presence Backend:', serialportProblem);
+    } else {
+        console.warn('Presence Backend: serialport nicht installiert - Sensor bleibt aus.');
+    }
 }
 
 // Debug logging
@@ -43,6 +67,12 @@ module.exports = {
         const publish = (topic, payload) => {
             if (bus) bus.emit(topic, payload);
         };
+
+        // Ein kaputtes Binding faellt sonst niemandem auf - der Fehler wird
+        // oben abgefangen, und der Spiegel laeuft ohne Sensor weiter.
+        if (serialportProblem) {
+            publish('system:warning', { source: 'mmwave-presence', message: serialportProblem });
+        }
 
         let config = {
             port: '/dev/ttyAMA0',      // UART port (GPIO14/15) - will auto-detect ttyAMA1 if needed

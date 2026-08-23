@@ -1,7 +1,6 @@
 // Untis Backend API Module
 // Stellt API-Routen für WebUntis bereit
 
-const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
 
 // Cache für Untis-Daten
 const untisCache = new Map();
