@@ -115,6 +115,26 @@
         "showPullRequests": true,
         "showStars": true
       }
+    },
+    {
+      "module": "gitea",
+      "position": {
+        "column": 3,
+        "row": 2,
+        "columnSpan": 1,
+        "rowSpan": 1,
+        "align": "start",
+        "justify": "start"
+      },
+      "enabled": false,
+      "config": {
+        "instanceUrl": "",
+        "repos": "",
+        "maxCommits": 3,
+        "showOpenIssues": true,
+        "showStars": true,
+        "allowInsecureTls": false
+      }
     }
   ]
 }
