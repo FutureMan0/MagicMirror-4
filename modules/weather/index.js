@@ -1,3 +1,8 @@
+// Warnungstexte kommen von OpenWeatherMap. h`` escapt jede Interpolation.
+const h = (typeof window !== 'undefined' && window.mmHtml)
+  ? window.mmHtml
+  : (strings, ...values) => strings.reduce((out, chunk, i) => out + String(values[i - 1] ?? '') + chunk);
+
 class WeatherModule {
   constructor(config = {}) {
     this.config = {
@@ -390,7 +395,7 @@ class WeatherModule {
       const startTimeStr = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
       const endTimeStr = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
 
-      alertBanner.innerHTML = `
+      alertBanner.innerHTML = h`
         <div class="alert-icon">⚠️</div>
         <div class="alert-content">
           <div class="alert-title">${alert.event || 'Wetter-Warnung'}</div>

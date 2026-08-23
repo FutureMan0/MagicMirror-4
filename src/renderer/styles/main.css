@@ -264,3 +264,69 @@ body {
   font-size: 0.8rem;
   font-family: monospace;
 }
+
+/* ==================== Kopplung ==================== */
+/* Wird eingeblendet, wenn am Handy eine Kopplung gestartet wurde. Der Code
+   ist bewusst nur hier zu sehen - nicht in der HTTP-Antwort. */
+.pairing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mm-z-toast, 1000);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.pairing-card {
+  text-align: center;
+  padding: 32px 40px;
+  border: 1px solid var(--accent-cyan);
+  border-radius: 12px;
+  background: #000;
+  max-width: 90vw;
+}
+
+.pairing-title {
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.pairing-qr {
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  display: inline-block;
+  line-height: 0;
+}
+
+.pairing-qr svg {
+  display: block;
+  width: 260px;
+  height: 260px;
+}
+
+.pairing-code {
+  margin-top: 20px;
+  font-size: 2.2rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pairing-hint {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.pairing-countdown {
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}

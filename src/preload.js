@@ -13,8 +13,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onPresenceLost: (callback) => {
     ipcRenderer.on('presence-lost', () => callback());
   },
+  // Kopplung: der Code wird auf dem Spiegel angezeigt, damit ihn nur sehen
+  // kann, wer im Raum steht.
+  onPairingStarted: (callback) => {
+    ipcRenderer.on('pairing-started', (event, data) => callback(data));
+  },
+  onPairingEnded: (callback) => {
+    ipcRenderer.on('pairing-ended', () => callback());
+  },
   // Module Loading API
-  getModuleCode: (moduleName) => ipcRenderer.invoke('get-module-code', moduleName),
   getModuleStyles: (moduleName) => ipcRenderer.invoke('get-module-styles', moduleName),
   getModuleInfo: (moduleName) => ipcRenderer.invoke('get-module-info', moduleName)
 });

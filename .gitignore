@@ -4,6 +4,7 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+config/sessions.json
 config/instances/*.json
 !config/instances/.gitkeep
 logs/
