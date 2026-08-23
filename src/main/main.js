@@ -30,6 +30,40 @@ const { bus, receiveFromRenderer } = createBusBridge({
 // Warnungen sammeln, sobald der Bus existiert. Modul-Backends melden schon
 // beim Registrieren ihrer Routen - also bevor die Startprobe zuhoeren
 // koennte.
+// Aufraeumarbeiten, die Modul-Backends anmelden. Sie duerfen das NICHT ueber
+// eigene process.on('SIGTERM')-Handler tun: ein Signal-Handler ersetzt das
+// Standardverhalten, und wenn er nicht selbst beendet, laesst sich die App
+// gar nicht mehr stoppen. Genau das ist passiert - pm2 und systemd haetten
+// auf dem Pi jedes Mal bis zum SIGKILL warten muessen.
+const shutdownHooks = [];
+let shuttingDown = false;
+
+function registerShutdownHook(fn) {
+  if (typeof fn === 'function') shutdownHooks.push(fn);
+}
+
+function shutdown(reason, exitCode = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`Beende (${reason}) …`);
+
+  for (const hook of shutdownHooks) {
+    try {
+      hook();
+    } catch (error) {
+      console.error('Aufräumen fehlgeschlagen:', error.message);
+    }
+  }
+
+  // Kurze Frist fuer Aufraeumarbeiten, danach wird beendet - egal was noch
+  // laeuft.
+  const force = setTimeout(() => app.exit(exitCode), 2000);
+  force.unref?.();
+
+  app.exit(exitCode);
+}
+
 const startupWarnings = [];
 bus.on('system:warning', (payload) => {
   if (!payload || !payload.message) return;
@@ -362,7 +396,14 @@ function startWebServer() {
   });
 
   const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
-  loader.registerBackendRoutes(expressApp, { instanceName, ConfigManager, fetch, bus });
+  loader.registerBackendRoutes(expressApp, {
+    instanceName,
+    ConfigManager,
+    fetch,
+    bus,
+    // Statt eigener Signal-Handler: hier anmelden.
+    onShutdown: registerShutdownHook
+  });
 
   // Update Endpoints. Die eigentliche Arbeit liegt in src/main/updater.js -
   // dort werden ausschliesslich execFile-Aufrufe mit Argument-Arrays benutzt,
@@ -468,6 +509,9 @@ process.on('uncaughtException', (err) => {
   logCrash('uncaughtException', err && err.stack ? err.stack : String(err));
   app.exit(1);
 });
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 process.on('unhandledRejection', (reason) => {
   logCrash('unhandledRejection', reason && reason.stack ? reason.stack : String(reason));

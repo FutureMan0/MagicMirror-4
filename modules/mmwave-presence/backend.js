@@ -502,29 +502,28 @@ module.exports = {
                     addDebugLog('ERROR', `Serial port error: ${err.message}`, err);
                     connectionStatus = 'error';
                     lastError = err.message;
-                    setTimeout(() => {
-                        if (serialPort && serialPort.isOpen) {
-                            serialPort.close();
-                        }
-                        startSerial(); // Retry
-                    }, 5000);
+                    scheduleReconnect('port error', () => {
+                        if (serialPort && serialPort.isOpen) serialPort.close();
+                    });
                 });
 
                 serialPort.on('close', () => {
                     addDebugLog('WARN', 'Serial port closed');
                     connectionStatus = 'disconnected';
-                    setTimeout(() => {
-                        startSerial(); // Reconnect
-                    }, 5000);
+                    scheduleReconnect('port closed');
                 });
 
                 // Open the port
                 serialPort.open((err) => {
                     if (err) {
-                        addDebugLog('ERROR', `Failed to open serial port: ${err.message}`, err);
                         connectionStatus = 'error';
                         lastError = err.message;
-                        setTimeout(() => startSerial(), 5000);
+                        // Nur die ersten Versuche einzeln melden - bei einem
+                        // dauerhaft fehlenden Geraet ist der Rest Rauschen.
+                        if (reconnectAttempts < 3) {
+                            addDebugLog('ERROR', `Failed to open serial port: ${err.message}`, err);
+                        }
+                        scheduleReconnect('open failed');
                     }
                 });
 
@@ -532,8 +531,43 @@ module.exports = {
                 addDebugLog('ERROR', `Failed to create serial port: ${err.message}`, err);
                 connectionStatus = 'error';
                 lastError = err.message;
-                setTimeout(() => startSerial(), 5000); // Retry
+                scheduleReconnect('create failed');
             }
+        };
+
+        /**
+         * Wiederverbinden mit wachsendem Abstand.
+         *
+         * Vorher wurde starr alle fuenf Sekunden neu versucht. Ist das Geraet
+         * dauerhaft weg - falscher Port, fehlende Rechte -, schrieb das
+         * dieselbe Fehlermeldung alle fuenf Sekunden, fuer immer.
+         */
+        let reconnectAttempts = 0;
+        let reconnectTimer = null;
+        // Muss vor startSerial() deklariert sein: scheduleReconnect kann von
+        // dort synchron aufgerufen werden.
+        let shuttingDown = false;
+
+        const scheduleReconnect = (reason, before = null) => {
+            if (shuttingDown || reconnectTimer) return;
+
+            reconnectAttempts += 1;
+            const delay = Math.min(5000 * Math.pow(2, Math.min(reconnectAttempts - 1, 4)), 60000);
+
+            if (reconnectAttempts === 4) {
+                addDebugLog('WARN',
+                    `Serieller Port nicht erreichbar (${reason}). Weitere Versuche mit `
+                    + 'wachsendem Abstand, ohne jede einzelne Meldung.');
+            }
+
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                if (shuttingDown) return;
+                if (before) {
+                    try { before(); } catch { /* egal */ }
+                }
+                startSerial();
+            }, delay);
         };
 
         // Presence Timeout Monitor (turn off display after offDelay seconds of no presence)
@@ -664,6 +698,7 @@ module.exports = {
 
         // Cleanup function - ensures display is turned on when module stops
         const cleanup = () => {
+            shuttingDown = true;
             addDebugLog('INFO', 'Cleaning up presence module...');
             
             // Always turn display back on when module stops
@@ -679,14 +714,21 @@ module.exports = {
             }
         };
 
-        // Cleanup on various exit signals
-        process.on('SIGINT', cleanup);
-        process.on('SIGTERM', cleanup);
-        process.on('exit', cleanup);
-        
-        // Bewusst KEIN process.on('uncaughtException') hier: ein Modul darf
-        // Fehler der gesamten Anwendung nicht schlucken. Das Aufraeumen beim
-        // Beenden erledigen die exit/SIGINT/SIGTERM-Handler oben; der zentrale
-        // uncaughtException-Handler liegt in src/main/main.js.
+        // Aufraeumen beim Anwendungsende anmelden - KEINE eigenen
+        // Signal-Handler.
+        //
+        // Ein process.on('SIGTERM') ersetzt das Standardverhalten. Der frueher
+        // hier registrierte Handler hat aufgeraeumt, aber nie beendet - damit
+        // liess sich die gesamte Anwendung nicht mehr stoppen, und pm2 wie
+        // systemd mussten jedes Mal bis zum SIGKILL warten. Dasselbe gilt fuer
+        // uncaughtException: ein Modul darf Fehler der gesamten Anwendung
+        // weder schlucken noch das Beenden verhindern.
+        if (context && typeof context.onShutdown === 'function') {
+            context.onShutdown(cleanup);
+        } else {
+            // Aeltere Hosts ohne Haken: wenigstens beim regulaeren Ende
+            // aufraeumen. 'exit' ersetzt kein Standardverhalten.
+            process.on('exit', cleanup);
+        }
     }
 };
