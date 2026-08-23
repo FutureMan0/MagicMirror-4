@@ -1,0 +1,28 @@
+.module-unraid {
+  min-width: 240px;
+}
+
+.unraid-section + .unraid-section {
+  margin-top: var(--mm-space-4);
+  padding-top: var(--mm-space-4);
+  border-top: 1px solid var(--mm-color-border);
+}
+
+.unraid-meter + .unraid-meter {
+  margin-top: var(--mm-space-3);
+}
+
+.unraid-meter .dm-bar {
+  margin-top: var(--mm-space-2);
+}
+
+.unraid-disks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mm-space-2);
+  margin-top: var(--mm-space-3);
+}
+
+.unraid-disk {
+  font-variant-numeric: tabular-nums;
+}

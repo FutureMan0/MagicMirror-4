@@ -24,7 +24,7 @@
 
   // 'config:*', nicht 'config': das Ereignis heisst config:changed, und ein
   // Muster ohne :* trifft nur den exakten Namen. Sonst kommt nie etwas an.
-  const topics = new Set(['config:*', 'presence:*', 'system:*']);
+  const topics = new Set(['config:*', 'presence:*', 'system:*', 'data:*']);
 
   function setConnected(next) {
     if (connected === next) return;

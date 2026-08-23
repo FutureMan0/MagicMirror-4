@@ -1,4 +1,5 @@
 const path = require('node:path');
+const https = require('node:https');
 const { createPoller } = require('./poller');
 
 /**
@@ -50,6 +51,66 @@ function httpError(response, body) {
 }
 
 /**
+ * Anfrage über node:https, wenn das Zertifikat nicht geprüft werden soll.
+ *
+ * Selbst gehostete Dienste - Gitea, Unraid, Home Assistant - laufen im
+ * Heimnetz fast immer mit einem selbstsignierten Zertifikat. Das globale
+ * NODE_TLS_REJECT_UNAUTHORIZED wäre der falsche Hebel: es schaltet die Prüfung
+ * für ALLE Verbindungen ab, auch für die zu Spotify und GitHub. Deshalb hier
+ * ein eigener Weg, der nur für diese eine Anfrage gilt.
+ */
+function insecureRequest(request) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(request.url);
+
+    const req = https.request({
+      hostname: url.hostname,
+      port: url.port || 443,
+      path: url.pathname + url.search,
+      method: request.method || 'GET',
+      headers: request.headers || {},
+      rejectUnauthorized: false,
+      timeout: request.timeoutMs || 15000
+    }, (res) => {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf8');
+
+        if (res.statusCode === 304) return resolve({ notModified: true });
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const error = new Error(`HTTP ${res.statusCode}: ${body.slice(0, 200)}`);
+          error.code = res.statusCode;
+          return reject(error);
+        }
+
+        try {
+          resolve({
+            data: JSON.parse(body),
+            meta: { etag: res.headers.etag || null, lastModified: res.headers['last-modified'] || null }
+          });
+        } catch (error) {
+          reject(new Error(`Antwort ist kein gültiges JSON: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      const error = new Error(`Zeitüberschreitung nach ${request.timeoutMs || 15000} ms`);
+      error.code = 'ETIMEDOUT';
+      reject(error);
+    });
+
+    req.on('error', reject);
+
+    if (request.body) req.write(JSON.stringify(request.body));
+    req.end();
+  });
+}
+
+/**
  * Führt eine Anfrage aus. `request` ist absichtlich schlicht gehalten -
  * { url, method, headers, body, json } - damit ein Modul nichts über fetch
  * wissen muss.
@@ -61,6 +122,12 @@ async function performRequest(request, { etag, lastModified } = {}) {
   if (request.conditional !== false) {
     if (etag) headers['If-None-Match'] = etag;
     if (lastModified) headers['If-Modified-Since'] = lastModified;
+  }
+
+  // Selbstsigniertes Zertifikat: eigener Weg, der die Prüfung nur für diese
+  // Anfrage aussetzt.
+  if (request.allowInsecureTls && request.url.startsWith('https:')) {
+    return insecureRequest({ ...request, headers });
   }
 
   const controller = new AbortController();

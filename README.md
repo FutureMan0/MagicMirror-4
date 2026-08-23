@@ -74,6 +74,46 @@ Ein gekoppeltes Gerät bleibt 30 Tage angemeldet.
 
 ---
 
+## 🔌 Weitere Module
+
+Alle vier bauen auf demselben Fundament: Zwischenspeicher auf Platte,
+wachsender Abstand bei Fehlern, ein Abruf für alle Anzeigen. Bei einem
+Ausfall bleibt der letzte bekannte Stand sichtbar — sichtbar gekennzeichnet
+als *„Nicht erreichbar — zeigt den Stand von vor 12 min"*.
+
+| Modul | Braucht |
+| :--- | :--- |
+| **GitHub** | Repositories als `besitzer/name`. Ab zwei Repositories einen Token — ohne erlaubt GitHub nur 60 Anfragen pro Stunde. |
+| **Gitea** | Adresse der Instanz und Token. Selbstsignierte Zertifikate sind erlaubt, wenn eingeschaltet. |
+| **Unraid** | Unraid 7.2 (oder Connect-Plugin), *Settings → Management Access → Developer Options* eingeschaltet, Schlüssel via `unraid-api apikey --create`. |
+| **Home Assistant** | Adresse und langlebigen Zugriffstoken (im HA-Profil ganz unten, zehn Jahre gültig). |
+
+Jedes Modul hat einen **Verbindungstest**, der nicht nur „geht/geht nicht"
+sagt: Unraid nennt die verfügbaren Abschnitte (das GraphQL-Schema
+unterscheidet sich je Version), Home Assistant nennt Entitäten, die es nicht
+findet — ein Tippfehler in einer Kennung ist der häufigste Grund dafür, dass
+nichts angezeigt wird.
+
+### Schalten mit Home Assistant
+
+Am Spiegel sind die Kacheln **schreibgeschützt** — er ist kein Touchscreen,
+und ein versehentlicher Griff im Vorbeigehen wäre ärgerlicher als nützlich.
+Geschaltet wird am Handy, im Tab **Steuerung**.
+
+Dafür muss *„Schalten erlauben"* ausdrücklich eingeschaltet werden. Auch dann
+gelten drei Schranken, die alle greifen müssen:
+
+1. Die Entität muss in deiner Liste stehen.
+2. Ihre Gattung muss schaltbar sein — Licht, Schalter, Szene, Skript, Medien,
+   Rollladen, Lüfter, Klima.
+3. Der Dienst muss bekannt sein.
+
+**Türschlösser, Alarmanlagen und `homeassistant.stop` lassen sich nicht
+schalten**, auch nicht, wenn man sie einträgt. Diese Liste steht im Code, nicht
+in der Konfiguration.
+
+---
+
 ## 🎵 Spotify verbinden
 
 Geht vollständig am Handy, in vier Schritten im Modul-Dialog:

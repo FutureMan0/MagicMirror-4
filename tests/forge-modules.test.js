@@ -45,6 +45,12 @@ test('maxCommits wird auf einen vernünftigen Bereich begrenzt', () => {
 
 // GitHub antwortet ohne User-Agent mit 403 - ein Fehler, der ohne diesen Test
 // erst beim ersten echten Abruf auffiele.
+test('showOpenIssues ersetzt showPullRequests', () => {
+  const result = transform([{ open_issues_count: 4 }, []], withDefaults({ repos: 'a/b' }));
+  assert.equal(result.repos[0].openIssues, 4);
+  assert.equal(result.showOpenIssues, true);
+});
+
 test('die Anfragen tragen die von GitHub geforderten Köpfe', () => {
   const [request] = buildRequests(withDefaults({ repos: 'a/b' }));
 
@@ -123,4 +129,82 @@ test('der Verbindungstest meldet, ob ein Token benutzt wird', async () => {
 
   const mit = await testConnection(withDefaults({ repos: 'a/b', token: 'x' }), request);
   assert.equal(mit.authenticated, true);
+});
+
+// --- Gitea auf demselben Kern -------------------------------------------
+
+const gitea = require(path.join(ROOT, 'modules/gitea/backend.js'));
+const giteaDef = gitea._definition;
+const giteaConfig = (config) => ({ ...giteaDef.defaults, ...config });
+
+test('Gitea braucht eine Adresse, sonst keine Anfragen', () => {
+  assert.deepEqual(giteaDef.buildRequests(giteaConfig({ repos: 'a/b' })), []);
+  assert.deepEqual(
+    giteaDef.buildRequests(giteaConfig({ repos: 'a/b', instanceUrl: 'nicht-mal-eine-url' })),
+    []
+  );
+});
+
+test('Gitea baut seine Adressen aus der Instanz', () => {
+  const requests = giteaDef.buildRequests(giteaConfig({
+    repos: 'luis/spiegel',
+    // Abschliessender Schrägstrich darf nicht zu einer doppelten Trennung führen.
+    instanceUrl: 'https://git.zuhause.lan/',
+    maxCommits: 2
+  }));
+
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].url, 'https://git.zuhause.lan/api/v1/repos/luis/spiegel');
+  assert.equal(requests[1].url, 'https://git.zuhause.lan/api/v1/repos/luis/spiegel/commits?limit=2');
+});
+
+// Gitea erwartet "token <wert>", GitHub "Bearer <wert>". Vertauscht ergibt
+// das eine 401, deren Ursache man lange sucht.
+test('Gitea benutzt die eigene Schreibweise für die Anmeldung', () => {
+  const [request] = giteaDef.buildRequests(giteaConfig({
+    repos: 'a/b',
+    instanceUrl: 'https://git.example',
+    token: 'geheim'
+  }));
+
+  assert.equal(request.headers.Authorization, 'token geheim');
+});
+
+test('Gitea liest die Sterne aus seinem eigenen Feld', () => {
+  const result = giteaDef.transform(
+    [{ stars_count: 12, open_issues_count: 1 }, []],
+    giteaConfig({ repos: 'a/b', instanceUrl: 'https://git.example' })
+  );
+
+  assert.equal(result.repos[0].stars, 12, 'Gitea nennt das Feld stars_count, nicht stargazers_count');
+  assert.equal(result.provider, 'gitea');
+});
+
+test('selbstsignierte Zertifikate werden nur bei Gitea und nur auf Wunsch erlaubt', () => {
+  const strict = giteaDef.buildRequests(giteaConfig({
+    repos: 'a/b', instanceUrl: 'https://git.example'
+  }));
+  assert.equal(strict[0].allowInsecureTls, false);
+
+  const lax = giteaDef.buildRequests(giteaConfig({
+    repos: 'a/b', instanceUrl: 'https://git.example', allowInsecureTls: true
+  }));
+  assert.equal(lax[0].allowInsecureTls, true);
+
+  // GitHub ist öffentlich - dort gibt es keinen Grund dafür.
+  const gh = buildRequests(withDefaults({ repos: 'a/b' }));
+  assert.ok(!gh[0].allowInsecureTls);
+});
+
+// Beide Module teilen sich den Kern. Wenn jemand den kaputt macht, sollen
+// nicht zwei Tests separat rot werden, sondern dieser hier.
+test('beide Anbieter liefern dieselbe Form', () => {
+  const fromGithub = transform([{ stargazers_count: 1 }, []], withDefaults({ repos: 'a/b' }));
+  const fromGitea = giteaDef.transform(
+    [{ stars_count: 1 }, []],
+    giteaConfig({ repos: 'a/b', instanceUrl: 'https://git.example' })
+  );
+
+  assert.deepEqual(Object.keys(fromGithub).sort(), Object.keys(fromGitea).sort());
+  assert.deepEqual(Object.keys(fromGithub.repos[0]).sort(), Object.keys(fromGitea.repos[0]).sort());
 });
