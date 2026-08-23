@@ -11,5 +11,6 @@
       "default": "This is a hidden example module.",
       "description": "Angezeigter Text"
     }
-  }
+  },
+  "apiVersion": 2
 }

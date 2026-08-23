@@ -40,5 +40,26 @@
       "default": 5000,
       "description": "Update-Intervall in Millisekunden"
     }
-  }
+  },
+  "apiVersion": 2,
+  "secrets": [
+    {
+      "key": "clientId",
+      "env": "SPOTIFY_CLIENT_ID",
+      "label": "Client ID",
+      "exposeToRenderer": true
+    },
+    {
+      "key": "clientSecret",
+      "env": "SPOTIFY_CLIENT_SECRET",
+      "label": "Client Secret",
+      "exposeToRenderer": true
+    },
+    {
+      "key": "refreshToken",
+      "env": "SPOTIFY_REFRESH_TOKEN",
+      "label": "Refresh Token",
+      "exposeToRenderer": true
+    }
+  ]
 }

@@ -319,12 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
       renderModules();
     });
 
-    window.electronAPI.onPresenceDetected(() => {
-      document.body.style.opacity = '1';
-    });
-
-    window.electronAPI.onPresenceLost(() => {
-      document.body.style.opacity = '0.1';
+    // Dimmen laeuft jetzt ueber den Bus. Die eigenen IPC-Kanaele
+    // presence-detected/-lost entfallen damit.
+    window.mmBus.on('presence:display', (payload) => {
+      document.body.style.opacity = payload && payload.on ? '1' : '0.1';
     });
   } else {
     const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';

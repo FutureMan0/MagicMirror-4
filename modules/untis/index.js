@@ -125,11 +125,10 @@ class UntisModule {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: this.abortController.signal,
+        // Bewusst OHNE Zugangsdaten: das Backend liest Server, Benutzername
+        // und Passwort selbst aus Konfiguration und .env. Sie erreichen den
+        // Browser gar nicht mehr (exposeToRenderer:false im Manifest).
         body: JSON.stringify({
-          server: this.config.server,
-          username: this.config.username,
-          password: this.config.password,
-          school: this.config.school,
           classId: this.config.classId,
           className: this.config.className,
           startDate: startDate,
