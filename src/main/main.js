@@ -8,24 +8,23 @@ const updater = require('./updater');
 const { Auth, getLanAddress } = require('./auth');
 const ThemeManager = require('./themeManager');
 const { createBusBridge } = require('./busBridge');
+const { createWsHub } = require('./wsHub');
 const QRCode = require('qrcode');
 const express = require('express');
-const WebSocket = require('ws');
 
 let mainWindow = null;
 let configManager = null;
 let moduleLoader = null;
 let webServer = null;
-let wss = null;
 let auth = null;
+let wsHub = null;
 
 // Ein Bus fuer den gesamten Hauptprozess. Modul-Backends bekommen ihn im
 // Kontext und koennen damit den Spiegel und die Web-UI erreichen, ohne beide
 // zu kennen.
 const { bus, receiveFromRenderer } = createBusBridge({
   getWindows: () => BrowserWindow.getAllWindows(),
-  getWebSocketServer: () => wss,
-  WebSocket
+  getWsHub: () => wsHub
 });
 
 // Warnungen sammeln, sobald der Bus existiert. Modul-Backends melden schon
@@ -79,7 +78,6 @@ function logCrash(kind, detail) {
 
 function createWindow() {
   configManager = new ConfigManager(instanceName);
-  const config = configManager.loadConfig();
 
   const displays = screen.getAllDisplays();
   const targetDisplay = displays[screenIndex] || displays[0];
@@ -326,13 +324,15 @@ function startWebServer() {
       // braucht aber die echten Werte.
       const savedConfig = instanceConfigManager.loadConfigForRenderer();
 
-      if (wss) {
-        wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'config-updated', instance }));
-          }
-        });
-      }
+      // Ueber den Bus statt von Hand an alle Verbundenen: so bekommen nur
+      // Abonnenten die Nachricht, und "origin" verhindert, dass der eigene
+      // Speichervorgang die gerade offene Bearbeitung ueberschreibt.
+      bus.emit('config:changed', {
+        instance,
+        origin: req.get('X-MM-Client-Id') || null,
+        config: instanceConfigManager.loadConfig({ redact: true })
+      });
+
       if (mainWindow && instance === instanceName) {
         mainWindow.webContents.send('config-update', savedConfig);
       }
@@ -400,7 +400,7 @@ function startWebServer() {
     console.log(`Web Config Server läuft auf http://localhost:${port}`);
   });
 
-  wss = new WebSocket.Server({ server: webServer });
+  wsHub = createWsHub({ server: webServer, auth });
 }
 
 // IPC Handlers

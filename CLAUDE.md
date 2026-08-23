@@ -143,7 +143,16 @@ gegliedert und mit `*` abonnierbar.
 | `tick:second`, `tick:minute` | gemeinsamer Takt |
 | `presence:changed`, `presence:display` | Anwesenheitssensor |
 | `system:*`, `config:*`, `theme:*` | Kern |
+| `config:changed` | Konfiguration gespeichert |
+| `system:warning` | Startwarnung, lässt die Startprobe rot werden |
 | `<modul>:*` | modul-eigen |
+
+Über den WebSocket (`/ws`) gilt: Begrüßung mit `hello` innerhalb von fünf
+Sekunden, danach `subscribe` auf Themen — zugestellt wird nur Abonniertes. Die
+Anmeldung ist dieselbe wie auf der HTTP-Seite. `config:changed` trägt ein
+`origin` mit der Kennung des Clients, der gespeichert hat; jeder Client
+ignoriert sein eigenes Echo, sonst überschreibt der eigene Speichervorgang die
+gerade offene Bearbeitung.
 
 ## Prüfen
 

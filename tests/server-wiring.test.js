@@ -133,6 +133,28 @@ test('Modul-Dateien werden nur nach Whitelist ausgeliefert', () => {
   );
 });
 
+// Der WebSocket-Kanal muss denselben Schutz haben wie die HTTP-Seite - sonst
+// waere der Bus ein offener Kanal ins Netzwerk.
+test('der WebSocket-Hub bekommt die Anmeldung durchgereicht', () => {
+  assert.match(
+    mainSource, /createWsHub\(\{[^}]*auth[^}]*\}\)/,
+    'ohne auth im Hub kann sich jeder im Netzwerk verbinden'
+  );
+
+  const bridge = fs.readFileSync(path.join(ROOT, 'src/main/busBridge.js'), 'utf8');
+  assert.doesNotMatch(
+    bridge, /wss\.clients/,
+    'die Bruecke sendet wieder blind an alle Verbundenen, statt Abos zu beachten'
+  );
+});
+
+test('Konfigurationsaenderungen tragen ihre Herkunft', () => {
+  assert.match(
+    mainSource, /origin:\s*req\.get\('X-MM-Client-Id'\)/,
+    'ohne origin ueberschreibt der eigene Speichervorgang die offene Bearbeitung'
+  );
+});
+
 test('kein exec() mit Shell-String mehr im Hauptprozess', () => {
   assert.doesNotMatch(
     mainSource,
