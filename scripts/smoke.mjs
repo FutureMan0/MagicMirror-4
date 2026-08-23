@@ -168,7 +168,9 @@ child.stderr.on('data', (chunk) => {
 const killTimer = setTimeout(() => {
   child.kill('SIGKILL');
   fail(
-    `Die App hat sich nach ${TIMEOUT_MS} ms nicht gemeldet.`,
+    ready
+      ? `Die App war bereit, endete aber nicht innerhalb von ${TIMEOUT_MS} ms.`
+      : `Die App hat sich nach ${TIMEOUT_MS} ms nicht gemeldet.`,
     `--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`
   );
 }, TIMEOUT_MS);
@@ -247,7 +249,29 @@ async function checkLiveChannel() {
   }
 
   console.log('Live-Kanal: Verbindung, Abo und Ereignis nach dem Speichern in Ordnung.');
+  stopChild();
+}
+
+/**
+ * Beendet die App. Erst freundlich, dann bestimmt.
+ *
+ * Ein Modul, das SIGTERM abfängt und nicht beendet, macht die Anwendung
+ * unstoppbar - auf dem Pi müssten pm2 und systemd jedes Mal bis zum SIGKILL
+ * warten. Hier wird das sichtbar gemacht statt hingenommen.
+ */
+function stopChild() {
   child.kill('SIGTERM');
+
+  const escalate = setTimeout(() => {
+    console.error(
+      '\nDie App hat auf SIGTERM nicht reagiert und wurde hart beendet.\n'
+      + 'Meist fängt ein Modul das Signal ab, ohne selbst zu beenden.'
+    );
+    child.kill('SIGKILL');
+    process.exitCode = 1;
+  }, 5000);
+
+  child.once('exit', () => clearTimeout(escalate));
 }
 
 child.on('exit', (code, signal) => {

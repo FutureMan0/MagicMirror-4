@@ -155,6 +155,30 @@ test('Konfigurationsaenderungen tragen ihre Herkunft', () => {
   );
 });
 
+// Ein Signal-Handler ersetzt das Standardverhalten. Beendet er nicht selbst,
+// laesst sich die Anwendung gar nicht mehr stoppen - pm2 und systemd muessten
+// jedes Mal bis zum SIGKILL warten.
+test('nur der Hauptprozess behandelt Beendigungssignale', () => {
+  assert.match(mainSource, /process\.on\('SIGTERM'/, 'der Hauptprozess behandelt SIGTERM nicht');
+  assert.match(mainSource, /function shutdown\(/, 'kein zentrales Beenden');
+  assert.match(mainSource, /onShutdown:\s*registerShutdownHook/, 'Module koennen sich nicht anmelden');
+
+  const modulesDir = path.join(ROOT, 'modules');
+  for (const name of fs.readdirSync(modulesDir)) {
+    const backend = path.join(modulesDir, name, 'backend.js');
+    if (!fs.existsSync(backend)) continue;
+
+    const source = fs.readFileSync(backend, 'utf8').replace(/\/\/[^\n]*/g, '');
+    for (const signal of ['SIGTERM', 'SIGINT', 'uncaughtException']) {
+      assert.doesNotMatch(
+        source,
+        new RegExp(`process\\.on\\(\\s*'${signal}'`),
+        `${name}/backend.js faengt ${signal} ab - das macht die Anwendung unstoppbar`
+      );
+    }
+  }
+});
+
 test('kein exec() mit Shell-String mehr im Hauptprozess', () => {
   assert.doesNotMatch(
     mainSource,
