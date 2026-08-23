@@ -52,10 +52,12 @@ module.exports = {
             if (context && context.ConfigManager) {
                 const configManager = new context.ConfigManager(context.instanceName);
                 const fullConfig = configManager.loadConfig();
-                const moduleConfig = fullConfig.modules.find(m => m.name === 'mmwave-presence');
-                
+                const moduleConfig = (fullConfig.modules || []).find(
+                    m => (m.module || m.name) === 'mmwave-presence'
+                );
+
                 // Check if module is enabled in config
-                if (moduleConfig) {
+                if (moduleConfig && moduleConfig.enabled !== false) {
                     moduleEnabled = true;
                     if (moduleConfig.config) {
                         config = { ...config, ...moduleConfig.config };
@@ -644,10 +646,9 @@ module.exports = {
         process.on('SIGTERM', cleanup);
         process.on('exit', cleanup);
         
-        // Also cleanup on uncaught exceptions
-        process.on('uncaughtException', (err) => {
-            addDebugLog('ERROR', 'Uncaught exception', err.message);
-            cleanup();
-        });
+        // Bewusst KEIN process.on('uncaughtException') hier: ein Modul darf
+        // Fehler der gesamten Anwendung nicht schlucken. Das Aufraeumen beim
+        // Beenden erledigen die exit/SIGINT/SIGTERM-Handler oben; der zentrale
+        // uncaughtException-Handler liegt in src/main/main.js.
     }
 };

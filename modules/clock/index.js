@@ -21,10 +21,50 @@ class ClockModule {
 
     this.container = null;
     this.updateInterval = null;
+
+    // Stabile Referenzen auf die Zeit-Spans. Sie werden einmal in render()
+    // erzeugt und danach nur noch per textContent beschrieben - ein
+    // innerHTML-Neuaufbau pro Sekunde würde die CSS-Animationen der Themes
+    // jede Sekunde von vorne starten lassen.
+    this.partElements = [];
+    this.suffixElement = null;
+    this.dateElement = null;
+    this.lastParts = [];
+    this.lastSuffix = null;
+    this.lastDate = null;
   }
 
   get t() {
     return this.translations[this.config.language] || this.translations['en'];
+  }
+
+  get use12h() {
+    return /A/.test(this.config.timeFormat) || /hh/.test(this.config.timeFormat);
+  }
+
+  get showSeconds() {
+    return /ss/.test(this.config.timeFormat);
+  }
+
+  // Zerlegt die aktuelle Zeit in die Teile, die auch angezeigt werden.
+  getTimeParts(now) {
+    let hours = now.getHours();
+    const suffix = this.use12h ? (hours >= 12 ? 'PM' : 'AM') : '';
+
+    if (this.use12h) {
+      hours = hours % 12 || 12;
+    }
+
+    const parts = [
+      hours.toString().padStart(2, '0'),
+      now.getMinutes().toString().padStart(2, '0')
+    ];
+
+    if (this.showSeconds) {
+      parts.push(now.getSeconds().toString().padStart(2, '0'));
+    }
+
+    return { parts, suffix };
   }
 
   render() {
@@ -33,20 +73,41 @@ class ClockModule {
 
     const timeElement = document.createElement('div');
     timeElement.className = 'clock-time';
-    timeElement.innerHTML = `
-      <span class="clock-time-hours"></span>
-      <span class="clock-time-separator">:</span>
-      <span class="clock-time-minutes"></span>
-      <span class="clock-time-separator">:</span>
-      <span class="clock-time-seconds"></span>
-    `;
+
+    const { parts, suffix } = this.getTimeParts(new Date());
+    const partNames = ['hours', 'minutes', 'seconds'];
+
+    parts.forEach((value, index) => {
+      if (index > 0) {
+        const separator = document.createElement('span');
+        separator.className = 'clock-separator';
+        separator.textContent = ':';
+        timeElement.appendChild(separator);
+      }
+
+      const span = document.createElement('span');
+      span.className = `clock-time-part ${partNames[index]}`;
+      span.textContent = value;
+      timeElement.appendChild(span);
+      this.partElements.push(span);
+    });
+
+    this.lastParts = parts.slice();
+
+    if (suffix) {
+      this.suffixElement = document.createElement('span');
+      this.suffixElement.className = 'clock-time-suffix';
+      this.suffixElement.textContent = suffix;
+      timeElement.appendChild(this.suffixElement);
+      this.lastSuffix = suffix;
+    }
 
     this.container.appendChild(timeElement);
 
     if (this.config.showDate) {
-      const dateElement = document.createElement('div');
-      dateElement.className = 'clock-date';
-      this.container.appendChild(dateElement);
+      this.dateElement = document.createElement('div');
+      this.dateElement.className = 'clock-date';
+      this.container.appendChild(this.dateElement);
     }
 
     this.update();
@@ -59,79 +120,62 @@ class ClockModule {
     if (!this.container) return;
 
     const now = new Date();
+    const { parts, suffix } = this.getTimeParts(now);
 
-    // Format Zeit
-    let hours = now.getHours().toString().padStart(2, '0');
-    let minutes = now.getMinutes().toString().padStart(2, '0');
-    let seconds = now.getSeconds().toString().padStart(2, '0');
+    // Nur schreiben, was sich tatsächlich geändert hat.
+    parts.forEach((value, index) => {
+      if (this.lastParts[index] !== value && this.partElements[index]) {
+        this.partElements[index].textContent = value;
+        this.lastParts[index] = value;
+      }
+    });
 
-    if (this.config.timeFormat.includes('A')) {
-      // 12h Format
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      hours = hours.toString().padStart(2, '0');
+    if (this.suffixElement && this.lastSuffix !== suffix) {
+      this.suffixElement.textContent = suffix;
+      this.lastSuffix = suffix;
     }
 
-    const timeString = this.config.timeFormat
-      .replace('HH', hours)
-      .replace('hh', hours)
-      .replace('mm', minutes)
-      .replace('ss', seconds)
-      .replace('A', now.getHours() >= 12 ? 'PM' : 'AM');
-
-    const timeElement = this.container.querySelector('.clock-time');
-    if (timeElement) {
-      // Teile die Zeit in Stunden, Minuten und Sekunden für Animation
-      const timeParts = timeString.split(':');
-      if (timeParts.length === 3) {
-        timeElement.innerHTML = `
-          <span class="clock-time-part hours">${timeParts[0]}</span>
-          <span class="clock-separator">:</span>
-          <span class="clock-time-part minutes">${timeParts[1]}</span>
-          <span class="clock-separator">:</span>
-          <span class="clock-time-part seconds" data-seconds="${seconds}">${timeParts[2]}</span>
-        `;
-      } else {
-        timeElement.textContent = timeString;
+    if (this.config.showDate && this.dateElement) {
+      const dateString = this.formatDate(now);
+      if (this.lastDate !== dateString) {
+        this.dateElement.textContent = dateString;
+        this.lastDate = dateString;
       }
     }
+  }
 
-    // Format Datum
-    if (this.config.showDate) {
-      const days = this.t.days;
-      const months = this.t.months;
+  formatDate(now) {
+    const dayName = this.t.days[now.getDay()];
+    const month = this.t.months[now.getMonth()];
+    const day = now.getDate();
+    const year = now.getFullYear();
 
-      const dayName = days[now.getDay()];
-      const day = now.getDate();
-      const month = months[now.getMonth()];
-      const year = now.getFullYear();
+    // Platzhalter verhindern, dass sich die Ersetzungen gegenseitig zerlegen.
+    let dateString = this.config.dateFormat;
+    dateString = dateString.replace('dddd', '{{DAY_NAME}}');
+    dateString = dateString.replace('DD', day.toString().padStart(2, '0'));
+    // 'D' nur ersetzen wenn es nicht Teil von '{{DAY_NAME}}' ist
+    dateString = dateString.replace(/(?<!\{)D(?!\}|AY)/g, day.toString());
+    dateString = dateString.replace('MMMM', '{{MONTH_NAME}}');
+    dateString = dateString.replace('MMM', month.substring(0, 3));
+    dateString = dateString.replace('MM', (now.getMonth() + 1).toString().padStart(2, '0'));
+    dateString = dateString.replace('YYYY', year.toString());
+    dateString = dateString.replace('YY', year.toString().substring(2));
+    dateString = dateString.replace('{{DAY_NAME}}', dayName);
+    dateString = dateString.replace('{{MONTH_NAME}}', month);
 
-      // Verwende Platzhalter um Konflikte zu vermeiden
-      let dateString = this.config.dateFormat;
-      dateString = dateString.replace('dddd', '{{DAY_NAME}}');
-      dateString = dateString.replace('DD', day.toString().padStart(2, '0'));
-      // 'D' nur ersetzen wenn es nicht Teil von '{{DAY_NAME}}' ist
-      dateString = dateString.replace(/(?<!\{)D(?!\}|AY)/g, day.toString());
-      dateString = dateString.replace('MMMM', '{{MONTH_NAME}}');
-      dateString = dateString.replace('MMM', month.substring(0, 3));
-      dateString = dateString.replace('MM', (now.getMonth() + 1).toString().padStart(2, '0'));
-      dateString = dateString.replace('YYYY', year.toString());
-      dateString = dateString.replace('YY', year.toString().substring(2));
-      // Platzhalter wieder einsetzen
-      dateString = dateString.replace('{{DAY_NAME}}', dayName);
-      dateString = dateString.replace('{{MONTH_NAME}}', month);
-
-      const dateElement = this.container.querySelector('.clock-date');
-      if (dateElement) {
-        dateElement.textContent = dateString;
-      }
-    }
+    return dateString;
   }
 
   destroy() {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
+      this.updateInterval = null;
     }
+    this.partElements = [];
+    this.suffixElement = null;
+    this.dateElement = null;
+    this.container = null;
   }
 }
 

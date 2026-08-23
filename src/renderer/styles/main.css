@@ -6,6 +6,11 @@
   --accent-red: #FF4444;
   --accent-green: #44FF88;
   --font-family: 'Roboto', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Perf-Schalter: dekorative Effekte haengen an diesen beiden Variablen,
+     damit sie sich zentral abschalten lassen (siehe html[data-perf="low"]). */
+  --mm-surface-filter: none;
+  --mm-anim-ambient: running;
   
   /* Grid System Custom Properties (werden dynamisch von JS gesetzt) */
   --grid-columns: 3;
@@ -14,6 +19,20 @@
   --grid-padding: 12px;
   --grid-column-template: minmax(320px, 1fr) 1fr 1fr;
   --grid-row-template: auto 1fr 1fr;
+}
+
+/* Schwache Hardware (Raspberry Pi) oder ausdrueckliche Nutzerpraeferenz:
+   Dauer-Animationen anhalten und teure Filter abschalten. Ein Schalter,
+   der auf jedes Theme wirkt - auch auf spaeter hinzugefuegte. */
+html[data-perf="low"] {
+  --mm-surface-filter: none;
+  --mm-anim-ambient: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mm-anim-ambient: paused;
+  }
 }
 
 * {
@@ -64,16 +83,11 @@ body {
   padding: 15px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
   transition: opacity 0.3s ease;
   max-height: 100%;
   overflow: auto;
   min-width: 0;
   max-width: 100%;
-}
-
-.module-container:hover {
-  opacity: 0.9;
 }
 
 /* Scrollbar Styling */
@@ -145,18 +159,10 @@ body {
   font-size: 0.9rem;
 }
 
-/* Vorhersage-Karten Hover-Effekte */
+/* Vorhersage-Karten */
 .forecast-day {
-  transition: all 0.3s ease;
-  cursor: pointer;
   border-radius: 4px;
   padding: 8px;
-}
-
-.forecast-day:hover {
-  background: rgba(0, 212, 255, 0.1);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
 }
 
 /* Wetter-Warnungs-Banner */
@@ -190,37 +196,45 @@ body {
   display: flex;
   gap: 12px;
   align-items: flex-start;
+  position: relative;
+  isolation: isolate;
+}
+
+.weather-alert-banner::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid rgba(255, 68, 68, 0.4);
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
   animation: pulse-alert 2s ease-in-out infinite;
-  transition: all 0.3s ease;
+  animation-play-state: var(--mm-anim-ambient, running);
 }
 
 @keyframes pulse-alert {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4);
+    opacity: 0;
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+    opacity: 1;
   }
-}
-
-.weather-alert-banner:hover {
-  animation: none;
-  background: linear-gradient(135deg, rgba(255, 68, 68, 0.3), rgba(255, 68, 68, 0.15));
 }
 
 .alert-icon {
   font-size: 1.5rem;
-  animation: shake 0.5s ease-in-out infinite;
+  animation: shake 4s ease-in-out infinite;
+  animation-play-state: var(--mm-anim-ambient, running);
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%, 12%, 100% {
     transform: rotate(0deg);
   }
-  25% {
+  3%, 9% {
     transform: rotate(-5deg);
   }
-  75% {
+  6% {
     transform: rotate(5deg);
   }
 }

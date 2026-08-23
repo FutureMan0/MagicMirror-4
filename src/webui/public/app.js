@@ -168,14 +168,14 @@ function setupModeButtons() {
 
   if (visualBtn) {
     visualBtn.addEventListener('click', () => {
-      setLayoutMode('visual');
+      if (window.setLayoutMode) window.setLayoutMode('visual');
       updateModeButtons('visual');
     });
   }
 
   if (classicBtn) {
     classicBtn.addEventListener('click', () => {
-      setLayoutMode('classic');
+      if (window.setLayoutMode) window.setLayoutMode('classic');
       updateModeButtons('classic');
     });
   }
@@ -1508,6 +1508,7 @@ function initGridSettings() {
   // Mache Funktionen global verfügbar
   window.applyLayoutMode = applyLayoutMode;
   window.getLayoutMode = getLayoutMode;
+  window.setLayoutMode = setLayoutMode;
   window.refreshActiveLayoutView = refreshActiveLayoutView;
 }
 
