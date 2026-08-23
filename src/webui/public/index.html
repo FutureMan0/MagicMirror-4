@@ -55,8 +55,23 @@
                   <button class="mode-btn active" id="mode-btn-visual">Visual</button>
                   <button class="mode-btn" id="mode-btn-classic">Classic</button>
                 </div>
+                <button class="btn-secondary" id="toggle-live-view">Live-Ansicht</button>
               </div>
             </div>
+
+            <!-- Zeigt den Spiegel wirklich, nicht nur Kästchen: derselbe
+                 Renderer, über HTTP geladen. -->
+            <section class="live-view" id="live-view" hidden>
+              <div class="live-view-header">
+                <span class="live-view-title">Live-Ansicht</span>
+                <span class="live-view-hint" id="live-view-hint"></span>
+                <button class="btn-secondary" id="live-view-reload">Neu laden</button>
+              </div>
+              <div class="live-view-frame">
+                <iframe id="live-view-iframe" title="Live-Ansicht des Spiegels"
+                        sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>
+              </div>
+            </section>
 
             <!-- Visueller Layout Editor -->
             <div class="preview-section" id="visual-editor-desktop">
@@ -234,6 +249,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="auth.js"></script>
+  <script src="ws-client.js"></script>
   <script src="i18n.js"></script>
   <script src="visual-editor.js"></script>
   <script src="app.js"></script>

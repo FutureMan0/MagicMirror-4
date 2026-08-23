@@ -317,6 +317,84 @@ function createErrorPlaceholder(moduleName, errorMessage) {
   return placeholder;
 }
 
+/**
+ * Hinweis, wenn die Ansicht ohne Konfiguration dasteht. Ohne das bliebe ein
+ * schwarzes Bild - nicht unterscheidbar von "der Spiegel ist einfach aus".
+ */
+function showStandaloneError(message) {
+  const container = document.getElementById('modules-container');
+  if (!container) return;
+
+  const box = document.createElement('div');
+  box.className = 'module-placeholder standalone-error';
+  box.appendChild(Object.assign(document.createElement('div'), {
+    className: 'module-error-title',
+    textContent: 'MagicMirror⁴'
+  }));
+  box.appendChild(Object.assign(document.createElement('div'), {
+    className: 'module-error-message',
+    textContent: message
+  }));
+
+  container.innerHTML = '';
+  container.appendChild(box);
+}
+
+/**
+ * In einem normalen Browser gibt es kein IPC. Damit die Vorschau trotzdem
+ * mitzieht, wenn jemand die Konfiguration aendert, haengt sie sich an
+ * denselben WebSocket wie die Web-Oberflaeche.
+ */
+function connectLivePreview(instance) {
+  if (typeof WebSocket === 'undefined') return;
+
+  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  let socket;
+  try {
+    socket = new WebSocket(`${scheme}//${window.location.host}/ws`);
+  } catch {
+    return;
+  }
+
+  socket.addEventListener('open', () => {
+    socket.send(JSON.stringify({ type: 'hello', clientId: `mirror-preview-${Date.now()}` }));
+    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config', 'presence:*'] }));
+  });
+
+  socket.addEventListener('message', (event) => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+
+    if (message.type !== 'event') return;
+
+    if (message.topic === 'config:changed') {
+      const payload = message.payload || {};
+      if (instance && payload.instance && payload.instance !== instance) return;
+      if (!payload.config) return;
+
+      const previous = config;
+      config = payload.config;
+
+      if (previous && onlyThemeChanged(previous, config)) {
+        applyTheme();
+      } else {
+        renderModules();
+      }
+    }
+
+    if (message.topic === 'presence:display' && !document.documentElement.dataset.preview) {
+      document.body.style.opacity = message.payload && message.payload.on ? '1' : '0.1';
+    }
+  });
+
+  // Bricht die Verbindung weg, laeuft die Vorschau einfach ohne Nachfuehrung
+  // weiter - ein Reconnect waere hier mehr Aufwand als Nutzen.
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.electronAPI) {
     window.electronAPI.onConfigLoaded((data) => {
@@ -347,16 +425,42 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dimmen laeuft jetzt ueber den Bus. Die eigenen IPC-Kanaele
     // presence-detected/-lost entfallen damit.
     window.mmBus.on('presence:display', (payload) => {
+      if (document.documentElement.dataset.preview) return;
       document.body.style.opacity = payload && payload.on ? '1' : '0.1';
     });
   } else {
+    // Kein electronAPI: die Ansicht laeuft in einem normalen Browser, etwa als
+    // Live-Vorschau am Handy. Instanz und Vorschau-Modus stehen dann in der
+    // Adresse.
+    const params = new URLSearchParams(window.location.search);
+    const instance = params.get('instance');
+    const isPreview = params.get('preview') === '1';
+
+    if (isPreview) {
+      // In der Vorschau nicht dimmen - sonst sieht man ein fast schwarzes
+      // Bild und haelt die Vorschau fuer kaputt.
+      document.documentElement.dataset.preview = '1';
+    }
+
     const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
-    fetch(`${apiBase}/api/config`)
-      .then(res => res.json())
+    const query = instance ? `?instance=${encodeURIComponent(instance)}` : '';
+
+    fetch(`${apiBase}/api/config${query}`, { credentials: 'same-origin' })
+      .then(res => {
+        if (res.status === 401) throw new Error('nicht angemeldet');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         config = data;
         renderModules();
+        connectLivePreview(instance);
       })
-      .catch(err => console.error('Config laden fehlgeschlagen:', err));
+      .catch(err => {
+        console.error('Config laden fehlgeschlagen:', err);
+        showStandaloneError(err.message === 'nicht angemeldet'
+          ? 'Nicht angemeldet — bitte die Web-Oberfläche öffnen und koppeln.'
+          : `Konfiguration konnte nicht geladen werden: ${err.message}`);
+      });
   }
 });

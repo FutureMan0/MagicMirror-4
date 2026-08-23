@@ -11,7 +11,7 @@ const { Bus } = require('../shared/bus');
  * Der WebSocket-Server existierte schon, aber es hat sich nie jemand
  * verbunden - er hat ins Leere gesendet.
  */
-function createBusBridge({ getWindows, getWebSocketServer, WebSocket }) {
+function createBusBridge({ getWindows, getWsHub }) {
   const bus = new Bus({ name: 'main' });
 
   // Alles weiterreichen, was nicht selbst von aussen hereingekommen ist -
@@ -27,15 +27,10 @@ function createBusBridge({ getWindows, getWebSocketServer, WebSocket }) {
       }
     }
 
-    const wss = getWebSocketServer();
-    if (!wss) return;
-
-    const message = JSON.stringify({ type: 'event', ...envelope });
-    for (const client of wss.clients) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    }
+    // Der Hub stellt nur an Clients zu, die das Thema abonniert haben - ein
+    // Handy braucht nicht jeden Sekundentakt des Spiegels.
+    const hub = getWsHub();
+    if (hub) hub.broadcast(topic, payload);
   });
 
   /** Ereignis, das aus einem Renderer kam - lokal zustellen, nicht zurückschicken. */
