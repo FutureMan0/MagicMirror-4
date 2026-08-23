@@ -1,0 +1,57 @@
+{
+  "apiVersion": 2,
+  "name": "home-assistant",
+  "displayName": "Home Assistant",
+  "version": "1.0.0",
+  "description": "Zustände ausgewählter Entitäten anzeigen — und am Handy schalten.",
+  "author": "MagicMirror⁴",
+  "secrets": [
+    {
+      "key": "token",
+      "env": "HOME_ASSISTANT_TOKEN",
+      "label": "Langlebiger Zugriffstoken",
+      "exposeToRenderer": false
+    }
+  ],
+  "provides": [
+    "data:home-assistant"
+  ],
+  "config": {
+    "baseUrl": {
+      "type": "string",
+      "default": "http://homeassistant.local:8123",
+      "description": "Adresse von Home Assistant"
+    },
+    "token": {
+      "type": "string",
+      "default": "",
+      "description": "Im HA-Profil ganz unten unter „Langlebige Zugriffstokens\" erzeugen. Zehn Jahre gültig."
+    },
+    "entities": {
+      "type": "string",
+      "default": "",
+      "description": "Entitäten, kommagetrennt (z. B. light.wohnzimmer, sensor.aussentemperatur)"
+    },
+    "allowControl": {
+      "type": "boolean",
+      "default": false,
+      "description": "Schalten erlauben. Betrifft nur die aufgelisteten Entitäten und nur schaltbare Gattungen (Licht, Schalter, Szene, Medien, Rollladen, Lüfter, Klima)."
+    },
+    "showUnavailable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Nicht erreichbare Entitäten trotzdem anzeigen"
+    },
+    "allowInsecureTls": {
+      "type": "boolean",
+      "default": false,
+      "description": "Selbstsigniertes Zertifikat akzeptieren"
+    },
+    "updateInterval": {
+      "type": "number",
+      "default": 15000,
+      "min": 5000,
+      "description": "Aktualisierungsintervall in Millisekunden"
+    }
+  }
+}

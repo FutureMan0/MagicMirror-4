@@ -157,6 +157,24 @@
         "maxDisks": 8,
         "warnTemp": 45
       }
+    },
+    {
+      "module": "home-assistant",
+      "position": {
+        "column": 2,
+        "row": 2,
+        "columnSpan": 1,
+        "rowSpan": 1,
+        "align": "start",
+        "justify": "start"
+      },
+      "enabled": false,
+      "config": {
+        "baseUrl": "http://homeassistant.local:8123",
+        "entities": "",
+        "allowControl": false,
+        "showUnavailable": false
+      }
     }
   ]
 }
