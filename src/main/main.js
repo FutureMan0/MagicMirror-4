@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const ConfigManager = require('./configManager');
 const ModuleLoader = require('./moduleLoader');
+const { applyGpuFlags } = require('./gpu');
 const express = require('express');
 const WebSocket = require('ws');
 const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
@@ -20,6 +21,30 @@ const screenIndex = parseInt(args.find(arg => arg.startsWith('--screen='))?.spli
 const isDev = args.includes('--dev');
 const noServer = args.includes('--no-server');
 const customPort = args.find(arg => arg.startsWith('--port='))?.split('=')[1];
+const forceDisableGpu = args.includes('--disable-gpu') || process.env.MM_DISABLE_GPU === '1';
+
+// Chromium-Flags und userData-Pfad MUESSEN vor app.whenReady() gesetzt werden.
+// Der userData-Pfad wurde bislang erst danach umgebogen - zu diesem Zeitpunkt
+// hatte Chromium das Standardverzeichnis schon geoeffnet, weshalb sich zwei
+// Instanzen (display1/display2) um dieselben Cache-Dateien stritten.
+const perfProfile = applyGpuFlags(app, { disableGpu: forceDisableGpu });
+app.setPath('userData', path.join(app.getPath('userData'), instanceName));
+
+let windowRetryCount = 0;
+let windowRetryWindowStart = Date.now();
+let gpuCrashCount = 0;
+
+function logCrash(kind, detail) {
+  const line = `[${new Date().toISOString()}] ${kind}: ${detail}\n`;
+  console.error(line.trim());
+  try {
+    const logDir = path.join(__dirname, '../../logs');
+    fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(path.join(logDir, 'crash.log'), line);
+  } catch (e) {
+    // Logging darf niemals der Grund sein, warum wir nicht sauber beenden.
+  }
+}
 
 function createWindow() {
   configManager = new ConfigManager(instanceName);
@@ -35,8 +60,11 @@ function createWindow() {
     y: targetDisplay.bounds.y,
     fullscreen: !isDev,
     frame: false,
-    transparent: true,
+    // Kein transparent:true. Der Hintergrund ist ohnehin deckend schwarz,
+    // aber ein transparentes Fenster zwingt den Compositor unter X11 auf einen
+    // alpha-gemischten Pfad ohne Hardware-Overlay.
     backgroundColor: '#000000',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, '../preload.js'),
       nodeIntegration: false,
@@ -45,6 +73,21 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+
+  // Erst zeigen, wenn wirklich etwas zu sehen ist - sonst blitzt beim Start
+  // ein leeres Fenster auf.
+  mainWindow.once('ready-to-show', () => mainWindow.show());
+
+  mainWindow.webContents.on('unresponsive', () => {
+    logCrash('unresponsive', 'renderer reagiert nicht, lade in 10s neu');
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.reload();
+    }, 10000);
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 
   if (isDev) {
     mainWindow.webContents.openDevTools();
@@ -58,7 +101,8 @@ function createWindow() {
     mainWindow.webContents.send('config-loaded', {
       config,
       modules: moduleLoader.scanModules(),
-      instanceName
+      instanceName,
+      perfProfile
     });
   });
 }
@@ -210,11 +254,65 @@ ipcMain.handle('get-module-info', async (event, moduleName) => {
   return { success: true, info: fs.existsSync(infoPath) ? JSON.parse(fs.readFileSync(infoPath, 'utf8')) : {} };
 });
 
+// Ein abgestuerzter Renderer hinterliess bisher ein schwarzes Fenster: der
+// Hauptprozess lebte weiter, also griff auch der Neustart durch pm2/systemd
+// nicht. Jetzt bauen wir das Fenster selbst neu auf - und geben auf, wenn das
+// wiederholt scheitert, damit der Prozessmanager uebernehmen kann.
+function recreateWindow(reason) {
+  const now = Date.now();
+  if (now - windowRetryWindowStart > 60000) {
+    windowRetryWindowStart = now;
+    windowRetryCount = 0;
+  }
+
+  windowRetryCount += 1;
+  if (windowRetryCount > 5) {
+    logCrash('give-up', `${reason} - 5 Neuversuche in 60s, beende Prozess`);
+    app.exit(1);
+    return;
+  }
+
+  logCrash('recreate-window', `${reason} (Versuch ${windowRetryCount})`);
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.destroy();
+  mainWindow = null;
+  setTimeout(createWindow, 1000 * windowRetryCount);
+}
+
+app.on('render-process-gone', (event, webContents, details) => {
+  recreateWindow(`render-process-gone (${details.reason})`);
+});
+
+app.on('child-process-gone', (event, details) => {
+  logCrash('child-process-gone', `${details.type}: ${details.reason}`);
+
+  if (details.type === 'GPU') {
+    gpuCrashCount += 1;
+    if (gpuCrashCount >= 3 && !forceDisableGpu) {
+      logCrash('gpu-fallback', 'dritter GPU-Absturz, Neustart ohne Hardware-Beschleunigung');
+      app.relaunch({ args: process.argv.slice(1).concat(['--disable-gpu']) });
+      app.exit(0);
+    }
+  }
+});
+
+// Der zentrale Handler. Ein Modul-Backend hatte bisher einen eigenen
+// installiert, der Fehler schluckte und den Prozess weiterlaufen liess.
+process.on('uncaughtException', (err) => {
+  logCrash('uncaughtException', err && err.stack ? err.stack : String(err));
+  app.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  logCrash('unhandledRejection', reason && reason.stack ? reason.stack : String(reason));
+});
+
 app.whenReady().then(() => {
-  const userDataPath = app.getPath('userData');
-  app.setPath('userData', path.join(userDataPath, instanceName));
   createWindow();
   startWebServer();
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
 
 app.on('window-all-closed', () => {

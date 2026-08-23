@@ -4,10 +4,10 @@
     padding: 20px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 16px;
-    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     min-width: 200px;
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .module-mmwave-presence.detected {
@@ -40,7 +40,7 @@
     border-radius: 50%;
     background: #444;
     position: relative;
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease;
 }
 
 .presence-indicator.active {
@@ -58,6 +58,7 @@
     border-radius: 50%;
     border: 2px solid #00ff7f;
     animation: ripple 2s infinite;
+    animation-play-state: var(--mm-anim-ambient, running);
 }
 
 @keyframes ripple {

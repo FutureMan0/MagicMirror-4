@@ -2,10 +2,23 @@
 let config = null;
 let moduleLoader = null;
 
-// Wetter-Effekte initialisieren
-if (window.WeatherEffects) {
-  window.weatherEffects = new window.WeatherEffects();
-  window.weatherEffects.init();
+// Wetter-Effekte werden erst erzeugt, wenn ein Modul sie tatsächlich anfordert.
+// Vorher lief hier beim Start unbedingt ein vollflächiger Canvas mit, auch wenn
+// gar kein Wetter-Modul aktiv war.
+if (window.WeatherEffects && !window.weatherEffects) {
+  let weatherEffectsInstance = null;
+  Object.defineProperty(window, 'weatherEffects', {
+    configurable: true,
+    get() {
+      if (!weatherEffectsInstance) {
+        weatherEffectsInstance = new window.WeatherEffects({
+          perfProfile: document.documentElement.dataset.perf || 'normal'
+        });
+        weatherEffectsInstance.init();
+      }
+      return weatherEffectsInstance;
+    }
+  });
 }
 
 // Legacy Grid-Positionen werden dynamisch basierend auf gridSettings berechnet
@@ -195,7 +208,7 @@ async function renderModules() {
 
     const envConfig = config.env || {};
 
-    for (const moduleConfig of config.modules) {
+    for (const [moduleIndex, moduleConfig] of config.modules.entries()) {
       if (moduleConfig.enabled === false) continue;
 
       const moduleContainer = document.createElement('div');
@@ -233,7 +246,8 @@ async function renderModules() {
           moduleConfig.module,
           moduleConfig.config || {},
           envConfig,
-          config.language || 'en'
+          config.language || 'en',
+          `${moduleConfig.module}#${moduleIndex}`
         );
 
         if (moduleElement) {
@@ -272,6 +286,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.electronAPI) {
     window.electronAPI.onConfigLoaded((data) => {
       config = data.config;
+      // Perf-Profil aus dem Hauptprozess. Steuert Blur, Dauer-Animationen und
+      // die Bildrate der Wetter-Effekte (siehe main.css und weatherEffects.js).
+      if (data.perfProfile) {
+        document.documentElement.dataset.perf = data.perfProfile;
+      }
       renderModules();
     });
 

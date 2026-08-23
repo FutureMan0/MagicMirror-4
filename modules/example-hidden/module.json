@@ -1,7 +1,15 @@
 {
-    "name": "example-hidden",
-    "displayName": "Example (Hidden)",
-    "version": "1.0.0",
-    "description": "This is an example module that is hidden from the Store UI.",
-    "hidden": true
+  "name": "example-hidden",
+  "displayName": "Example (Hidden)",
+  "version": "1.0.0",
+  "description": "This is an example module that is hidden from the Store UI.",
+  "hidden": true,
+  "author": "Magic Mirror",
+  "config": {
+    "text": {
+      "type": "string",
+      "default": "This is a hidden example module.",
+      "description": "Angezeigter Text"
+    }
+  }
 }
