@@ -11,7 +11,6 @@ const { createBusBridge } = require('./busBridge');
 const QRCode = require('qrcode');
 const express = require('express');
 const WebSocket = require('ws');
-const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
 
 let mainWindow = null;
 let configManager = null;
@@ -29,6 +28,16 @@ const { bus, receiveFromRenderer } = createBusBridge({
   WebSocket
 });
 
+// Warnungen sammeln, sobald der Bus existiert. Modul-Backends melden schon
+// beim Registrieren ihrer Routen - also bevor die Startprobe zuhoeren
+// koennte.
+const startupWarnings = [];
+bus.on('system:warning', (payload) => {
+  if (!payload || !payload.message) return;
+  startupWarnings.push({ source: payload.source || 'unbekannt', message: payload.message });
+  console.warn(`[${payload.source || 'unbekannt'}] ${payload.message}`);
+});
+
 const args = process.argv.slice(2);
 const instanceName = args.find(arg => arg.startsWith('--instance='))?.split('=')[1] || process.env.DEFAULT_INSTANCE || 'display1';
 const screenIndex = parseInt(args.find(arg => arg.startsWith('--screen='))?.split('=')[1] || '0');
@@ -36,6 +45,14 @@ const isDev = args.includes('--dev');
 const noServer = args.includes('--no-server');
 const customPort = args.find(arg => arg.startsWith('--port='))?.split('=')[1];
 const forceDisableGpu = args.includes('--disable-gpu') || process.env.MM_DISABLE_GPU === '1';
+// Startprobe: die App faehrt hoch, meldet, ob jedes Modul gemountet ist, und
+// beendet sich. Ohne das ist "die Tests sind gruen" kein Beleg dafuer, dass
+// der Spiegel ueberhaupt startet.
+const smokeMode = args.includes('--smoke');
+const smokeTimeoutMs = parseInt(
+  args.find(arg => arg.startsWith('--smoke-timeout='))?.split('=')[1] || '30000',
+  10
+);
 
 // Chromium-Flags und userData-Pfad MUESSEN vor app.whenReady() gesetzt werden.
 // Der userData-Pfad wurde bislang erst danach umgebogen - zu diesem Zeitpunkt
@@ -456,11 +473,56 @@ process.on('unhandledRejection', (reason) => {
   logCrash('unhandledRejection', reason && reason.stack ? reason.stack : String(reason));
 });
 
+/**
+ * Startprobe. Wartet darauf, dass der Renderer meldet, welche Module gemountet
+ * sind, schreibt eine Zeile auf stdout und beendet sich.
+ */
+function runSmokeMode() {
+  let finished = false;
+
+  const finish = (result) => {
+    if (finished) return;
+    finished = true;
+
+    // Eine klar erkennbare Zeile - der Rest von stdout ist Electron-Rauschen.
+    process.stdout.write(`MM4_SMOKE_RESULT ${JSON.stringify(result)}\n`);
+    app.exit(result.ok ? 0 : 1);
+  };
+
+  const timer = setTimeout(() => {
+    finish({
+      ok: false,
+      reason: 'timeout',
+      message: `Der Renderer hat sich innerhalb von ${smokeTimeoutMs} ms nicht gemeldet.`
+    });
+  }, smokeTimeoutMs);
+  timer.unref?.();
+
+  bus.on('system:modules-rendered', (payload) => {
+    const failed = (payload && payload.failed) || [];
+    finish({
+      ok: failed.length === 0 && startupWarnings.length === 0,
+      reason: failed.length > 0
+        ? 'module-failed'
+        : (startupWarnings.length > 0 ? 'startup-warning' : 'ok'),
+      mounted: (payload && payload.mounted) || [],
+      failed,
+      warnings: startupWarnings,
+      theme: payload && payload.theme
+    });
+  });
+
+  bus.on('system:render-failed', (payload) => {
+    finish({ ok: false, reason: 'render-failed', message: payload && payload.error });
+  });
+}
+
 app.whenReady().then(() => {
   // Server zuerst: das Fenster laedt den Spiegel ueber HTTP und wuerde sonst
   // auf die Rueckfallebene file:// fallen, nur weil der Port noch nicht
   // lauscht.
   startWebServer();
+  if (smokeMode) runSmokeMode();
   createWindow();
 });
 

@@ -23,10 +23,7 @@ class RendererModuleLoader {
     }
 
     try {
-      // Lade Modul als Script-Tag statt via eval.
-      // script.onload feuert erst nach der Ausfuehrung des Scripts, das Modul
-      // hat sich zu diesem Zeitpunkt also bereits registriert.
-      await this.loadModuleScript(moduleName);
+      await this.loadModuleSource(moduleName);
 
       // Prüfe ob die Klasse registriert wurde
       if (!window.MagicMirrorModules || !window.MagicMirrorModules[moduleName]) {
@@ -53,13 +50,46 @@ class RendererModuleLoader {
   }
 
   /**
-   * Lädt Modul-Script via Script-Tag
+   * Lädt die Moduldatei.
+   *
+   * Bevorzugt als ES-Modul. Der Grund ist kein Selbstzweck: klassische
+   * <script>-Dateien teilen sich EINEN globalen Scope. Zwei Module, die auf
+   * oberster Ebene denselben Namen deklarieren - etwa `const h` für den
+   * Escaping-Helfer -, lassen das zweite mit einem SyntaxError scheitern.
+   * Genau das ist passiert, und es war von aussen nur als "Modul konnte nicht
+   * geladen werden" sichtbar. Ein ES-Modul hat seinen eigenen Scope; das
+   * Problem kann so nicht mehr entstehen.
+   *
+   * Unter file:// sperrt Chromium dynamisches import(). Dort bleibt der
+   * Script-Weg als Rückfallebene - mit der bekannten Einschränkung.
+   */
+  async loadModuleSource(moduleName) {
+    const url = `../../modules/${moduleName}/index.js`;
+
+    if (window.location.protocol !== 'file:') {
+      // Die Module registrieren sich weiterhin auf window.MagicMirrorModules;
+      // ein Standard-Export ist erlaubt, aber nicht nötig.
+      const namespace = await import(url);
+
+      if (namespace && namespace.default && !window.MagicMirrorModules[moduleName]) {
+        window.MagicMirrorModules[moduleName] = namespace.default;
+      }
+      return;
+    }
+
+    return this.loadModuleScript(moduleName);
+  }
+
+  /**
+   * Rückfallebene für file://: Laden als klassisches Script.
    */
   async loadModuleScript(moduleName) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.id = `module-script-${moduleName}`;
       script.src = `../../modules/${moduleName}/index.js`;
+      // onload feuert erst nach der Ausführung - die Registrierung ist dann
+      // bereits passiert.
       script.onload = () => resolve();
       script.onerror = (error) => reject(new Error(`Script konnte nicht geladen werden: ${error}`));
       document.head.appendChild(script);
@@ -90,14 +120,20 @@ class RendererModuleLoader {
    * @param {object} config - Konfiguration für das Modul
    * @param {object} envConfig - Umgebungsvariablen
    * @param {string} language - Aktuelle Sprache
-   * @returns {Promise<HTMLElement|null>} - Gerenderte Modul-Instanz
+   * @returns {Promise<{ok: boolean, element: HTMLElement, error?: string}>}
+   *
+   * Liefert bewusst ein Ergebnisobjekt statt nur eines Elements: bei einem
+   * Fehler entsteht ebenfalls ein Element (der Platzhalter), und der Aufrufer
+   * konnte bisher nicht unterscheiden, ob das Modul lief oder nur so aussah.
+   * Der Smoke-Test haengt genau daran.
    */
   async createModuleInstance(moduleName, config = {}, envConfig = {}, language = 'en', instanceKey = null) {
     // Lade Modul, falls noch nicht geladen
     if (!this.moduleClasses.has(moduleName)) {
       const loaded = await this.loadModule(moduleName);
       if (!loaded) {
-        return this.createPlaceholder(moduleName, 'Modul konnte nicht geladen werden');
+        const message = 'Modul konnte nicht geladen werden';
+        return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
     }
 
@@ -111,17 +147,29 @@ class RendererModuleLoader {
       const instance = new ModuleClass(mergedConfig);
       this.loadedModules.set(instanceKey || moduleName, instance);
 
-      // Rufe render() Methode auf
-      if (typeof instance.render === 'function') {
-        const element = await instance.render();
-        return element;
-      } else {
-        console.error(`Modul ${moduleName} hat keine render() Methode`);
-        return this.createPlaceholder(moduleName, 'Modul hat keine render() Methode');
+      if (typeof instance.render !== 'function') {
+        const message = 'Modul hat keine render() Methode';
+        console.error(`Modul ${moduleName}: ${message}`);
+        return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
+
+      // init() ist optional und darf asynchron vorbereiten, bevor gezeichnet wird.
+      if (typeof instance.init === 'function') {
+        await instance.init();
+      }
+
+      const element = await instance.render();
+
+      // null ist erlaubt: ein Modul ohne Anzeige (etwa der Praesenzsensor mit
+      // hideUI). Dann entsteht auch kein Container.
+      return { ok: true, element: element || null, headless: !element };
     } catch (error) {
       console.error(`Fehler beim Erstellen der Modul-Instanz ${moduleName}:`, error);
-      return this.createPlaceholder(moduleName, `Fehler: ${error.message}`);
+      return {
+        ok: false,
+        error: error.message,
+        element: this.createPlaceholder(moduleName, `Fehler: ${error.message}`)
+      };
     }
   }
 

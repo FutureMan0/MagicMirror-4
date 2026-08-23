@@ -4,9 +4,10 @@
 # Installs dependencies and sets up a kiosk-style X11 session that starts MM⁴ reliably on boot.
 
 # Colors for output
-RED='\033[0-31m'
-GREEN='\033[0-32m'
-BLUE='\033[0-34m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}==============================================${NC}"
@@ -69,14 +70,24 @@ fi
 
 # 3. Install Node.js (Latest LTS)
 echo -e "${GREEN}[3/7] Installing Node.js...${NC}"
-if ! command -v node &> /dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+NODE_MAJOR_REQUIRED=22
+CURRENT_NODE_MAJOR="$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)"
+
+if [ -z "$CURRENT_NODE_MAJOR" ] || [ "$CURRENT_NODE_MAJOR" -lt "$NODE_MAJOR_REQUIRED" ]; then
+    echo -e "${GREEN}Installing Node.js ${NODE_MAJOR_REQUIRED}.x ...${NC}"
+    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR_REQUIRED}.x" | bash -
     apt install -y nodejs
+else
+    echo -e "${GREEN}Node.js v${CURRENT_NODE_MAJOR} ist aktuell genug.${NC}"
 fi
+
+# Der mmWave-Sensor benutzt serialport - ein natives Modul, das fuer Electrons
+# ABI uebersetzt werden muss. Ohne Uebersetzer bleibt der Sensor stumm.
+apt install -y build-essential python3
 
 # 4. Install Project Dependencies
 echo -e "${GREEN}[4/7] Installing MagicMirror⁴ dependencies...${NC}"
-sudo -u $REAL_USER npm install
+sudo -u $REAL_USER npm ci
 
 # 4b. Setup .env file (optional)
 if [ ! -f ".env" ] && [ -f ".env.example" ]; then
@@ -115,7 +126,7 @@ fi
 COMMON_ENV="env: {
       NODE_ENV: 'production',
       DISPLAY: ':0',
-      ELECTRON_OZONE_PLATFORM_HINT: 'auto'
+      ELECTRON_OZONE_PLATFORM_HINT: 'x11'
     }"
 
 case $CHOICE in
@@ -193,7 +204,7 @@ cd "$PROJECT_DIR" || exit 1
 
 export DISPLAY="${DISPLAY:-:0}"
 export NODE_ENV="${NODE_ENV:-production}"
-export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-auto}"
+export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-x11}"
 
 # Wait until X is ready (max 10 seconds)
 for i in $(seq 1 20); do

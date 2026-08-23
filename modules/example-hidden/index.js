@@ -24,7 +24,11 @@
  * src/renderer/styles/tokens.css). Ein hartcodiertes #00ff7f wäre für jedes
  * Theme unerreichbar - `npm run check:tokens` weist es deshalb ab.
  */
-const ModuleBase = (typeof window !== 'undefined' && window.MMModule) || class {};
+// Bewusst `var` und nicht `const`: unter file:// werden Module als klassische
+// Scripts geladen und teilen sich einen globalen Scope. Ein zweites `const`
+// desselben Namens wuerde das Modul mit einem SyntaxError scheitern lassen.
+// Als ES-Modul (der Normalfall) ist die Deklaration ohnehin modul-lokal.
+var ModuleBase = (typeof window !== 'undefined' && window.MMModule) || class {};
 
 class ExampleHidden extends ModuleBase {
   static moduleName = 'example-hidden';

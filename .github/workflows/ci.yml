@@ -53,6 +53,53 @@ jobs:
       - name: Tests
         run: npm test
 
+  # Der einzige Job, der die Anwendung tatsächlich startet. Alles andere prüft
+  # Logik und Verdrahtung - nicht, ob Electron das Fenster öffnet, der Renderer
+  # lädt und jedes Modul erscheint.
+  smoke:
+    name: Startprobe (${{ matrix.theme }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Mehrere Themes durchspielen: so ist wenigstens belegt, dass jedes
+        # Stylesheet lädt und das Rendern nicht verhindert. Wie es aussieht,
+        # kann eine Startprobe nicht beurteilen.
+        theme: [default, minimal, cyberpunk, newspaper]
+
+    env:
+      MM_SMOKE_THEME: ${{ matrix.theme }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      # Electron braucht unter Linux einen Bildschirm und ein paar
+      # Systembibliotheken, die auf dem Runner nicht vorinstalliert sind.
+      - name: Systemabhängigkeiten
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+            libdrm2 libgbm1 libasound2t64 libgtk-3-0 libxkbcommon0 \
+            libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0
+
+      # Hier wird die Electron-Binärdatei bewusst mit heruntergeladen - ohne
+      # sie gibt es nichts zu starten. Das postinstall übersetzt zugleich
+      # serialport für Electrons ABI; schlägt das fehl, meldet die Startprobe
+      # es als Warnung und der Job wird rot. Genau dieser Fall bleibt sonst
+      # unbemerkt: der Spiegel läuft weiter, nur der Sensor tut nichts.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: App starten und Module prüfen
+        run: xvfb-run -a --server-args="-screen 0 1920x1080x24" npm run smoke
+
   lockfile:
     name: Lockfile ist aktuell
     runs-on: ubuntu-latest

@@ -5,7 +5,11 @@
 // und requestUpdate(). Faellt MMModule aus (etwa in einem Test ohne
 // Renderer-Umgebung), greift eine leere Basisklasse - das Modul bleibt
 // lauffaehig.
-const ModuleBase = (typeof window !== 'undefined' && window.MMModule) || class {};
+// Bewusst `var` und nicht `const`: unter file:// werden Module als klassische
+// Scripts geladen und teilen sich einen globalen Scope. Ein zweites `const`
+// desselben Namens wuerde das Modul mit einem SyntaxError scheitern lassen.
+// Als ES-Modul (der Normalfall) ist die Deklaration ohnehin modul-lokal.
+var ModuleBase = (typeof window !== 'undefined' && window.MMModule) || class {};
 
 class ClockModule extends ModuleBase {
   // Diese Schluessel lassen sich im laufenden Betrieb aendern, ohne das Modul
