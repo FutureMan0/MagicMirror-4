@@ -171,6 +171,66 @@ deshalb kann `html[data-perf="low"]` jedem Theme den Blur abschalten.
 
 Alle Tokens: `src/renderer/styles/tokens.css`.
 
+## Privatsphäre
+
+Der Spiegel hängt in einem Bad mit Dusche. Drei Dinge, die oft verwechselt
+werden:
+
+| | |
+| :--- | :--- |
+| **Inhalt** | Ein Gast soll nicht den Stundenplan sehen |
+| **Sensoren** | Eine Kamera in einem Duschraum ist ein Problem für sich — unabhängig vom Bildschirminhalt |
+| **Praktisches** | Beim Duschen beschlägt der Spiegel und man ist nass; eine riesige Uhr ist dann nützlicher |
+
+Jedes Modul erklärt im Manifest, wie heikel sein Inhalt ist:
+
+```json
+"privacyLevel": "public" | "personal" | "sensitive",
+"showInShower": true
+```
+
+**Fail-safe: ohne Angabe gilt ein Modul als `sensitive`.** Neue Module sind
+damit privat, bis jemand sie ausdrücklich freigibt — nie umgekehrt. Ein
+vergessenes Feld wäre sonst ein Datenleck.
+
+Ausgeblendet wird über Attribute und CSS, **nicht durch Neuaufbau**: sofort,
+flackerfrei, und die Module behalten ihren Zustand. Für echte statt bloß
+optischer Privatsphäre können Module ein `setPrivacy(mode)` anbieten und ihre
+Abfragen einstellen — ein ausgeblendetes Modul, das weiter alle 15 Minuten den
+Stundenplan holt, wäre nur halb privat.
+
+Zwei Regeln im Ablauf:
+
+* **Der Sensor geht aus, bevor sich am Bildschirm etwas ändert.** Andersherum
+  gäbe es einen Moment, in dem der Spiegel schon privat aussieht, die Kamera
+  aber noch läuft — genau der falsche Eindruck.
+* **Der Sensorzustand wird gemessen, nicht angenommen.** Bei unklarer Lage
+  meldet `getStatus()` „aktiv". Eine Anzeige, die behauptet, die Kamera sei
+  aus, weil das mal jemand angeordnet hat, wäre schlimmer als gar keine.
+
+Und was in der Oberfläche auch so dasteht: **ein Software-Aus ist Komfort,
+keine Garantie.** Auf einem Pi lässt sich nicht einmal ein einzelner USB-Port
+stromlos schalten — alle Downstream-Ports hängen zusammen. Sicher ist nur ein
+Schalter im Kabel.
+
+## Gesten
+
+`src/main/inputProviders/base.js` definiert die Schnittstelle, `mock.js` einen
+Anbieter ohne Hardware. Der gesamte Weg lässt sich damit bauen und vorführen,
+bevor entschieden ist, welcher Sensor es wird — über `POST /api/input/test`.
+
+Das ist keine Vorsicht auf Verdacht: Ultraleaps aktuelle Software unterstützt
+nur den Controller **2**. Für den ersten gibt es auf dem Pi nur ein
+32-Bit-Legacy-SDK von 2014; ob das auf einem heutigen 64-Bit-System läuft,
+entscheidet erst der Versuch. Ein APDS-9960 für 8 Euro wäre die Alternative —
+und noch dazu keine Kamera.
+
+Der Hub setzt drei Regeln durch, die sonst jeder Anbieter anders auslegen
+würde: Sperrzeit je Geste (sonst blättert der Spiegel drei Seiten statt
+einer), Mindestsicherheit (eine halb erkannte Geste wirkt wie ein Defekt), und
+**kein Start bei eingeschränkter Privatsphäre** — ein Kamera-Sensor, der „nur
+zuhört", ist genau das, was hier niemand will.
+
 ## Ereignis-Bus
 
 Ein Bus, drei Transporte (lokal, IPC, WebSocket). Themen sind mit Doppelpunkt

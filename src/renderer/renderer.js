@@ -2,6 +2,10 @@
 let config = null;
 let moduleLoader = null;
 
+// Manifeste der installierten Module, kommen mit config-loaded mit. Der
+// Renderer braucht daraus vor allem die Privatsphäre-Stufe.
+let moduleInfo = new Map();
+
 // Wetter-Effekte werden erst erzeugt, wenn ein Modul sie tatsächlich anfordert.
 // Vorher lief hier beim Start unbedingt ein vollflächiger Canvas mit, auch wenn
 // gar kein Wetter-Modul aktiv war.
@@ -214,6 +218,8 @@ async function renderModules() {
 
     if (!moduleLoader) {
       moduleLoader = new window.RendererModuleLoader();
+      // privacy.js benachrichtigt darüber die Module.
+      window.mmModuleLoader = moduleLoader;
     }
 
     const envConfig = config.env || {};
@@ -230,6 +236,15 @@ async function renderModules() {
       const moduleContainer = document.createElement('div');
       moduleContainer.className = 'module-container';
       moduleContainer.dataset.moduleName = moduleConfig.module;
+
+      // Nach diesen Attributen blendet privacy.css aus - ohne Neuaufbau.
+      // Fehlt die Angabe, gilt das Modul als heikel.
+      const info = moduleInfo.get(moduleConfig.module) || {};
+      moduleContainer.dataset.privacyLevel = info.privacyLevel || 'sensitive';
+      if (info.showInShower) moduleContainer.dataset.showInShower = 'true';
+
+      // Optionale Modulseite - nur gesetzt, wenn die Konfiguration eine nennt.
+      if (moduleConfig.page) moduleContainer.dataset.page = String(moduleConfig.page);
 
       // Parse Position mit neuer Funktion
       const parsedPos = parsePosition(moduleConfig.position, config.gridSettings);
@@ -399,6 +414,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.electronAPI) {
     window.electronAPI.onConfigLoaded((data) => {
       config = data.config;
+
+      if (Array.isArray(data.modules)) {
+        moduleInfo = new Map(data.modules.map(entry => [entry.name, entry.info || {}]));
+      }
+
+      if (data.privacy && window.mmPrivacy) {
+        window.mmPrivacy.apply(data.privacy);
+      }
       // Perf-Profil aus dem Hauptprozess. Steuert Blur, Dauer-Animationen und
       // die Bildrate der Wetter-Effekte (siehe main.css und weatherEffects.js).
       if (data.perfProfile) {

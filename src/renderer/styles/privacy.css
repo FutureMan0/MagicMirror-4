@@ -1,0 +1,82 @@
+/*
+ * Ausblenden nach Privatsphäre-Stufe.
+ *
+ * Rein über Attribute: der Renderer setzt data-privacy am <html>-Element und
+ * data-privacy-level an jedem Modul-Container. Kein Neuaufbau, kein Flackern,
+ * und die Module behalten ihren Zustand.
+ */
+@layer base {
+  /* Gästemodus: alles ausser öffentlichem Inhalt verschwindet. */
+  html[data-privacy="guest"] .module-container[data-privacy-level="personal"],
+  html[data-privacy="guest"] .module-container[data-privacy-level="sensitive"] {
+    display: none;
+  }
+
+  /* Duschmodus: nur, was ausdrücklich dafür freigegeben ist. In der Praxis
+     die Uhr - beschlagener Spiegel, nasse Hände, keine Lesebrille. */
+  html[data-privacy="shower"] .module-container:not([data-show-in-shower="true"]) {
+    display: none;
+  }
+
+  html[data-privacy="shower"] .modules-grid {
+    /* Was übrig bleibt, bekommt die ganze Fläche. */
+    place-items: center;
+  }
+
+  html[data-privacy="shower"] .module-container[data-show-in-shower="true"] {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 / -1 !important;
+    justify-self: center;
+    align-self: center;
+  }
+
+  /* Riesig, damit man sie durch Dampf und ohne Brille lesen kann. */
+  html[data-privacy="shower"] .clock-time {
+    font-size: var(--mm-size-4xl);
+  }
+
+  html[data-privacy="shower"] .clock-date {
+    font-size: var(--mm-size-lg);
+  }
+
+  /* Aus heisst aus. */
+  html[data-privacy="off"] #modules-container {
+    display: none;
+  }
+
+  .privacy-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--mm-z-overlay);
+    padding: var(--mm-space-3) var(--mm-space-5);
+    background: var(--mm-color-surface-2);
+    color: var(--mm-color-text-muted);
+    font-size: var(--mm-size-sm);
+    letter-spacing: var(--mm-tracking-wide);
+    text-align: center;
+  }
+}
+
+@layer base {
+  /*
+   * Modulseiten.
+   *
+   * Blättern über ein Attribut statt über Neuaufbau: die Module behalten
+   * ihren Zustand. Ein Modul ohne data-page liegt immer auf Seite 1 - eine
+   * Konfiguration ohne Seiten bleibt damit unverändert sichtbar.
+   */
+  html[data-page="1"] .module-container[data-page]:not([data-page="1"]),
+  html[data-page="2"] .module-container[data-page]:not([data-page="2"]),
+  html[data-page="3"] .module-container[data-page]:not([data-page="3"]),
+  html[data-page="4"] .module-container[data-page]:not([data-page="4"]) {
+    display: none;
+  }
+
+  /* Module ohne Seitenangabe verschwinden, sobald geblättert wird - sonst
+     stünden sie auf jeder Seite. */
+  html[data-page]:not([data-page="1"]) .module-container:not([data-page]) {
+    display: none;
+  }
+}

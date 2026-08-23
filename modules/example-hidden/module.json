@@ -12,5 +12,6 @@
       "description": "Angezeigter Text"
     }
   },
-  "apiVersion": 2
+  "apiVersion": 2,
+  "privacyLevel": "personal"
 }
