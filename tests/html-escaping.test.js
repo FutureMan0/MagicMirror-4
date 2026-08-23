@@ -67,12 +67,36 @@ test('die Module setzen Fremddaten nur ueber das escapende Tag ein', () => {
     'Wetter-Warnungen kommen von OpenWeatherMap und muessen escapt werden'
   );
 
-  const spotify = fs.readFileSync(path.join(ROOT, 'modules/spotify/index.js'), 'utf8');
-  assert.match(
-    spotify,
-    /<img src="\$\{this\.escapeHtml\(coverUrl\)\}"/,
-    'Die Cover-URL steht in einem Attribut und muss escapt werden'
-  );
+});
+
+// Allgemeiner als die Einzelfaelle oben: kein Modul darf Fremddaten in ein
+// ungetaggtes Template schreiben und daraus innerHTML machen. Wer statt
+// dessen createElement und textContent benutzt - oder .src als Eigenschaft
+// setzt statt als Attribut zu interpolieren - ist ohnehin sicher, weil dabei
+// gar kein HTML geparst wird.
+test('kein Modul baut innerHTML aus einem ungetaggten Template', () => {
+  const modulesDir = path.join(ROOT, 'modules');
+
+  for (const name of fs.readdirSync(modulesDir)) {
+    const file = path.join(modulesDir, name, 'index.js');
+    if (!fs.existsSync(file)) continue;
+
+    const source = fs.readFileSync(file, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+
+    // innerHTML = `…${…}…`  ohne vorangestelltes Tag.
+    for (const match of source.matchAll(/innerHTML\s*=\s*(\w*)`([^`]*)`/g)) {
+      const [, tag, body] = match;
+      if (!body.includes('${')) continue;
+
+      assert.ok(
+        tag,
+        `${name}: innerHTML wird aus einem ungetaggten Template mit Interpolation gebaut - `
+        + 'fremde Daten koennen daraus Markup werden. h`` benutzen.'
+      );
+    }
+  }
 });
 
 test('der Renderer erlaubt keine inline-Skripte mehr', () => {

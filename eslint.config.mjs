@@ -20,6 +20,7 @@ const browserGlobals = {
   requestAnimationFrame: 'readonly',
   cancelAnimationFrame: 'readonly',
   localStorage: 'readonly',
+  sessionStorage: 'readonly',
   WebSocket: 'readonly',
   CustomEvent: 'readonly',
   Event: 'readonly',
