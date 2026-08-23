@@ -82,5 +82,6 @@
       "label": "Schulkennung",
       "exposeToRenderer": false
     }
-  ]
+  ],
+  "privacyLevel": "sensitive"
 }

@@ -74,6 +74,32 @@ Ein gekoppeltes Gerät bleibt 30 Tage angemeldet.
 
 ---
 
+## 🔒 Privatsphäre
+
+Vier Zustände, umschaltbar am Handy im Tab **Privat**:
+
+| | |
+| :--- | :--- |
+| **Normal** | Alles sichtbar |
+| **Gäste** | Nur Uhr und Wetter. Endet nach 30 Minuten von selbst |
+| **Dusche** | Nur eine große Uhr, Sensoren aus |
+| **Aus** | Anzeige komplett dunkel |
+
+Was ausgeblendet wird, steht im Manifest jedes Moduls. **Ohne Angabe gilt ein
+Modul als heikel** — neue Module sind privat, bis man sie freigibt.
+
+Der Dusch-Modus kann sich selbst einschalten: der vorhandene mmWave-Sensor
+meldet, wenn jemand länger in einem einstellbaren Entfernungsband steht.
+
+> **Zum Sensor, ehrlich:** Ein Software-Aus ist Komfort, keine Garantie. Auf
+> einem Raspberry Pi lässt sich nicht einmal ein einzelner USB-Port stromlos
+> schalten — alle Downstream-Ports hängen zusammen. Wenn eine Kamera im Raum
+> ist, ist ein **physischer Schalter im Kabel** (ca. 8 €) die einzige
+> überzeugende Abschaltung. Die Anzeige im Handy zeigt den *gemessenen*
+> Zustand und meldet im Zweifel „aktiv".
+
+---
+
 ## 🔌 Weitere Module
 
 Alle vier bauen auf demselben Fundament: Zwischenspeicher auf Platte,

@@ -73,7 +73,8 @@ const targets = [
   ...await collect(path.join(ROOT, 'themes'), (f) => f.endsWith('.css')),
   // Die gemeinsame Optik der Daten-Module unterliegt denselben Regeln.
   path.join(ROOT, 'src/renderer/styles/data-module.css'),
-  path.join(ROOT, 'src/renderer/styles/forge.css')
+  path.join(ROOT, 'src/renderer/styles/forge.css'),
+  path.join(ROOT, 'src/renderer/styles/privacy.css')
 ];
 
 const problems = [];

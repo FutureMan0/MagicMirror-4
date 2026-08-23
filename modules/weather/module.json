@@ -49,5 +49,6 @@
       "label": "OpenWeatherMap API Key",
       "exposeToRenderer": true
     }
-  ]
+  ],
+  "privacyLevel": "public"
 }

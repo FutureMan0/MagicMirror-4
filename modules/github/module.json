@@ -50,5 +50,6 @@
       "default": true,
       "description": "Anzahl offener Vorgänge anzeigen (GitHub zählt Pull Requests mit)"
     }
-  }
+  },
+  "privacyLevel": "personal"
 }
