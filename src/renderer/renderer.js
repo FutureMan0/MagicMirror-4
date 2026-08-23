@@ -358,7 +358,7 @@ function connectLivePreview(instance) {
 
   socket.addEventListener('open', () => {
     socket.send(JSON.stringify({ type: 'hello', clientId: `mirror-preview-${Date.now()}` }));
-    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config', 'presence:*'] }));
+    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config:*', 'presence:*'] }));
   });
 
   socket.addEventListener('message', (event) => {
