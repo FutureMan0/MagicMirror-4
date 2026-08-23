@@ -110,6 +110,28 @@ function installDom() {
   };
   global.window = global.window || {};
   global.window.MagicMirrorModules = global.window.MagicMirrorModules || {};
+  // Mehrere Module leiten aus dem Protokoll ihre API-Basis-URL ab
+  // (file:// -> http://localhost:3000). Ohne location wirft schon der
+  // Konstruktor.
+  global.window.location = global.window.location || {
+    protocol: 'http:',
+    host: 'localhost:3000',
+    href: 'http://localhost:3000/',
+    search: ''
+  };
+  // Die Renderer-Bausteine bereitstellen, die Module vorfinden: SDK,
+  // Escaping-Helfer und Bus. Sie haengen sich selbst an window.
+  global.requestAnimationFrame = global.requestAnimationFrame
+    || ((callback) => setTimeout(() => callback(Date.now()), 0));
+  global.cancelAnimationFrame = global.cancelAnimationFrame || clearTimeout;
+
+  require('../../src/shared/bus.js');
+  require('../../src/renderer/html.js');
+  require('../../src/renderer/sdk.js');
+  require('../../src/renderer/lib/DataModule.js');
+  require('../../src/renderer/lib/ForgeModule.js');
+  require('../../src/renderer/reconciler.js');
+
   return { StubElement, documentElement };
 }
 

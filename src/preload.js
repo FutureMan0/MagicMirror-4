@@ -7,14 +7,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onConfigUpdate: (callback) => {
     ipcRenderer.on('config-update', (event, data) => callback(data));
   },
-  onPresenceDetected: (callback) => {
-    ipcRenderer.on('presence-detected', () => callback());
+  // Kopplung: der Code wird auf dem Spiegel angezeigt, damit ihn nur sehen
+  // kann, wer im Raum steht.
+  onPairingStarted: (callback) => {
+    ipcRenderer.on('pairing-started', (event, data) => callback(data));
   },
-  onPresenceLost: (callback) => {
-    ipcRenderer.on('presence-lost', () => callback());
+  onPairingEnded: (callback) => {
+    ipcRenderer.on('pairing-ended', () => callback());
   },
+  // Ereignis-Bus. Ersetzt die einzelnen presence-*-Kanaele: der Renderer
+  // abonniert Themen, statt fuer jede Nachricht einen eigenen IPC-Kanal zu
+  // brauchen.
+  onBusEvent: (callback) => {
+    ipcRenderer.on('bus-event', (event, envelope) => callback(envelope));
+  },
+  emitBusEvent: (topic, payload) => {
+    ipcRenderer.send('bus-emit', { topic, payload });
+  },
+
   // Module Loading API
-  getModuleCode: (moduleName) => ipcRenderer.invoke('get-module-code', moduleName),
   getModuleStyles: (moduleName) => ipcRenderer.invoke('get-module-styles', moduleName),
   getModuleInfo: (moduleName) => ipcRenderer.invoke('get-module-info', moduleName)
 });

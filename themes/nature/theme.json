@@ -1,0 +1,7 @@
+{
+  "name": "Nature",
+  "description": "Warme Erdtöne, weiche Verläufe, Serifen-Überschriften. Ruhig und ohne Leuchtakzente.",
+  "mode": "dark",
+  "author": "MagicMirror⁴",
+  "supports": { "blur": false, "ambientMotion": true }
+}

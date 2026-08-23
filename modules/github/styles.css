@@ -1,0 +1,5 @@
+/* Die gemeinsame Optik steckt in src/renderer/styles/forge.css - hier nur,
+   was wirklich GitHub-eigen wäre. */
+.module-github {
+  min-width: 240px;
+}

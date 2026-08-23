@@ -1,0 +1,82 @@
+/*
+ * Newspaper.
+ *
+ * Das einzige helle Theme - und bewusst dabei: erst damit ist bewiesen, dass
+ * das Token-Set nicht heimlich nur für dunkle Oberflächen taugt. Ein Modul,
+ * das irgendwo Weiß hartcodiert hat, fällt hier sofort auf.
+ *
+ * Hinweis: Auf einem Spiegelglas leuchtet eine helle Fläche kräftig. Für ein
+ * Badezimmer bei Nacht ist das viel; gedacht ist es für einen Spiegel im
+ * Wohnbereich bei Tageslicht.
+ */
+@layer theme {
+  :root {
+    --mm-color-bg: #f4f1ea;
+    --mm-color-bg-elevated: #ffffff;
+    --mm-color-surface: transparent;
+    --mm-color-surface-2: rgba(26, 24, 20, 0.05);
+    --mm-color-border: rgba(26, 24, 20, 0.22);
+    --mm-color-border-strong: rgba(26, 24, 20, 0.55);
+
+    --mm-color-text: #17150f;
+    --mm-color-text-muted: rgba(23, 21, 15, 0.66);
+    --mm-color-text-faint: rgba(23, 21, 15, 0.42);
+
+    --mm-color-accent: #8c2f1f;
+    --mm-color-accent-contrast: #f4f1ea;
+    --mm-color-success: #2f5d3a;
+    --mm-color-warning: #8a6a1f;
+    --mm-color-danger: #8c2f1f;
+    --mm-color-info: #2a4a6b;
+
+    --mm-cat-1:  #2a4a6b;
+    --mm-cat-2:  #8c4a2f;
+    --mm-cat-3:  #2f5d3a;
+    --mm-cat-4:  #5a3d6b;
+    --mm-cat-5:  #8a6a1f;
+    --mm-cat-6:  #7b3050;
+    --mm-cat-7:  #22606b;
+    --mm-cat-8:  #4a6b2a;
+    --mm-cat-9:  #8c5a1f;
+    --mm-cat-10: #3d3d7b;
+    --mm-cat-11: #1f6b5d;
+    --mm-cat-12: #6b2a63;
+    --mm-cat-fallback: rgba(26, 24, 20, 0.18);
+
+    --mm-font-sans: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mm-font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+
+    --mm-weight-regular: 400;
+    --mm-weight-medium: 600;
+    --mm-tracking-wide: 0.04em;
+
+    /* Haarlinien statt Kästen - so trennt eine Zeitung ihre Spalten. */
+    --mm-surface-bg: transparent;
+    --mm-surface-border: none;
+    --mm-surface-radius: var(--mm-radius-none);
+    --mm-surface-shadow: none;
+    --mm-surface-filter: none;
+
+    --mm-shadow-sm: none;
+    --mm-shadow-md: none;
+    --mm-shadow-lg: none;
+    --mm-glow: none;
+    --mm-anim-ambient: paused;
+  }
+
+  .module-container {
+    border-top: 2px solid var(--mm-color-border-strong);
+    padding-top: var(--mm-space-4);
+  }
+
+  .clock-time {
+    font-weight: var(--mm-weight-bold);
+    letter-spacing: var(--mm-tracking-tight);
+  }
+
+  .clock-date,
+  .alert-title {
+    font-variant-caps: small-caps;
+    letter-spacing: var(--mm-tracking-wide);
+  }
+}

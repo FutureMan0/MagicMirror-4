@@ -1,0 +1,203 @@
+/*
+ * Design-Tokens.
+ *
+ * MUSS als erstes Stylesheet geladen werden: hier wird die Layer-Reihenfolge
+ * festgelegt, und die gilt ab der ersten @layer-Deklaration im Dokument.
+ *
+ * Warum Layer:
+ * Modul-CSS wird zur Laufzeit als <style> in den <head> injiziert - also
+ * NACH dem Theme-Stylesheet. Bei gleicher Spezifität gewinnt die spätere
+ * Regel, weshalb das alte cyberpunk.css 21 mal !important brauchte, um sich
+ * gegen die Module durchzusetzen. Layer-Reihenfolge schlägt sowohl
+ * Spezifität als auch Quellreihenfolge: eine Regel in @layer theme gewinnt
+ * gegen jede Regel in @layer module, egal wo sie steht.
+ *
+ *   base      Tokens, Reset, Schriften, Grundlayout
+ *   module    von den Modulen mitgelieferte Stylesheets
+ *   theme     das aktive Theme
+ *   overrides Perf-Profil und Nutzerkorrekturen - gewinnt gegen alles
+ *
+ * Regeln ohne Layer stehen weiterhin über allen Layern. Ein altes,
+ * ungeschichtetes Theme funktioniert deshalb weiter.
+ */
+@layer base, module, theme, overrides;
+
+@layer base {
+  :root {
+    /* ---------- Farbe ---------- */
+    /* Ein Spiegel zeigt nur, was leuchtet: Schwarz ist die Abwesenheit von
+       Bild. Deshalb sind die Standardwerte dunkel. */
+    --mm-color-bg: #000000;
+    --mm-color-bg-elevated: #0a0a0a;
+    --mm-color-surface: rgba(255, 255, 255, 0.04);
+    --mm-color-surface-2: rgba(255, 255, 255, 0.08);
+    --mm-color-border: rgba(255, 255, 255, 0.10);
+    --mm-color-border-strong: rgba(255, 255, 255, 0.24);
+
+    --mm-color-text: #ffffff;
+    --mm-color-text-muted: rgba(255, 255, 255, 0.62);
+    --mm-color-text-faint: rgba(255, 255, 255, 0.38);
+
+    --mm-color-accent: #00d4ff;
+    --mm-color-accent-contrast: #000000;
+
+    --mm-color-success: #44ff88;
+    --mm-color-warning: #ffc857;
+    --mm-color-danger: #ff4444;
+    --mm-color-info: #4aa3ff;
+
+    /* ---------- Datenpalette ----------
+       Für Kategorien ohne eigene Bedeutung: Unterrichtsfächer, Diagramm-
+       Reihen, Container-Zustände. Themes definieren sie neu und färben damit
+       alles um, ohne die Module anzufassen. */
+    --mm-cat-1:  #4f9dff;
+    --mm-cat-2:  #ff7a59;
+    --mm-cat-3:  #52d1a4;
+    --mm-cat-4:  #c084fc;
+    --mm-cat-5:  #ffd166;
+    --mm-cat-6:  #f472b6;
+    --mm-cat-7:  #38bdf8;
+    --mm-cat-8:  #a3e635;
+    --mm-cat-9:  #fb923c;
+    --mm-cat-10: #818cf8;
+    --mm-cat-11: #2dd4bf;
+    --mm-cat-12: #e879f9;
+    --mm-cat-fallback: rgba(255, 255, 255, 0.22);
+
+    /* ---------- Abstände ---------- */
+    --mm-space-0: 0;
+    --mm-space-1: 2px;
+    --mm-space-2: 4px;
+    --mm-space-3: 8px;
+    --mm-space-4: 12px;
+    --mm-space-5: 16px;
+    --mm-space-6: 24px;
+    --mm-space-7: 32px;
+    --mm-space-8: 48px;
+
+    /* ---------- Radien ---------- */
+    --mm-radius-none: 0;
+    --mm-radius-sm: 4px;
+    --mm-radius-md: 8px;
+    --mm-radius-lg: 16px;
+    --mm-radius-pill: 999px;
+
+    /* ---------- Typografie ----------
+       Die Größen skalieren mit der Viewport-Breite: derselbe Spiegel läuft
+       auf einem 24-Zoll-Monitor und auf einem 32-Zoll-Fernseher. */
+    --mm-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mm-font-display: var(--mm-font-sans);
+    --mm-font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mm-font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+    /* Das Wetter-Modul benutzt Emoji als Icon-Satz. Der Stack stand bislang
+       sechsmal wortgleich in weather/styles.css. Welches Paket auf dem Pi
+       tatsächlich vorhanden ist, entscheidet rpi-install.sh. */
+    --mm-font-emoji: 'Noto Color Emoji', 'Noto Emoji', 'Apple Color Emoji',
+                     'Segoe UI Emoji', 'Segoe UI Symbol', 'EmojiOne Color', sans-serif;
+
+    --mm-size-xs:   clamp(0.68rem, 0.62rem + 0.20vw, 0.80rem);
+    --mm-size-sm:   clamp(0.80rem, 0.74rem + 0.24vw, 0.94rem);
+    --mm-size-base: clamp(0.94rem, 0.86rem + 0.32vw, 1.12rem);
+    --mm-size-lg:   clamp(1.12rem, 1.00rem + 0.48vw, 1.40rem);
+    --mm-size-xl:   clamp(1.40rem, 1.20rem + 0.80vw, 1.90rem);
+    --mm-size-2xl:  clamp(1.90rem, 1.55rem + 1.40vw, 2.80rem);
+    --mm-size-3xl:  clamp(2.60rem, 2.00rem + 2.60vw, 4.20rem);
+    --mm-size-4xl:  clamp(3.60rem, 2.60rem + 4.20vw, 6.40rem);
+
+    --mm-leading-tight: 1.05;
+    --mm-leading-normal: 1.45;
+    --mm-leading-loose: 1.75;
+
+    --mm-weight-light: 300;
+    --mm-weight-regular: 400;
+    --mm-weight-medium: 500;
+    --mm-weight-bold: 700;
+
+    --mm-tracking-tight: -0.01em;
+    --mm-tracking-normal: 0;
+    --mm-tracking-wide: 0.08em;
+    --mm-tracking-wider: 0.16em;
+
+    /* ---------- Schatten ---------- */
+    --mm-shadow-none: none;
+    --mm-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --mm-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --mm-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --mm-glow: none;
+
+    /* ---------- Bewegung ---------- */
+    --mm-dur-fast: 120ms;
+    --mm-dur-normal: 240ms;
+    --mm-dur-slow: 480ms;
+    --mm-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+    --mm-ease-decel: cubic-bezier(0, 0, 0.2, 1);
+    /* Dauerläufer-Animationen hängen hieran und lassen sich zentral anhalten. */
+    --mm-anim-ambient: running;
+
+    /* ---------- Modul-Flächen ----------
+       Nicht backdrop-filter: blur(var(--x)) schreiben: blur(0px) erzwingt
+       trotzdem eine eigene Compositing-Ebene. Der Standard muss "none" sein,
+       und nur Themes, die es wirklich wollen, setzen einen Filter. */
+    --mm-surface-bg: transparent;
+    --mm-surface-border: none;
+    --mm-surface-radius: var(--mm-radius-md);
+    --mm-surface-padding: var(--mm-space-4);
+    --mm-surface-filter: none;
+    --mm-surface-shadow: var(--mm-shadow-none);
+
+    /* ---------- Z-Index ---------- */
+    --mm-z-base: 0;
+    --mm-z-module: 10;
+    --mm-z-overlay: 100;
+    --mm-z-effects: 200;
+    --mm-z-toast: 1000;
+
+    /* ---------- Raster ----------
+       Wird zur Laufzeit von buildGridCSS() aus der Konfiguration gesetzt. */
+    --grid-columns: 3;
+    --grid-rows: 3;
+    --grid-gap: var(--mm-space-4);
+    --grid-padding: var(--mm-space-4);
+    --grid-column-template: minmax(320px, 1fr) 1fr 1fr;
+    --grid-row-template: auto 1fr 1fr;
+
+    /* ---------- Altlasten ----------
+       Die ursprünglichen sieben Variablen. Noch nicht migrierte Modul-
+       Stylesheets benutzen sie; sie zeigen jetzt auf die neuen Tokens, damit
+       ein Theme auch dort durchgreift. */
+    --bg-primary: var(--mm-color-bg);
+    --text-primary: var(--mm-color-text);
+    --text-secondary: var(--mm-color-text-muted);
+    --accent-cyan: var(--mm-color-accent);
+    --accent-red: var(--mm-color-danger);
+    --accent-green: var(--mm-color-success);
+    --font-family: var(--mm-font-sans);
+  }
+}
+
+@layer overrides {
+  /*
+   * Ein Schalter für schwache Hardware. Wirkt auf jedes Theme - auch auf
+   * solche, die es noch gar nicht gibt, solange sie die Tokens benutzen.
+   * Wird vom Hauptprozess gesetzt (src/main/gpu.js erkennt ARM-Linux und
+   * knappen Speicher).
+   */
+  html[data-perf="low"] {
+    --mm-surface-filter: none;
+    --mm-surface-shadow: var(--mm-shadow-none);
+    --mm-shadow-sm: none;
+    --mm-shadow-md: none;
+    --mm-shadow-lg: none;
+    --mm-glow: none;
+    --mm-anim-ambient: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --mm-anim-ambient: paused;
+      --mm-dur-fast: 0ms;
+      --mm-dur-normal: 0ms;
+      --mm-dur-slow: 0ms;
+    }
+  }
+}

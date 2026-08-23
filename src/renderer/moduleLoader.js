@@ -23,10 +23,7 @@ class RendererModuleLoader {
     }
 
     try {
-      // Lade Modul als Script-Tag statt via eval.
-      // script.onload feuert erst nach der Ausfuehrung des Scripts, das Modul
-      // hat sich zu diesem Zeitpunkt also bereits registriert.
-      await this.loadModuleScript(moduleName);
+      await this.loadModuleSource(moduleName);
 
       // Prüfe ob die Klasse registriert wurde
       if (!window.MagicMirrorModules || !window.MagicMirrorModules[moduleName]) {
@@ -37,10 +34,11 @@ class RendererModuleLoader {
       const ModuleClass = window.MagicMirrorModules[moduleName];
       this.moduleClasses.set(moduleName, ModuleClass);
 
-      // Lade Styles
-      const stylesResult = await window.electronAPI.getModuleStyles(moduleName);
-      if (stylesResult.success && stylesResult.styles) {
-        this.injectStyles(moduleName, stylesResult.styles);
+      // Lade Styles. Ueber IPC, wenn wir in Electron laufen - sonst per HTTP,
+      // damit dieselbe Ansicht auch in einem normalen Browser funktioniert.
+      const styles = await this.fetchModuleStyles(moduleName);
+      if (styles) {
+        this.injectStyles(moduleName, styles);
       }
 
       console.log(`Modul ${moduleName} erfolgreich geladen`);
@@ -52,17 +50,68 @@ class RendererModuleLoader {
   }
 
   /**
-   * Lädt Modul-Script via Script-Tag
+   * Lädt die Moduldatei.
+   *
+   * Bevorzugt als ES-Modul. Der Grund ist kein Selbstzweck: klassische
+   * <script>-Dateien teilen sich EINEN globalen Scope. Zwei Module, die auf
+   * oberster Ebene denselben Namen deklarieren - etwa `const h` für den
+   * Escaping-Helfer -, lassen das zweite mit einem SyntaxError scheitern.
+   * Genau das ist passiert, und es war von aussen nur als "Modul konnte nicht
+   * geladen werden" sichtbar. Ein ES-Modul hat seinen eigenen Scope; das
+   * Problem kann so nicht mehr entstehen.
+   *
+   * Unter file:// sperrt Chromium dynamisches import(). Dort bleibt der
+   * Script-Weg als Rückfallebene - mit der bekannten Einschränkung.
+   */
+  async loadModuleSource(moduleName) {
+    const url = `../../modules/${moduleName}/index.js`;
+
+    if (window.location.protocol !== 'file:') {
+      // Die Module registrieren sich weiterhin auf window.MagicMirrorModules;
+      // ein Standard-Export ist erlaubt, aber nicht nötig.
+      const namespace = await import(url);
+
+      if (namespace && namespace.default && !window.MagicMirrorModules[moduleName]) {
+        window.MagicMirrorModules[moduleName] = namespace.default;
+      }
+      return;
+    }
+
+    return this.loadModuleScript(moduleName);
+  }
+
+  /**
+   * Rückfallebene für file://: Laden als klassisches Script.
    */
   async loadModuleScript(moduleName) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.id = `module-script-${moduleName}`;
       script.src = `../../modules/${moduleName}/index.js`;
+      // onload feuert erst nach der Ausführung - die Registrierung ist dann
+      // bereits passiert.
       script.onload = () => resolve();
       script.onerror = (error) => reject(new Error(`Script konnte nicht geladen werden: ${error}`));
       document.head.appendChild(script);
     });
+  }
+
+  /**
+   * Holt das Stylesheet eines Moduls - per IPC oder per HTTP.
+   */
+  async fetchModuleStyles(moduleName) {
+    if (window.electronAPI && window.electronAPI.getModuleStyles) {
+      const result = await window.electronAPI.getModuleStyles(moduleName);
+      return result.success ? result.styles : '';
+    }
+
+    try {
+      const response = await fetch(`../../modules/${moduleName}/styles.css`);
+      // Ein Modul ohne Stylesheet ist voellig in Ordnung.
+      return response.ok ? await response.text() : '';
+    } catch {
+      return '';
+    }
   }
 
   /**
@@ -71,14 +120,20 @@ class RendererModuleLoader {
    * @param {object} config - Konfiguration für das Modul
    * @param {object} envConfig - Umgebungsvariablen
    * @param {string} language - Aktuelle Sprache
-   * @returns {Promise<HTMLElement|null>} - Gerenderte Modul-Instanz
+   * @returns {Promise<{ok: boolean, element: HTMLElement, error?: string}>}
+   *
+   * Liefert bewusst ein Ergebnisobjekt statt nur eines Elements: bei einem
+   * Fehler entsteht ebenfalls ein Element (der Platzhalter), und der Aufrufer
+   * konnte bisher nicht unterscheiden, ob das Modul lief oder nur so aussah.
+   * Der Smoke-Test haengt genau daran.
    */
   async createModuleInstance(moduleName, config = {}, envConfig = {}, language = 'en', instanceKey = null) {
     // Lade Modul, falls noch nicht geladen
     if (!this.moduleClasses.has(moduleName)) {
       const loaded = await this.loadModule(moduleName);
       if (!loaded) {
-        return this.createPlaceholder(moduleName, 'Modul konnte nicht geladen werden');
+        const message = 'Modul konnte nicht geladen werden';
+        return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
     }
 
@@ -92,46 +147,45 @@ class RendererModuleLoader {
       const instance = new ModuleClass(mergedConfig);
       this.loadedModules.set(instanceKey || moduleName, instance);
 
-      // Rufe render() Methode auf
-      if (typeof instance.render === 'function') {
-        const element = await instance.render();
-        return element;
-      } else {
-        console.error(`Modul ${moduleName} hat keine render() Methode`);
-        return this.createPlaceholder(moduleName, 'Modul hat keine render() Methode');
+      if (typeof instance.render !== 'function') {
+        const message = 'Modul hat keine render() Methode';
+        console.error(`Modul ${moduleName}: ${message}`);
+        return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
+
+      // init() ist optional und darf asynchron vorbereiten, bevor gezeichnet wird.
+      if (typeof instance.init === 'function') {
+        await instance.init();
+      }
+
+      const element = await instance.render();
+
+      // null ist erlaubt: ein Modul ohne Anzeige (etwa der Praesenzsensor mit
+      // hideUI). Dann entsteht auch kein Container.
+      return { ok: true, element: element || null, headless: !element };
     } catch (error) {
       console.error(`Fehler beim Erstellen der Modul-Instanz ${moduleName}:`, error);
-      return this.createPlaceholder(moduleName, `Fehler: ${error.message}`);
+      return {
+        ok: false,
+        error: error.message,
+        element: this.createPlaceholder(moduleName, `Fehler: ${error.message}`)
+      };
     }
   }
 
   /**
-   * Merge Modul-Config mit Environment-Config und globaler Sprache
+   * Merge Modul-Config mit globaler Sprache.
+   *
+   * Hier stand ein switch, der für weather, untis und spotify die
+   * Zugangsdaten aus dem env-Objekt in die Modul-Konfiguration schob. Damit
+   * musste jedes neue Modul mit API-Schlüssel den Kern anfassen.
+   *
+   * Der Hauptprozess setzt die deklarierten Werte jetzt schon beim Laden der
+   * Konfiguration ein (siehe ConfigManager) - und lässt die weg, die laut
+   * Manifest gar nicht in den Browser gehören.
    */
   mergeConfig(moduleName, config, envConfig, language) {
-    const merged = { ...config, language };
-
-    // Modul-spezifische Env-Mappings
-    switch (moduleName) {
-      case 'weather':
-        if (!merged.apiKey && envConfig.openweathermapApiKey) {
-          merged.apiKey = envConfig.openweathermapApiKey;
-        }
-        break;
-      case 'untis':
-        if (!merged.server && envConfig.untisServer) merged.server = envConfig.untisServer;
-        if (!merged.username && envConfig.untisUsername) merged.username = envConfig.untisUsername;
-        if (!merged.password && envConfig.untisPassword) merged.password = envConfig.untisPassword;
-        if (!merged.school && envConfig.untisSchool) merged.school = envConfig.untisSchool;
-        break;
-      case 'spotify':
-        if (!merged.clientId && envConfig.spotifyClientId) merged.clientId = envConfig.spotifyClientId;
-        if (!merged.clientSecret && envConfig.spotifyClientSecret) merged.clientSecret = envConfig.spotifyClientSecret;
-        break;
-    }
-
-    return merged;
+    return { ...config, language };
   }
 
   /**
@@ -146,10 +200,19 @@ class RendererModuleLoader {
       existingStyle.remove();
     }
 
-    // Erstelle neues Style-Element
     const styleElement = document.createElement('style');
     styleElement.id = styleId;
-    styleElement.textContent = css;
+
+    // Modul-CSS wird nach dem Theme-Stylesheet in den <head> gehängt und
+    // würde deshalb bei gleicher Spezifität gewinnen. Genau deswegen stand im
+    // alten cyberpunk.css 21 mal !important. In @layer module verpackt kann
+    // ein Theme (@layer theme) unbedingt durchgreifen - ohne dass die Module
+    // dafür angepasst werden müssen.
+    //
+    // Module dürfen ihre eigenen Layer mitbringen; @layer verschachtelt sich
+    // sauber zu module.<eigener-name>.
+    styleElement.textContent = `@layer module {\n${css}\n}`;
+
     document.head.appendChild(styleElement);
   }
 
@@ -166,6 +229,37 @@ class RendererModuleLoader {
       </div>
     `;
     return placeholder;
+  }
+
+  /**
+   * Zerstört genau eine Instanz.
+   *
+   * Bis hierher gab es nur destroyAll() - jede Konfigurationsänderung riss
+   * deshalb alle Module ab, auch die, an denen sich gar nichts geändert hat.
+   */
+  destroyInstance(instanceKey) {
+    const instance = this.loadedModules.get(instanceKey);
+    if (!instance) return false;
+
+    try {
+      if (typeof instance.destroy === 'function') instance.destroy();
+    } catch (error) {
+      console.error(`Fehler beim Zerstören von ${instanceKey}:`, error);
+    }
+
+    this.loadedModules.delete(instanceKey);
+    return true;
+  }
+
+  /**
+   * Ruft eine Funktion für jede laufende Instanz auf.
+   * Wird für Zustandswechsel gebraucht, die alle Module betreffen -
+   * etwa den Privatsphäre-Modus.
+   */
+  eachInstance(callback) {
+    for (const instance of this.loadedModules.values()) {
+      callback(instance);
+    }
   }
 
   /**

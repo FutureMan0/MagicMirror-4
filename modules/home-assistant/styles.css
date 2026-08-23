@@ -1,0 +1,48 @@
+.module-home-assistant {
+  min-width: 240px;
+}
+
+.ha-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: var(--mm-space-3);
+}
+
+.ha-tile {
+  padding: var(--mm-space-3);
+  border-radius: var(--mm-radius-md);
+  background: var(--mm-color-surface);
+  border: 1px solid var(--mm-color-border);
+  min-width: 0;
+}
+
+/* Eingeschaltet wird über die Akzentfarbe erkennbar - nicht über ein Symbol,
+   das in jedem Theme anders aussähe. */
+.ha-tile[data-state="on"] {
+  border-color: var(--mm-color-accent);
+}
+
+.ha-tile[data-state="on"] .ha-tile-value {
+  color: var(--mm-color-accent);
+}
+
+.ha-tile[data-state="unavailable"] {
+  opacity: 0.45;
+}
+
+.ha-tile-name {
+  font-size: var(--mm-size-xs);
+  color: var(--mm-color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--mm-space-1);
+}
+
+.ha-tile-value {
+  font-size: var(--mm-size-base);
+  font-weight: var(--mm-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

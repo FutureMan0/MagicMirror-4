@@ -3,13 +3,37 @@ const fs = require('fs');
 let SerialPort = null;
 let ReadlineParser = null;
 
-// Try to load serialport (only available on Linux/RPi)
+// serialport ist eine optionale Abhaengigkeit und laeuft im Hauptprozess -
+// das Binding muss deshalb zu Electrons ABI passen, nicht zu System-Node.
+//
+// Der Unterschied ist wichtig: "nicht installiert" ist ein normaler Zustand
+// (Entwicklungsrechner ohne Sensor). "Installiert, aber nicht ladbar" heisst
+// dagegen, dass der Rebuild fehlt - der Spiegel laeuft dann weiter, der
+// Sensor tut aber stillschweigend nichts. Genau dieser Fall soll auffallen.
+let serialportProblem = null;
+
 try {
     const serialport = require('serialport');
     SerialPort = serialport.SerialPort;
     ReadlineParser = serialport.ReadlineParser;
 } catch (e) {
-    console.warn('Presence Backend: serialport not available. Install with: npm install serialport');
+    let installed = false;
+    try {
+        require.resolve('serialport/package.json');
+        installed = true;
+    } catch {
+        installed = false;
+    }
+
+    if (installed) {
+        serialportProblem =
+            'serialport ist installiert, laesst sich unter Electron aber nicht laden '
+            + `(${e.message}). Vermutlich fehlt der Rebuild fuer Electrons ABI: `
+            + 'node scripts/rebuild-native.mjs';
+        console.error('Presence Backend:', serialportProblem);
+    } else {
+        console.warn('Presence Backend: serialport nicht installiert - Sensor bleibt aus.');
+    }
 }
 
 // Debug logging
@@ -37,6 +61,69 @@ const addDebugLog = (level, message, data = null) => {
  */
 module.exports = {
     registerRoutes: (app, context) => {
+        // Der Bus erreicht Spiegel und Web-UI, ohne dass dieses Modul eines
+        // von beiden kennen muss.
+        const bus = context && context.bus;
+        const publish = (topic, payload) => {
+            if (bus) bus.emit(topic, payload);
+        };
+
+        // --- Duschzone ---------------------------------------------------
+        //
+        // Der verbaute Sensor ist ein HLK-LD2410: er liefert Entfernung, aber
+        // KEINE Koordinaten. Eine Zone laesst sich damit nur ueber ein
+        // Entfernungsband beschreiben - das setzt voraus, dass Dusche und
+        // Waschbecken unterschiedlich weit vom Spiegel entfernt sind. Ist das
+        // nicht der Fall, hilft nur ein LD2450 (liefert X/Y), der seriell ein
+        // direkter Ersatz waere.
+        //
+        // Verweildauer und Nachlauf verhindern, dass ein kurzes Vorbeigehen
+        // den Duschmodus ausloest oder ein Schritt zur Seite ihn beendet.
+        let inZoneSince = null;
+        let outOfZoneSince = null;
+        let showerReported = false;
+
+        const evaluateShowerZone = (distanceCm) => {
+            const privacy = context && context.privacy;
+            if (!privacy) return;
+
+            const settings = privacy.settings().shower;
+            if (settings.trigger !== 'auto') return;
+
+            const zone = settings.zone || {};
+            const min = zone.minDistanceCm ?? 0;
+            const max = zone.maxDistanceCm ?? 120;
+            const inside = Number.isFinite(distanceCm) && distanceCm >= min && distanceCm <= max;
+            const now = Date.now();
+
+            if (inside) {
+                outOfZoneSince = null;
+                if (inZoneSince === null) inZoneSince = now;
+
+                if (!showerReported && now - inZoneSince >= (settings.dwellSeconds || 20) * 1000) {
+                    showerReported = true;
+                    addDebugLog('INFO', `Duschzone erkannt (${distanceCm} cm)`);
+                    privacy.reportShowerZone(true).catch(() => {});
+                }
+                return;
+            }
+
+            inZoneSince = null;
+            if (outOfZoneSince === null) outOfZoneSince = now;
+
+            if (showerReported && now - outOfZoneSince >= (settings.exitDelaySeconds || 60) * 1000) {
+                showerReported = false;
+                addDebugLog('INFO', 'Duschzone verlassen');
+                privacy.reportShowerZone(false).catch(() => {});
+            }
+        };
+
+        // Ein kaputtes Binding faellt sonst niemandem auf - der Fehler wird
+        // oben abgefangen, und der Spiegel laeuft ohne Sensor weiter.
+        if (serialportProblem) {
+            publish('system:warning', { source: 'mmwave-presence', message: serialportProblem });
+        }
+
         let config = {
             port: '/dev/ttyAMA0',      // UART port (GPIO14/15) - will auto-detect ttyAMA1 if needed
             baudRate: 256000,          // Default baudrate (can be changed via command)
@@ -116,16 +203,10 @@ module.exports = {
 
             console.log(`Presence: Turning display ${power ? 'ON' : 'OFF'}`);
 
-            // Notify renderer for software dimming
-            try {
-                const { BrowserWindow } = require('electron');
-                const wins = BrowserWindow.getAllWindows();
-                wins.forEach(win => {
-                    win.webContents.send(power ? 'presence-detected' : 'presence-lost');
-                });
-            } catch (ipcErr) {
-                console.error("Presence: Could not send IPC to renderer", ipcErr.message);
-            }
+            // Frueher wurde hier direkt in jedes BrowserWindow gesendet.
+            // Ueber den Bus erreicht dasselbe Ereignis zusaetzlich die
+            // Web-Oberflaeche - und das Frontend muss nicht mehr pollen.
+            publish('presence:display', { on: power });
 
             // Control Raspberry Pi display hardware
             exec(`vcgencmd display_power ${power ? 1 : 0}`, (err) => {
@@ -251,17 +332,32 @@ module.exports = {
                 offset += 2;
 
                 // Check target status
+                // Die naehere der beiden Messungen ist die aussagekraeftige:
+                // steht jemand in der Dusche, meldet der Sensor ihn dort,
+                // auch wenn er weiter hinten noch etwas anderes sieht.
+                const nearest = [motionDistance, staticDistance]
+                    .filter(value => Number.isFinite(value) && value > 0)
+                    .sort((a, b) => a - b)[0];
+                evaluateShowerZone(nearest);
+
                 if (targetStatus === TARGET_MOVING || targetStatus === TARGET_STATIC || targetStatus === TARGET_BOTH) {
                     lastPresence = Date.now();
                     if (!isPersonPresent) {
                         isPersonPresent = true;
                         console.log(`Presence: Person detected (Status: ${targetStatus}, Motion: ${motionDistance}cm, Static: ${staticDistance}cm)`);
+                        publish('presence:changed', {
+                            present: true,
+                            lastPresence,
+                            motionDistance,
+                            staticDistance
+                        });
                         setDisplay(true);
                     }
                 } else if (targetStatus === TARGET_NONE) {
                     if (isPersonPresent) {
                         isPersonPresent = false;
                         console.log('Presence: No target detected');
+                        publish('presence:changed', { present: false, lastPresence });
                     }
                 }
             }
@@ -464,29 +560,28 @@ module.exports = {
                     addDebugLog('ERROR', `Serial port error: ${err.message}`, err);
                     connectionStatus = 'error';
                     lastError = err.message;
-                    setTimeout(() => {
-                        if (serialPort && serialPort.isOpen) {
-                            serialPort.close();
-                        }
-                        startSerial(); // Retry
-                    }, 5000);
+                    scheduleReconnect('port error', () => {
+                        if (serialPort && serialPort.isOpen) serialPort.close();
+                    });
                 });
 
                 serialPort.on('close', () => {
                     addDebugLog('WARN', 'Serial port closed');
                     connectionStatus = 'disconnected';
-                    setTimeout(() => {
-                        startSerial(); // Reconnect
-                    }, 5000);
+                    scheduleReconnect('port closed');
                 });
 
                 // Open the port
                 serialPort.open((err) => {
                     if (err) {
-                        addDebugLog('ERROR', `Failed to open serial port: ${err.message}`, err);
                         connectionStatus = 'error';
                         lastError = err.message;
-                        setTimeout(() => startSerial(), 5000);
+                        // Nur die ersten Versuche einzeln melden - bei einem
+                        // dauerhaft fehlenden Geraet ist der Rest Rauschen.
+                        if (reconnectAttempts < 3) {
+                            addDebugLog('ERROR', `Failed to open serial port: ${err.message}`, err);
+                        }
+                        scheduleReconnect('open failed');
                     }
                 });
 
@@ -494,8 +589,43 @@ module.exports = {
                 addDebugLog('ERROR', `Failed to create serial port: ${err.message}`, err);
                 connectionStatus = 'error';
                 lastError = err.message;
-                setTimeout(() => startSerial(), 5000); // Retry
+                scheduleReconnect('create failed');
             }
+        };
+
+        /**
+         * Wiederverbinden mit wachsendem Abstand.
+         *
+         * Vorher wurde starr alle fuenf Sekunden neu versucht. Ist das Geraet
+         * dauerhaft weg - falscher Port, fehlende Rechte -, schrieb das
+         * dieselbe Fehlermeldung alle fuenf Sekunden, fuer immer.
+         */
+        let reconnectAttempts = 0;
+        let reconnectTimer = null;
+        // Muss vor startSerial() deklariert sein: scheduleReconnect kann von
+        // dort synchron aufgerufen werden.
+        let shuttingDown = false;
+
+        const scheduleReconnect = (reason, before = null) => {
+            if (shuttingDown || reconnectTimer) return;
+
+            reconnectAttempts += 1;
+            const delay = Math.min(5000 * Math.pow(2, Math.min(reconnectAttempts - 1, 4)), 60000);
+
+            if (reconnectAttempts === 4) {
+                addDebugLog('WARN',
+                    `Serieller Port nicht erreichbar (${reason}). Weitere Versuche mit `
+                    + 'wachsendem Abstand, ohne jede einzelne Meldung.');
+            }
+
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                if (shuttingDown) return;
+                if (before) {
+                    try { before(); } catch { /* egal */ }
+                }
+                startSerial();
+            }, delay);
         };
 
         // Presence Timeout Monitor (turn off display after offDelay seconds of no presence)
@@ -626,6 +756,7 @@ module.exports = {
 
         // Cleanup function - ensures display is turned on when module stops
         const cleanup = () => {
+            shuttingDown = true;
             addDebugLog('INFO', 'Cleaning up presence module...');
             
             // Always turn display back on when module stops
@@ -641,14 +772,21 @@ module.exports = {
             }
         };
 
-        // Cleanup on various exit signals
-        process.on('SIGINT', cleanup);
-        process.on('SIGTERM', cleanup);
-        process.on('exit', cleanup);
-        
-        // Bewusst KEIN process.on('uncaughtException') hier: ein Modul darf
-        // Fehler der gesamten Anwendung nicht schlucken. Das Aufraeumen beim
-        // Beenden erledigen die exit/SIGINT/SIGTERM-Handler oben; der zentrale
-        // uncaughtException-Handler liegt in src/main/main.js.
+        // Aufraeumen beim Anwendungsende anmelden - KEINE eigenen
+        // Signal-Handler.
+        //
+        // Ein process.on('SIGTERM') ersetzt das Standardverhalten. Der frueher
+        // hier registrierte Handler hat aufgeraeumt, aber nie beendet - damit
+        // liess sich die gesamte Anwendung nicht mehr stoppen, und pm2 wie
+        // systemd mussten jedes Mal bis zum SIGKILL warten. Dasselbe gilt fuer
+        // uncaughtException: ein Modul darf Fehler der gesamten Anwendung
+        // weder schlucken noch das Beenden verhindern.
+        if (context && typeof context.onShutdown === 'function') {
+            context.onShutdown(cleanup);
+        } else {
+            // Aeltere Hosts ohne Haken: wenigstens beim regulaeren Ende
+            // aufraeumen. 'exit' ersetzt kein Standardverhalten.
+            process.on('exit', cleanup);
+        }
     }
 };

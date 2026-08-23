@@ -1,5 +1,5 @@
 .module-weather {
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   min-width: 260px;
 }
 
@@ -20,7 +20,7 @@
   font-size: 4.5rem;
   display: inline-block;
   flex-shrink: 0;
-  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-family: var(--mm-font-emoji);
   font-feature-settings: "liga", "kern";
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -38,12 +38,12 @@
   font-size: 4rem;
   font-weight: 200;
   line-height: 1;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
 }
 
 .weather-description {
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   text-transform: capitalize;
   font-weight: 300;
 }
@@ -66,7 +66,7 @@
   font-size: 1.2rem;
   opacity: 0.6;
   margin-bottom: 2px;
-  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-family: var(--mm-font-emoji);
   font-feature-settings: "liga", "kern";
   text-rendering: optimizeLegibility;
 }
@@ -79,7 +79,7 @@
 
 .detail-label {
   font-size: 0.55rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   font-weight: 400;
@@ -88,13 +88,13 @@
 
 .detail-value {
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   font-weight: 400;
 }
 
 .detail-sublabel {
   font-size: 0.55rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   margin-top: 0;
   opacity: 0.7;
 }
@@ -104,8 +104,8 @@
   justify-content: space-between;
   gap: 15px;
   padding: 6px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--mm-color-border);
+  border-bottom: 1px solid var(--mm-color-border);
   margin: 8px 0;
 }
 
@@ -118,7 +118,7 @@
 .sun-icon {
   font-size: 1rem;
   opacity: 0.6;
-  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-family: var(--mm-font-emoji);
   font-feature-settings: "liga", "kern";
   text-rendering: optimizeLegibility;
 }
@@ -131,7 +131,7 @@
 
 .sun-time-label {
   font-size: 0.55rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.2px;
   opacity: 0.6;
@@ -139,7 +139,7 @@
 
 .sun-time-value {
   font-size: 0.85rem;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   font-weight: 400;
   font-feature-settings: 'tnum';
 }
@@ -156,14 +156,14 @@
 .forecast-icon {
   font-size: 1.3rem;
   display: inline-block;
-  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-family: var(--mm-font-emoji);
   font-feature-settings: "liga", "kern";
   text-rendering: optimizeLegibility;
 }
 
 .weather-separator {
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--mm-color-border);
   margin: 12px 0;
 }
 
@@ -173,7 +173,7 @@
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin-bottom: 10px;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   font-weight: 400;
   opacity: 0.5;
 }
@@ -182,7 +182,7 @@
   font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   margin-bottom: 8px;
   font-weight: 400;
   opacity: 0.5;
@@ -199,7 +199,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--mm-color-surface);
 }
 
 .forecast-day:last-child {
@@ -208,7 +208,7 @@
 
 .forecast-day-name {
   min-width: 50px;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   font-size: 0.85rem;
   font-weight: 400;
   letter-spacing: 0.1px;
@@ -229,27 +229,27 @@
 
 .forecast-temp-high {
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   font-size: 0.95rem;
 }
 
 .forecast-temp-separator {
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   opacity: 0.5;
   font-size: 0.8rem;
 }
 
 .forecast-temp-low {
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   font-size: 0.85rem;
 }
 
 .forecast-rain {
-  font-family: "Noto Color Emoji", "Noto Emoji", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "EmojiOne Color", sans-serif;
+  font-family: var(--mm-font-emoji);
   font-feature-settings: "liga", "kern";
   text-rendering: optimizeLegibility;
   font-size: 0.7rem;
-  color: var(--text-secondary);
+  color: var(--mm-color-text-muted);
   min-width: 45px;
   text-align: right;
   opacity: 0.7;
@@ -257,4 +257,141 @@
 
 .forecast-rain-placeholder {
   min-width: 45px;
+}
+
+/* ==================== Ladeanzeige ====================
+   Lag früher in src/renderer/styles/main.css - modulspezifische Regeln
+   gehören zum Modul, sonst kann die Grundschicht nie aufgeräumt werden. */
+.weather-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--mm-space-8) var(--mm-space-6);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid color-mix(in srgb, var(--mm-color-accent) 30%, transparent);
+  border-top: 3px solid var(--mm-color-accent);
+  border-radius: var(--mm-radius-pill);
+  animation: spin 1s linear infinite;
+  animation-play-state: var(--mm-anim-ambient);
+  margin-bottom: var(--mm-space-5);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-size-sm);
+}
+
+/* ==================== Wetter-Warnungen ==================== */
+.weather-alerts-container {
+  margin: var(--mm-space-5) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mm-space-3);
+  animation: slideInDown var(--mm-dur-slow) var(--mm-ease-decel);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.weather-alert-banner {
+  background: color-mix(in srgb, var(--mm-color-danger) 15%, transparent);
+  border-left: 4px solid var(--mm-color-danger);
+  border-top: 1px solid color-mix(in srgb, var(--mm-color-danger) 30%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--mm-color-danger) 30%, transparent);
+  border-bottom: 2px solid var(--mm-color-danger);
+  padding: var(--mm-space-4) var(--mm-space-5);
+  border-radius: var(--mm-radius-sm);
+  display: flex;
+  gap: var(--mm-space-4);
+  align-items: flex-start;
+  position: relative;
+  isolation: isolate;
+}
+
+/* Der Puls läuft über die Deckkraft eines Pseudo-Elements. Vorher wurde
+   box-shadow animiert - eine paint-gebundene Eigenschaft, die auf dem Pi
+   bei jeder Warnung sichtbar Leistung kostete. */
+.weather-alert-banner::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid color-mix(in srgb, var(--mm-color-danger) 40%, transparent);
+  border-radius: var(--mm-radius-md);
+  pointer-events: none;
+  opacity: 0;
+  animation: pulse-alert 2s ease-in-out infinite;
+  animation-play-state: var(--mm-anim-ambient);
+}
+
+@keyframes pulse-alert {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.alert-icon {
+  font-size: var(--mm-size-xl);
+  font-family: var(--mm-font-emoji);
+  animation: shake 4s ease-in-out infinite;
+  animation-play-state: var(--mm-anim-ambient);
+}
+
+@keyframes shake {
+  0%, 12%, 100% {
+    transform: rotate(0deg);
+  }
+  3%, 9% {
+    transform: rotate(-5deg);
+  }
+  6% {
+    transform: rotate(5deg);
+  }
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-weight: var(--mm-weight-bold);
+  color: var(--mm-color-danger);
+  font-size: var(--mm-size-lg);
+  margin-bottom: var(--mm-space-2);
+  text-transform: uppercase;
+  letter-spacing: var(--mm-tracking-wide);
+}
+
+.alert-description {
+  color: var(--mm-color-text);
+  font-size: var(--mm-size-sm);
+  line-height: var(--mm-leading-normal);
+  margin-bottom: var(--mm-space-3);
+}
+
+.alert-time {
+  color: var(--mm-color-text-muted);
+  font-size: var(--mm-size-xs);
+  font-family: var(--mm-font-mono);
 }

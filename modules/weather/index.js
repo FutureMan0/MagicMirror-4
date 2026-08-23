@@ -1,3 +1,12 @@
+// Warnungstexte kommen von OpenWeatherMap. h`` escapt jede Interpolation.
+// Bewusst `var` und nicht `const`: unter file:// werden Module als klassische
+// Scripts geladen und teilen sich einen globalen Scope. Ein zweites `const`
+// desselben Namens wuerde das Modul mit einem SyntaxError scheitern lassen.
+// Als ES-Modul (der Normalfall) ist die Deklaration ohnehin modul-lokal.
+var h = (typeof window !== 'undefined' && window.mmHtml)
+  ? window.mmHtml
+  : (strings, ...values) => strings.reduce((out, chunk, i) => out + String(values[i - 1] ?? '') + chunk);
+
 class WeatherModule {
   constructor(config = {}) {
     this.config = {
@@ -55,7 +64,7 @@ class WeatherModule {
     this.container.className = 'module-weather';
 
     // Lade-Animation
-    this.container.innerHTML = `
+    this.container.innerHTML = h`
       <div class="weather-loading">
         <div class="loading-spinner"></div>
         <div class="loading-text">Wetter wird geladen...</div>
@@ -65,7 +74,7 @@ class WeatherModule {
     // Hauptbereich mit aktuellen Wetter
     const mainWeather = document.createElement('div');
     mainWeather.className = 'weather-main';
-    mainWeather.innerHTML = `
+    mainWeather.innerHTML = h`
       <div class="weather-current">
         <div class="weather-icon-large">☁️</div>
         <div class="weather-temp-container">
@@ -390,7 +399,7 @@ class WeatherModule {
       const startTimeStr = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
       const endTimeStr = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
 
-      alertBanner.innerHTML = `
+      alertBanner.innerHTML = h`
         <div class="alert-icon">⚠️</div>
         <div class="alert-content">
           <div class="alert-title">${alert.event || 'Wetter-Warnung'}</div>

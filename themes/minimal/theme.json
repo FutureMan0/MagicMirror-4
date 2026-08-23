@@ -1,0 +1,7 @@
+{
+  "name": "Minimal",
+  "description": "Nur Typografie. Keine Flächen, keine Rahmen, keine Dauer-Animationen. Die sparsamste Variante und die Referenz für alle anderen.",
+  "mode": "dark",
+  "author": "MagicMirror⁴",
+  "supports": { "blur": false, "ambientMotion": false }
+}
