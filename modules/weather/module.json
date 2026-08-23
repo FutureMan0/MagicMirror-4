@@ -40,5 +40,14 @@
       "default": 300000,
       "description": "Aktualisierungsintervall für Warnungen (ms)"
     }
-  }
+  },
+  "apiVersion": 2,
+  "secrets": [
+    {
+      "key": "apiKey",
+      "env": "OPENWEATHERMAP_API_KEY",
+      "label": "OpenWeatherMap API Key",
+      "exposeToRenderer": true
+    }
+  ]
 }

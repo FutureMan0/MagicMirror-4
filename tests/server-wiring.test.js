@@ -90,6 +90,49 @@ test('PUT /api/config schickt dem Spiegel die geladene Config, nicht den Request
   );
 });
 
+test('der Spiegel wird ueber HTTP ausgeliefert, mit Rueckfall auf die Datei', () => {
+  assert.match(mainSource, /expressApp\.use\('\/mirror'/, '/mirror ist nicht gemountet');
+  assert.match(mainSource, /loadURL\(url\)/, 'das Fenster laedt nicht ueber HTTP');
+  assert.match(
+    mainSource, /did-fail-load[\s\S]*?loadFile\(fileUrl\)/,
+    'ohne Rueckfallebene bleibt der Spiegel schwarz, sobald der Server nicht antwortet'
+  );
+});
+
+test('der Webserver startet vor dem Fenster', () => {
+  // Auf den Aufruf ankern, nicht auf die Erwaehnung: weiter oben steht
+  // app.whenReady() auch in einem Kommentar.
+  const ready = mainSource.slice(mainSource.indexOf('app.whenReady().then('));
+  const server = ready.indexOf('startWebServer()');
+  const window = ready.indexOf('createWindow()');
+
+  assert.ok(server > -1 && window > -1);
+  assert.ok(
+    server < window,
+    'sonst laedt das Fenster, bevor der Port lauscht, und faellt unnoetig auf file:// zurueck'
+  );
+});
+
+// backend.js laeuft im Hauptprozess und hat Zugriff auf Konfiguration und
+// .env. Es darf unter keinen Umstaenden ueber HTTP abrufbar sein.
+test('Modul-Dateien werden nur nach Whitelist ausgeliefert', () => {
+  const whitelist = mainSource.match(/MODULE_PUBLIC_FILES = new Set\(\[([^\]]*)\]\)/);
+  assert.ok(whitelist, 'keine Whitelist fuer Modul-Dateien gefunden');
+
+  const files = whitelist[1];
+  assert.match(files, /'index\.js'/);
+  assert.match(files, /'styles\.css'/);
+  assert.match(files, /'module\.json'/);
+  assert.doesNotMatch(files, /backend\.js/, 'backend.js steht auf der Whitelist');
+
+  // Ohne Namenspruefung liesse sich ueber ../ aus dem Modulverzeichnis
+  // ausbrechen.
+  assert.match(
+    mainSource, /\/\^\[a-zA-Z0-9_-\]\+\$\/\.test\(name\)/,
+    'der Modulname wird nicht auf harmlose Zeichen geprueft'
+  );
+});
+
 test('kein exec() mit Shell-String mehr im Hauptprozess', () => {
   assert.doesNotMatch(
     mainSource,

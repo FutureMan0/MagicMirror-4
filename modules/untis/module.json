@@ -55,5 +55,32 @@
       "default": "#FF4444",
       "description": "Farbe für Entfälle"
     }
-  }
+  },
+  "apiVersion": 2,
+  "secrets": [
+    {
+      "key": "server",
+      "env": "UNTIS_SERVER",
+      "label": "WebUntis Server",
+      "exposeToRenderer": false
+    },
+    {
+      "key": "username",
+      "env": "UNTIS_USERNAME",
+      "label": "Benutzername",
+      "exposeToRenderer": false
+    },
+    {
+      "key": "password",
+      "env": "UNTIS_PASSWORD",
+      "label": "Passwort",
+      "exposeToRenderer": false
+    },
+    {
+      "key": "school",
+      "env": "UNTIS_SCHOOL",
+      "label": "Schulkennung",
+      "exposeToRenderer": false
+    }
+  ]
 }

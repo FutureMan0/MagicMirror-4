@@ -13,6 +13,7 @@ class mmWavePresenceModule {
         this.displayOn = true;
         this.container = null;
         this.updateTimer = null;
+        this.unsubscribe = null;
     }
 
     render() {
@@ -130,7 +131,26 @@ class mmWavePresenceModule {
     }
 
     startUpdating() {
+        // Einmal den Ist-Zustand holen, danach zuhoeren. Frueher lief hier ein
+        // Dauer-Poll - und weil der Endpunkt wegen eines Config-Fehlers gar
+        // nicht existierte, waren das jahrelang 404er im Sekundentakt.
         this.updateStatus();
+
+        if (window.mmBus) {
+            this.unsubscribe = window.mmBus.on('presence:changed', (payload) => {
+                if (!payload) return;
+                this.presence = payload.present;
+                if (payload.lastPresence) this.lastPresence = payload.lastPresence;
+                this.updateUI();
+            });
+
+            // Deutlich seltener nachfassen: nur um Verbindungsstatus und
+            // Zaehler aktuell zu halten, nicht fuer die Anwesenheit selbst.
+            this.updateTimer = setInterval(() => this.updateStatus(), 60000);
+            return;
+        }
+
+        // Ohne Bus (etwa in einem einfachen Browser) bleibt das Polling.
         this.updateTimer = setInterval(() => this.updateStatus(), 5000);
     }
 
@@ -138,6 +158,10 @@ class mmWavePresenceModule {
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
             this.updateTimer = null;
+        }
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
         }
         this.container = null;
     }

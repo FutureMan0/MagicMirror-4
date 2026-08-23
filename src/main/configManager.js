@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { normalizeManifest } = require('../shared/manifest');
 require('dotenv').config();
 
 /**
@@ -20,23 +21,54 @@ class ConfigManager {
     this.mainConfigPath = path.join(this.configPath, 'config.json');
     this.envPath = path.join(__dirname, '../../.env');
 
-    // Mapping: Modul -> Feld -> .env Variable
-    this.sensitiveFieldsMapping = {
-      'weather': {
-        'apiKey': 'OPENWEATHERMAP_API_KEY'
-      },
-      'spotify': {
-        'clientId': 'SPOTIFY_CLIENT_ID',
-        'clientSecret': 'SPOTIFY_CLIENT_SECRET',
-        'refreshToken': 'SPOTIFY_REFRESH_TOKEN'
-      },
-      'untis': {
-        'server': 'UNTIS_SERVER',
-        'username': 'UNTIS_USERNAME',
-        'password': 'UNTIS_PASSWORD',
-        'school': 'UNTIS_SCHOOL'
+    // Welche Felder als Geheimnis gelten, steht im module.json des jeweiligen
+    // Moduls. Vorher stand hier eine feste Tabelle - ein neues Modul mit
+    // API-Schlüssel musste dafür den Kern anfassen.
+    this.modulesDir = path.join(__dirname, '../../modules');
+    this._manifestCache = null;
+  }
+
+  /**
+   * Liest die Manifeste aller Module ein. Innerhalb einer ConfigManager-
+   * Instanz gecacht - loadConfig() wird pro Anfrage neu erzeugt, ein
+   * dauerhafter Cache würde also nur veralten.
+   */
+  _manifests() {
+    if (this._manifestCache) return this._manifestCache;
+
+    const manifests = new Map();
+    let entries = [];
+    try {
+      entries = fs.readdirSync(this.modulesDir, { withFileTypes: true });
+    } catch {
+      entries = [];
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const manifestPath = path.join(this.modulesDir, entry.name, 'module.json');
+      if (!fs.existsSync(manifestPath)) continue;
+
+      try {
+        const raw = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifests.set(entry.name, normalizeManifest(raw, entry.name));
+      } catch (error) {
+        console.error(`Manifest von ${entry.name} ist fehlerhaft:`, error.message);
       }
-    };
+    }
+
+    this._manifestCache = manifests;
+    return manifests;
+  }
+
+  /** Geheimnis-Deklarationen eines Moduls. */
+  _secretsOf(moduleName) {
+    return this._manifests().get(moduleName)?.secrets || [];
+  }
+
+  /** Namen der als Geheimnis behandelten Felder - für die Web-UI. */
+  getSecretFields(moduleName) {
+    return this._secretsOf(moduleName).map((secret) => secret.key);
   }
 
   // Hilfsfunktion: Lese .env Datei als Key-Value Objekt
@@ -116,65 +148,34 @@ class ConfigManager {
       config = { ...config, ...instanceConfig };
     }
 
-    // Lade .env Variablen
-    const envVars = {
-      openweathermapApiKey: process.env.OPENWEATHERMAP_API_KEY,
-      spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
-      spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-      spotifyRefreshToken: process.env.SPOTIFY_REFRESH_TOKEN,
-      untisServer: process.env.UNTIS_SERVER,
-      untisUsername: process.env.UNTIS_USERNAME,
-      untisPassword: process.env.UNTIS_PASSWORD,
-      untisSchool: process.env.UNTIS_SCHOOL,
-      presenceSensorPort: process.env.PRESENCE_SENSOR_PORT || 'COM3',
-      presenceTimeout: parseInt(process.env.PRESENCE_TIMEOUT || '60000'),
-      presenceDimTimeout: parseInt(process.env.PRESENCE_DIM_TIMEOUT || '300000')
-    };
+    // Die .env-Werte, die Module über ihr Manifest deklariert haben.
+    const envVars = {};
+    for (const manifest of this._manifests().values()) {
+      for (const secret of manifest.secrets) {
+        if (process.env[secret.env] !== undefined) {
+          envVars[secret.env] = process.env[secret.env];
+        }
+      }
+    }
 
-    // Die .env-Werte gehören nur in den Renderer (via IPC), niemals in eine
-    // HTTP-Antwort.
+    // Der Renderer bekommt die Werte über IPC; in eine HTTP-Antwort gehören
+    // sie nie.
     config.env = redact ? {} : envVars;
 
-    // Merge .env Werte in Module-Config (wenn in config.json leer)
+    // Deklarierte Geheimnisse aus der .env in die Modul-Konfiguration
+    // einsetzen. Vorher stand hier ein switch mit vier fest verdrahteten
+    // Modulnamen.
     if (config.modules) {
-      config.modules = config.modules.map(mod => {
+      for (const mod of config.modules) {
         if (!mod.config) mod.config = {};
 
-        switch (mod.module) {
-          case 'weather':
-            if (envVars.openweathermapApiKey) {
-              mod.config.apiKey = envVars.openweathermapApiKey;
-            }
-            break;
-          case 'spotify':
-            if (envVars.spotifyClientId) {
-              mod.config.clientId = envVars.spotifyClientId;
-            }
-            if (envVars.spotifyClientSecret) {
-              mod.config.clientSecret = envVars.spotifyClientSecret;
-            }
-            if (envVars.spotifyRefreshToken) {
-              mod.config.refreshToken = envVars.spotifyRefreshToken;
-            }
-            break;
-          case 'untis':
-            if (envVars.untisServer) {
-              mod.config.server = envVars.untisServer;
-            }
-            if (envVars.untisUsername) {
-              mod.config.username = envVars.untisUsername;
-            }
-            if (envVars.untisPassword) {
-              mod.config.password = envVars.untisPassword;
-            }
-            if (envVars.untisSchool) {
-              mod.config.school = envVars.untisSchool;
-            }
-            break;
+        for (const secret of this._secretsOf(mod.module)) {
+          const value = process.env[secret.env];
+          if (value !== undefined && value !== '') {
+            mod.config[secret.key] = value;
+          }
         }
-
-        return mod;
-      });
+      }
     }
 
     if (redact) {
@@ -185,32 +186,51 @@ class ConfigManager {
   }
 
   /**
-   * Ersetzt jeden im Mapping deklarierten sensiblen Wert durch den Platzhalter.
+   * Ersetzt jeden deklarierten sensiblen Wert durch den Platzhalter.
    * Leere Felder bleiben leer - die Web-UI muss "nicht gesetzt" von
    * "gesetzt, aber nicht sichtbar" unterscheiden können.
    */
-  /**
-   * Namen der Felder, die für ein Modul als Geheimnis behandelt werden.
-   * Die Web-UI braucht das, um solche Felder maskiert darzustellen.
-   */
-  getSecretFields(moduleName) {
-    return Object.keys(this.sensitiveFieldsMapping[moduleName] || {});
-  }
-
   redactSecrets(config) {
     if (!config.modules) return config;
 
     for (const mod of config.modules) {
-      const mapping = this.sensitiveFieldsMapping[mod.module];
-      if (!mapping || !mod.config) continue;
+      if (!mod.config) continue;
 
-      for (const fieldName of Object.keys(mapping)) {
-        const value = mod.config[fieldName];
+      for (const secret of this._secretsOf(mod.module)) {
+        const value = mod.config[secret.key];
         if (value !== undefined && value !== null && value !== '') {
-          mod.config[fieldName] = SECRET_PLACEHOLDER;
+          mod.config[secret.key] = SECRET_PLACEHOLDER;
         }
       }
     }
+
+    return config;
+  }
+
+  /**
+   * Die Konfiguration, wie sie der Renderer bekommen darf.
+   *
+   * Geheimnisse mit exposeToRenderer:false werden entfernt - das Modul muss
+   * dafür über sein Backend gehen. Ein WebUntis-Passwort hat im Browser
+   * nichts verloren.
+   */
+  loadConfigForRenderer() {
+    const config = this.loadConfig();
+    if (!config.modules) return config;
+
+    for (const mod of config.modules) {
+      if (!mod.config) continue;
+
+      for (const secret of this._secretsOf(mod.module)) {
+        if (!secret.exposeToRenderer) {
+          delete mod.config[secret.key];
+        }
+      }
+    }
+
+    // config.env enthält alle Werte und wird vom Renderer nicht gebraucht -
+    // die Module bekommen ihre Geheimnisse über mod.config.
+    config.env = {};
 
     return config;
   }
@@ -225,28 +245,23 @@ class ConfigManager {
     // Durchlaufe Module und extrahiere sensible Felder
     if (cleanConfig.modules) {
       cleanConfig.modules = cleanConfig.modules.map(mod => {
-        const moduleMapping = this.sensitiveFieldsMapping[mod.module];
+        if (!mod.config) return mod;
 
-        if (moduleMapping && mod.config) {
-          // Für jedes sensible Feld
-          Object.keys(moduleMapping).forEach(fieldName => {
-            const envVarName = moduleMapping[fieldName];
+        for (const secret of this._secretsOf(mod.module)) {
+          const value = mod.config[secret.key];
 
-            const value = mod.config[fieldName];
+          // Der Platzhalter bedeutet "unverändert lassen". Ohne diese
+          // Behandlung würde die Web-UI beim ersten Speichern das echte
+          // Geheimnis mit der Zeichenkette "__SET__" überschreiben.
+          if (value === SECRET_PLACEHOLDER) {
+            // nichts tun - bestehenden .env-Wert behalten
+          } else if (value !== undefined && value !== null && value !== '') {
+            envVars[secret.env] = value;
+            console.log(`Speichere ${mod.module}.${secret.key} in .env als ${secret.env}`);
+          }
 
-            // Der Platzhalter bedeutet "unverändert lassen". Ohne diese
-            // Behandlung würde die Web-UI beim ersten Speichern das echte
-            // Geheimnis mit der Zeichenkette "__SET__" überschreiben.
-            if (value === SECRET_PLACEHOLDER) {
-              // nichts tun - bestehenden .env-Wert behalten
-            } else if (value !== undefined && value !== null && value !== '') {
-              envVars[envVarName] = value;
-              console.log(`Speichere ${mod.module}.${fieldName} in .env als ${envVarName}`);
-            }
-
-            // Entferne das Feld aus der Config
-            delete mod.config[fieldName];
-          });
+          // Aus der Config entfernen - Geheimnisse leben in der .env.
+          delete mod.config[secret.key];
         }
 
         return mod;

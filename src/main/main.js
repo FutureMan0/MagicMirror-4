@@ -7,6 +7,7 @@ const { applyGpuFlags } = require('./gpu');
 const updater = require('./updater');
 const { Auth, getLanAddress } = require('./auth');
 const ThemeManager = require('./themeManager');
+const { createBusBridge } = require('./busBridge');
 const QRCode = require('qrcode');
 const express = require('express');
 const WebSocket = require('ws');
@@ -18,6 +19,15 @@ let moduleLoader = null;
 let webServer = null;
 let wss = null;
 let auth = null;
+
+// Ein Bus fuer den gesamten Hauptprozess. Modul-Backends bekommen ihn im
+// Kontext und koennen damit den Spiegel und die Web-UI erreichen, ohne beide
+// zu kennen.
+const { bus, receiveFromRenderer } = createBusBridge({
+  getWindows: () => BrowserWindow.getAllWindows(),
+  getWebSocketServer: () => wss,
+  WebSocket
+});
 
 const args = process.argv.slice(2);
 const instanceName = args.find(arg => arg.startsWith('--instance='))?.split('=')[1] || process.env.DEFAULT_INSTANCE || 'display1';
@@ -76,7 +86,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  loadMirror();
 
   // Erst zeigen, wenn wirklich etwas zu sehen ist - sonst blitzt beim Start
   // ein leeres Fenster auf.
@@ -103,12 +113,43 @@ function createWindow() {
 
   mainWindow.webContents.once('did-finish-load', () => {
     mainWindow.webContents.send('config-loaded', {
-      config,
+      // Geheimnisse mit exposeToRenderer:false bleiben draussen.
+      config: configManager.loadConfigForRenderer(),
       modules: moduleLoader.scanModules(),
       instanceName,
       perfProfile
     });
   });
+}
+
+/**
+ * Laedt die Spiegel-Ansicht.
+ *
+ * Bevorzugt ueber HTTP; scheitert das - etwa weil dieser Instanz mit
+ * --no-server kein Server zur Verfuegung steht oder der Port belegt ist -,
+ * wird die Datei direkt geoeffnet. Ein toter Server darf den Spiegel niemals
+ * schwarz lassen.
+ */
+function loadMirror() {
+  const fileUrl = path.join(__dirname, '../renderer/index.html');
+
+  if (args.includes('--legacy-file-protocol')) {
+    mainWindow.loadFile(fileUrl);
+    return;
+  }
+
+  const port = customPort || process.env.CONFIG_PORT || 3000;
+  const url = `http://127.0.0.1:${port}/mirror/index.html?instance=${encodeURIComponent(instanceName)}`;
+
+  let fallbackUsed = false;
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, failedUrl) => {
+    if (fallbackUsed || !failedUrl.startsWith('http://127.0.0.1')) return;
+    fallbackUsed = true;
+    console.warn(`Spiegel konnte nicht ueber HTTP geladen werden (${errorDescription}), nutze file://`);
+    mainWindow.loadFile(fileUrl);
+  });
+
+  mainWindow.loadURL(url);
 }
 
 function startWebServer() {
@@ -167,6 +208,37 @@ function startWebServer() {
 
   // Statische Dateien bleiben oeffentlich - sonst laedt die Anmeldeseite nicht.
   expressApp.use(express.static(path.join(__dirname, '../webui/public')));
+
+  // Der Spiegel selbst wird ueber HTTP ausgeliefert statt per file:// geladen.
+  // Das loest gleich mehreres auf einmal:
+  //   - relative fetch-Aufrufe aus Modulen funktionieren (unter file:// landen
+  //     sie auf file:///api/... und schlagen immer fehl),
+  //   - dynamisches import() wird moeglich, das Chromium unter file:// sperrt,
+  //   - und die Ansicht laesst sich spaeter am Handy oeffnen.
+  // http://127.0.0.1 gilt in Chromium als secure context, moderne APIs stehen
+  // also zur Verfuegung.
+  expressApp.use('/mirror', express.static(path.join(__dirname, '../renderer')));
+  expressApp.use('/themes', express.static(path.join(__dirname, '../../themes')));
+  // Von Haupt- und Renderer-Prozess gemeinsam genutzte Bausteine (Bus,
+  // Manifest-Auslegung). Enthalten keine Geheimnisse.
+  expressApp.use('/shared', express.static(path.join(__dirname, '../shared')));
+
+  // Modul-Dateien nur auf Whitelist. backend.js wird bewusst NIE ausgeliefert:
+  // es laeuft im Hauptprozess und hat Zugriff auf Konfiguration und .env.
+  const MODULE_PUBLIC_FILES = new Set(['index.js', 'styles.css', 'module.json']);
+
+  expressApp.get('/modules/:name/:file', (req, res) => {
+    const { name, file } = req.params;
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(name) || !MODULE_PUBLIC_FILES.has(file)) {
+      return res.status(404).end();
+    }
+
+    const filePath = path.join(__dirname, '../../modules', name, file);
+    if (!fs.existsSync(filePath)) return res.status(404).end();
+
+    res.sendFile(filePath);
+  });
 
   expressApp.get('/api/auth/status', (req, res) => {
     res.json({
@@ -235,7 +307,7 @@ function startWebServer() {
       // Frisch laden statt req.body weiterzureichen: der Body enthaelt fuer
       // unveraenderte Geheimnisse nur den Platzhalter "__SET__", der Spiegel
       // braucht aber die echten Werte.
-      const savedConfig = instanceConfigManager.loadConfig();
+      const savedConfig = instanceConfigManager.loadConfigForRenderer();
 
       if (wss) {
         wss.clients.forEach(client => {
@@ -273,7 +345,7 @@ function startWebServer() {
   });
 
   const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
-  loader.registerBackendRoutes(expressApp, { instanceName, ConfigManager, fetch });
+  loader.registerBackendRoutes(expressApp, { instanceName, ConfigManager, fetch, bus });
 
   // Update Endpoints. Die eigentliche Arbeit liegt in src/main/updater.js -
   // dort werden ausschliesslich execFile-Aufrufe mit Argument-Arrays benutzt,
@@ -315,6 +387,13 @@ function startWebServer() {
 }
 
 // IPC Handlers
+// Ereignisse aus dem Renderer (spaeter: Gesten, Nutzeraktionen am Spiegel).
+ipcMain.on('bus-emit', (event, message) => {
+  if (message && typeof message.topic === 'string') {
+    receiveFromRenderer(message.topic, message.payload);
+  }
+});
+
 ipcMain.handle('get-module-styles', async (event, moduleName) => {
   const stylesPath = path.join(__dirname, '../../modules', moduleName, 'styles.css');
   return { success: true, styles: fs.existsSync(stylesPath) ? fs.readFileSync(stylesPath, 'utf8') : '' };
@@ -378,8 +457,11 @@ process.on('unhandledRejection', (reason) => {
 });
 
 app.whenReady().then(() => {
-  createWindow();
+  // Server zuerst: das Fenster laedt den Spiegel ueber HTTP und wuerde sonst
+  // auf die Rueckfallebene file:// fallen, nur weil der Port noch nicht
+  // lauscht.
   startWebServer();
+  createWindow();
 });
 
 app.on('activate', () => {

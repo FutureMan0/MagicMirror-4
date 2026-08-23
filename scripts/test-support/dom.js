@@ -119,6 +119,16 @@ function installDom() {
     href: 'http://localhost:3000/',
     search: ''
   };
+  // Die Renderer-Bausteine bereitstellen, die Module vorfinden: SDK,
+  // Escaping-Helfer und Bus. Sie haengen sich selbst an window.
+  global.requestAnimationFrame = global.requestAnimationFrame
+    || ((callback) => setTimeout(() => callback(Date.now()), 0));
+  global.cancelAnimationFrame = global.cancelAnimationFrame || clearTimeout;
+
+  require('../../src/shared/bus.js');
+  require('../../src/renderer/html.js');
+  require('../../src/renderer/sdk.js');
+
   return { StubElement, documentElement };
 }
 
