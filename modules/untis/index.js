@@ -1,3 +1,9 @@
+// Fach-, Raum- und Lehrernamen kommen von WebUntis. h`` escapt jede
+// Interpolation, damit daraus kein Markup werden kann.
+const h = (typeof window !== 'undefined' && window.mmHtml)
+  ? window.mmHtml
+  : (strings, ...values) => strings.reduce((out, chunk, i) => out + String(values[i - 1] ?? '') + chunk);
+
 class UntisModule {
   constructor(config = {}) {
     this.config = {
@@ -511,7 +517,7 @@ class UntisModule {
           filteredLessons.forEach(lesson => {
             const color = this.getLessonColor(lesson);
             const info = this.getLessonInfo(lesson);
-            html += `<div class="untis-lesson" style="background-color: ${color}">
+            html += h`<div class="untis-lesson" style="background-color: ${color}">
               <div class="untis-subject">${info.subject}</div>
               <div class="untis-room">${info.room}</div>
               <div class="untis-teacher">${info.teacher}</div>
@@ -567,7 +573,7 @@ class UntisModule {
     lessons.forEach(lesson => {
       const color = this.getLessonColor(lesson);
       const info = this.getLessonInfo(lesson);
-      html += `<div class="untis-lesson-card" style="border-left: 4px solid ${color}">
+      html += h`<div class="untis-lesson-card" style="border-left: 4px solid ${color}">
         <div class="untis-lesson-time">${this.formatTime(lesson.startTime)} - ${this.formatTime(lesson.endTime)}</div>
         <div class="untis-lesson-subject">${info.subject}</div>
         <div class="untis-lesson-details">${info.room} | ${info.teacher}</div>
@@ -602,7 +608,7 @@ class UntisModule {
 
     const dateLocale = this.config.language === 'de' ? 'de-DE' : 'en-US';
 
-    this.container.innerHTML = `
+    this.container.innerHTML = h`
       <div class="untis-next-view">
         <div class="untis-next-label">${this.t.next_lesson}</div>
         <div class="untis-next-time">${date.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</div>

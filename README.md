@@ -52,6 +52,28 @@ git clone https://github.com/FutureMan0/MagicMirror-4.git && cd MagicMirror-4 &&
 
 ---
 
+## 🔐 Anmeldung
+
+Der Konfigurations-Server ist nicht mehr offen. Beim ersten Start erzeugt MM⁴ ein Admin-Token und legt es als `MM_ADMIN_TOKEN` in der `.env` ab.
+
+**Handy koppeln:**
+
+1. `http://<pi-ip>:3000` im Browser öffnen.
+2. **„Kopplung am Spiegel starten"** antippen.
+3. Der Spiegel zeigt 60 Sekunden lang einen QR-Code. Scannen — oder den achtstelligen Code darunter abtippen.
+
+Der Code steht ausschließlich auf dem Spiegel und geht nie über das Netzwerk. Wer ihn lesen kann, steht im Raum: genau das ist der Nachweis.
+
+Ein gekoppeltes Gerät bleibt 30 Tage angemeldet.
+
+**Ausgesperrt?** Das Token aus der `.env` reicht ebenfalls — in der Anmeldemaske unter „Stattdessen mit Token anmelden".
+
+**Was ohne Anmeldung geht:** Anfragen von der Maschine selbst (`127.0.0.1`). Die Module am Spiegel holen ihre Daten über HTTP von der eigenen Adresse, und wer Zugriff auf den Pi hat, hat ohnehin eine Shell.
+
+> `MM_AUTH=off` in der `.env` schaltet die Anmeldung ab. Dann kann jeder im Netzwerk die Konfiguration ändern und Updates auslösen — nur als Notausgang gedacht.
+
+---
+
 ## 🧯 Troubleshooting (Raspberry Pi / PM2)
 
 ### Electron exits with: `Missing X server or $DISPLAY`

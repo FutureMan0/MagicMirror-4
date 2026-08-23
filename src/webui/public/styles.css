@@ -1413,3 +1413,111 @@ body {
     justify-content: space-between;
   }
 }
+/* ==================== Anmeldung ==================== */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.85);
+  overflow-y: auto;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  background: var(--bg-secondary, #1a1a1a);
+}
+
+.auth-card h2 {
+  margin-bottom: 10px;
+  font-size: 1.3rem;
+}
+
+.auth-intro {
+  margin-bottom: 22px;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.auth-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-step label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.auth-step input,
+.auth-fallback input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 6px;
+  background: var(--bg-dark, #111);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+#auth-code-input {
+  font-size: 1.4rem;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.auth-step small {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.auth-error {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-red, #ff4444);
+  border-radius: 6px;
+  background: rgba(255, 68, 68, 0.12);
+  color: var(--accent-red, #ff4444);
+  font-size: 0.88rem;
+}
+
+.auth-fallback {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-color, #333);
+}
+
+.auth-fallback summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.auth-fallback p {
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.auth-fallback code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-dark, #111);
+  font-size: 0.85em;
+}
+
+.auth-fallback input {
+  margin-bottom: 10px;
+}

@@ -1,3 +1,14 @@
+// Muss zu SECRET_PLACEHOLDER in src/main/configManager.js passen.
+const SECRET_PLACEHOLDER = '__SET__';
+
+// Escaping fuer Werte aus fremden APIs, die in Markup eingesetzt werden.
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+}
+
 // Web Config Interface JavaScript
 
 let currentConfig = null;
@@ -576,6 +587,7 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   html += '</div>';
 
   // Modul-spezifische Einstellungen
+  const secretFields = moduleInfo?.secretFields || [];
   if (moduleInfo?.info?.config) {
     Object.entries(moduleInfo.info.config).forEach(([key, schema]) => {
       html += '<div class="form-group">';
@@ -588,6 +600,19 @@ function showModuleSettings(moduleConfig, moduleInfo) {
         html += `</div>`;
       } else if (schema.type === 'number') {
         html += `<input type="number" name="${key}" value="${moduleConfig.config?.[key] ?? schema.default ?? ''}">`;
+      } else if (secretFields.includes(key)) {
+        // Geheimnisse verlassen den Pi nicht. Der Server liefert stattdessen
+        // den Platzhalter SECRET_PLACEHOLDER. Ein leer gelassenes Feld
+        // bedeutet "unverändert".
+        const isSet = moduleConfig.config?.[key] === SECRET_PLACEHOLDER;
+        html += `<input type="password" name="${key}" value="" autocomplete="new-password"`;
+        html += ` placeholder="${isSet ? '•••••••• (gespeichert)' : 'nicht gesetzt'}"`;
+        html += ` data-secret="true" data-was-set="${isSet}">`;
+        html += `<small style="color: var(--text-secondary); display: block; margin-top: 4px;">`;
+        html += isSet
+          ? 'Gespeichert. Leer lassen, um den Wert unverändert zu übernehmen.'
+          : 'Noch nicht gesetzt.';
+        html += `</small>`;
       } else {
         html += `<input type="text" name="${key}" value="${moduleConfig.config?.[key] ?? schema.default ?? ''}" placeholder="${schema.default || ''}">`;
       }
@@ -692,7 +717,8 @@ async function initUntisClassPicker(moduleConfig) {
 
       select.innerHTML = '<option value="">Klasse wählen…</option>' + classes.map(c => {
         const label = c.longName || c.name || `Klasse ${c.id}`;
-        return `<option value="${c.id}">${label}</option>`;
+        // Name und Id stammen aus der WebUntis-Antwort.
+        return `<option value="${escapeHtml(c.id)}">${escapeHtml(label)}</option>`;
       }).join('');
     } catch (error) {
       console.error('Fehler beim Laden der Klassen:', error);
@@ -830,15 +856,28 @@ async function saveModuleSettings() {
   }
 
   // Speichere alle Formular-Daten
+  const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
+  const secretFields = moduleInfo?.secretFields || [];
+
   for (const [key, value] of formData.entries()) {
     if (key !== 'position') {
-      const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
       const schema = moduleInfo?.info.config?.[key];
 
       if (schema?.type === 'boolean') {
         moduleConfig.config[key] = value === 'on';
       } else if (schema?.type === 'number') {
         moduleConfig.config[key] = parseFloat(value);
+      } else if (secretFields.includes(key)) {
+        const input = form.querySelector(`input[name="${key}"]`);
+        const wasSet = input?.dataset.wasSet === 'true';
+
+        if (value) {
+          moduleConfig.config[key] = value;          // neuer Wert
+        } else if (wasSet) {
+          moduleConfig.config[key] = SECRET_PLACEHOLDER; // unverändert lassen
+        } else {
+          delete moduleConfig.config[key];           // war und bleibt leer
+        }
       } else {
         moduleConfig.config[key] = value;
       }
@@ -1235,12 +1274,17 @@ async function checkUpdate() {
     const data = await response.json();
 
     if (data.updateAvailable) {
-      message.textContent = t('updateAvailable');
+      const commits = data.behind === 1
+        ? (currentLanguage === 'de' ? '1 neuer Commit' : '1 new commit')
+        : (currentLanguage === 'de' ? `${data.behind} neue Commits` : `${data.behind} new commits`);
+      message.textContent = `${t('updateAvailable')} (${commits})`;
       message.style.color = 'var(--accent-cyan)';
       if (actionDiv) actionDiv.style.display = 'block';
       showNotification(t('updateAvailable'));
     } else {
-      message.textContent = t('systemUpToDate');
+      // note kommt z.B. bei einem Branch ohne Upstream - dann ist "aktuell"
+      // die falsche Auskunft.
+      message.textContent = data.note || t('systemUpToDate');
       message.style.color = 'var(--text-secondary)';
       if (actionDiv) actionDiv.style.display = 'none';
     }
@@ -1274,6 +1318,20 @@ async function executeUpdate() {
       setTimeout(() => {
         location.reload();
       }, 5000);
+    } else if (data.code === 'DIRTY_WORKING_TREE') {
+      // Verhaltensaenderung: frueher wurden lokale Aenderungen still
+      // weggestasht und waren praktisch unauffindbar. Jetzt bricht das Update
+      // ab und sagt, welche Dateien betroffen sind.
+      alert(
+        (currentLanguage === 'de'
+          ? 'Update abgebrochen: es gibt lokale Änderungen im Projektverzeichnis.\n\n'
+          + 'Sie wurden NICHT verworfen. Betroffene Dateien:\n\n'
+          : 'Update cancelled: there are local changes in the project directory.\n\n'
+          + 'They were NOT discarded. Affected files:\n\n')
+        + (data.details || '')
+      );
+      btn.disabled = false;
+      btn.textContent = t('installUpdate');
     } else {
       alert('Update failed: ' + (data.error || 'Unknown error'));
       btn.disabled = false;

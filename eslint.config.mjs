@@ -23,6 +23,7 @@ const browserGlobals = {
   WebSocket: 'readonly',
   CustomEvent: 'readonly',
   Event: 'readonly',
+  URL: 'readonly',
   URLSearchParams: 'readonly',
   Image: 'readonly',
   Audio: 'readonly',

@@ -4,6 +4,9 @@ const fs = require('fs');
 const ConfigManager = require('./configManager');
 const ModuleLoader = require('./moduleLoader');
 const { applyGpuFlags } = require('./gpu');
+const updater = require('./updater');
+const { Auth, getLanAddress } = require('./auth');
+const QRCode = require('qrcode');
 const express = require('express');
 const WebSocket = require('ws');
 const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
@@ -11,9 +14,9 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => f
 let mainWindow = null;
 let configManager = null;
 let moduleLoader = null;
-let presenceModule = null;
 let webServer = null;
 let wss = null;
+let auth = null;
 
 const args = process.argv.slice(2);
 const instanceName = args.find(arg => arg.startsWith('--instance='))?.split('=')[1] || process.env.DEFAULT_INSTANCE || 'display1';
@@ -113,13 +116,113 @@ function startWebServer() {
   const expressApp = express();
   const port = customPort || process.env.CONFIG_PORT || 3000;
 
+  // Nicht aktivieren: mit `trust proxy` koennte ein X-Forwarded-For-Header
+  // eine entfernte Anfrage als Loopback ausgeben und die Anmeldung umgehen.
+  expressApp.disable('trust proxy');
+  expressApp.disable('x-powered-by');
+
   expressApp.use(express.json());
+
+  const envHelper = new ConfigManager(instanceName);
+  auth = new Auth({
+    configDir: path.join(__dirname, '../../config'),
+    envPath: envHelper.envPath,
+    readEnv: () => envHelper._readEnvFile(),
+    writeEnv: (vars) => envHelper._writeEnvFile(vars)
+  });
+
+  if (!auth.enabled) {
+    console.warn('');
+    console.warn('  !!  MM_AUTH=off - der Konfigurations-Server ist UNGESCHUETZT.');
+    console.warn('  !!  Jeder im Netzwerk kann Einstellungen aendern und Updates ausloesen.');
+    console.warn('');
+  }
+
+  // Der Kopplungscode wird auf dem Spiegel angezeigt. Wer ihn lesen kann,
+  // steht im Raum - das ist der eigentliche Nachweis.
+  auth.onPairingChange = async (state) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    if (!state.active) {
+      mainWindow.webContents.send('pairing-ended');
+      return;
+    }
+
+    const url = `http://${getLanAddress()}:${port}/?pair=${state.code}`;
+    let svg = null;
+    try {
+      svg = await QRCode.toString(url, { type: 'svg', margin: 1, width: 320 });
+    } catch (error) {
+      console.error('QR-Code konnte nicht erzeugt werden:', error.message);
+    }
+
+    mainWindow.webContents.send('pairing-started', {
+      code: state.code,
+      url,
+      svg,
+      expiresAt: state.expiresAt
+    });
+  };
+
+  // Statische Dateien bleiben oeffentlich - sonst laedt die Anmeldeseite nicht.
   expressApp.use(express.static(path.join(__dirname, '../webui/public')));
+
+  expressApp.get('/api/auth/status', (req, res) => {
+    res.json({
+      authRequired: auth.enabled,
+      authenticated: auth.isAuthenticated(req),
+      isLocal: Auth.isLoopback(req),
+      pairing: { active: auth.getPairingState().active }
+    });
+  });
+
+  expressApp.post('/api/auth/pair/start', (req, res) => {
+    try {
+      const state = auth.startPairing(req.socket.remoteAddress || 'unbekannt');
+      // Der Code selbst wird NICHT zurueckgegeben - er steht auf dem Spiegel.
+      res.json({ started: true, expiresAt: state.expiresAt });
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/auth/pair/claim', (req, res) => {
+    try {
+      const label = (req.headers['user-agent'] || 'unbekanntes Geraet').slice(0, 120);
+      const sessionId = auth.claimPairing(req.body?.code, label);
+      res.setHeader('Set-Cookie', Auth.sessionCookie(sessionId));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/auth/login', (req, res) => {
+    try {
+      const label = (req.headers['user-agent'] || 'unbekanntes Geraet').slice(0, 120);
+      const sessionId = auth.loginWithToken(req.body?.token, label);
+      res.setHeader('Set-Cookie', Auth.sessionCookie(sessionId));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/auth/logout', (req, res) => {
+    auth.revokeSession(Auth.readCookie(req, 'mm4_session'));
+    res.setHeader('Set-Cookie', Auth.clearCookie());
+    res.json({ success: true });
+  });
+
+  // Ab hier ist alles unter /api geschuetzt.
+  expressApp.use('/api', auth.middleware(['/auth/']));
 
   expressApp.get('/api/config', (req, res) => {
     const instance = req.query.instance || instanceName;
     const instanceConfigManager = new ConfigManager(instance);
-    res.json(instanceConfigManager.loadConfig());
+    // Ueber HTTP niemals Klartext-Geheimnisse. Der Renderer bekommt die
+    // vollstaendige Config weiterhin ueber IPC.
+    res.json(instanceConfigManager.loadConfig({ redact: true }));
   });
 
   expressApp.put('/api/config', (req, res) => {
@@ -127,6 +230,12 @@ function startWebServer() {
       const instance = req.query.instance || instanceName;
       const instanceConfigManager = new ConfigManager(instance);
       instanceConfigManager.saveConfig(req.body);
+
+      // Frisch laden statt req.body weiterzureichen: der Body enthaelt fuer
+      // unveraenderte Geheimnisse nur den Platzhalter "__SET__", der Spiegel
+      // braucht aber die echten Werte.
+      const savedConfig = instanceConfigManager.loadConfig();
+
       if (wss) {
         wss.clients.forEach(client => {
           if (client.readyState === WebSocket.OPEN) {
@@ -135,7 +244,7 @@ function startWebServer() {
         });
       }
       if (mainWindow && instance === instanceName) {
-        mainWindow.webContents.send('config-update', req.body);
+        mainWindow.webContents.send('config-update', savedConfig);
       }
       res.json({ success: true });
     } catch (error) {
@@ -145,84 +254,48 @@ function startWebServer() {
 
   expressApp.get('/api/modules', (req, res) => {
     const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
-    res.json(loader.scanModules().map(m => ({ name: m.name, info: m.info })));
+    const secretsHelper = new ConfigManager(instanceName);
+    res.json(loader.scanModules().map(m => ({
+      name: m.name,
+      info: m.info,
+      // Damit die Web-UI diese Felder maskiert darstellt und beim Speichern
+      // nicht versehentlich den Platzhalter zurueckschreibt.
+      secretFields: secretsHelper.getSecretFields(m.name)
+    })));
   });
 
   const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
   loader.registerBackendRoutes(expressApp, { instanceName, ConfigManager, fetch });
 
-  // Update Endpoints
+  // Update Endpoints. Die eigentliche Arbeit liegt in src/main/updater.js -
+  // dort werden ausschliesslich execFile-Aufrufe mit Argument-Arrays benutzt,
+  // damit nichts mehr durch eine Shell laeuft.
   expressApp.get('/api/update/check', async (req, res) => {
     try {
-      const { exec } = require('child_process');
-      exec('git fetch && git status -uno', (error, stdout, stderr) => {
-        if (error) {
-          return res.status(500).json({ error: error.message });
-        }
-        const hasUpdate = stdout.includes('behind');
-        res.json({ updateAvailable: hasUpdate });
-      });
+      res.json(await updater.checkForUpdate());
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message, details: error.stderr });
     }
   });
 
   expressApp.post('/api/update/execute', async (req, res) => {
     try {
-      const { exec } = require('child_process');
-      
-      // Get project directory (two levels up from src/main/main.js)
-      const projectDir = path.join(__dirname, '../..');
-      
-      // Get current user (not root)
-      const currentUser = process.env.USER || process.env.SUDO_USER || 'pi';
-      
-      // Step 1: Stash local changes if any (prevents merge conflicts)
-      exec(`cd "${projectDir}" && git stash push -m "Auto-stashed before update"`, (stashError, stashStdout, stashStderr) => {
-        const hasLocalChanges = !stashError && stashStdout.includes('Saved working directory');
-        
-        // Step 2: Pull latest changes
-        exec(`cd "${projectDir}" && git pull`, (pullError, pullStdout, pullStderr) => {
-          if (pullError) {
-            return res.status(500).json({ 
-              error: pullError.message, 
-              details: pullStderr,
-              note: hasLocalChanges ? 'Local changes were stashed. Use "git stash list" to see them.' : ''
-            });
-          }
-          
-          // Step 3: Install dependencies (as the correct user, not root)
-          exec(`cd "${projectDir}" && sudo -u ${currentUser} npm install`, (npmError, npmStdout, npmStderr) => {
-            if (npmError) {
-              return res.status(500).json({ 
-                error: npmError.message, 
-                details: npmStderr,
-                note: 'Git pull succeeded but npm install failed. Try running manually: cd ~/MagicMirror-4 && npm install'
-              });
-            }
-            
-            let logMessage = pullStdout + '\n\n' + npmStdout;
-            if (hasLocalChanges) {
-              logMessage += '\n\nNote: Local changes were automatically stashed. Use "git stash list" to review them.';
-            }
-            
-            res.json({ 
-              success: true, 
-              log: logMessage,
-              stashedChanges: hasLocalChanges
-            });
+      const result = await updater.executeUpdate();
+      res.json({ success: true, log: result.log });
 
-            // Restart after a short delay
-            setTimeout(() => {
-              exec('pm2 restart all', (e) => {
-                if (e) console.error('Auto-Restart failed:', e);
-              });
-            }, 2000);
-          });
+      // Kurz warten, damit die Antwort den Client sicher erreicht.
+      setTimeout(() => {
+        updater.restart((error) => {
+          console.error('Auto-Restart fehlgeschlagen:', error.message);
         });
-      });
+      }, 2000);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        code: error.code,
+        details: error.details || error.stderr
+      });
     }
   });
 
@@ -234,16 +307,6 @@ function startWebServer() {
 }
 
 // IPC Handlers
-ipcMain.handle('get-module-code', async (event, moduleName) => {
-  const modulePath = path.join(__dirname, '../../modules', moduleName, 'index.js');
-  if (fs.existsSync(modulePath)) {
-    const code = fs.readFileSync(modulePath, 'utf8');
-    const browserCode = code.replace(/module\.exports\s*=\s*/g, 'return ').replace(/require\([^)]+\)/g, '{}');
-    return { success: true, code: browserCode };
-  }
-  return { success: false, error: 'Modul nicht gefunden' };
-});
-
 ipcMain.handle('get-module-styles', async (event, moduleName) => {
   const stylesPath = path.join(__dirname, '../../modules', moduleName, 'styles.css');
   return { success: true, styles: fs.existsSync(stylesPath) ? fs.readFileSync(stylesPath, 'utf8') : '' };
