@@ -2,6 +2,16 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+/**
+ * Platzhalter für ein gesetztes, aber nicht ausgeliefertes Geheimnis.
+ *
+ * loadConfig({ redact: true }) ersetzt jeden sensiblen Wert dadurch, und
+ * saveConfig() erkennt ihn wieder und lässt den gespeicherten Wert unberührt.
+ * So kann die Web-UI eine Konfiguration laden, bearbeiten und zurückschreiben,
+ * ohne dass das Passwort jemals den Pi verlässt.
+ */
+const SECRET_PLACEHOLDER = '__SET__';
+
 class ConfigManager {
   constructor(instanceName = 'display1') {
     this.instanceName = instanceName;
@@ -17,7 +27,8 @@ class ConfigManager {
       },
       'spotify': {
         'clientId': 'SPOTIFY_CLIENT_ID',
-        'clientSecret': 'SPOTIFY_CLIENT_SECRET'
+        'clientSecret': 'SPOTIFY_CLIENT_SECRET',
+        'refreshToken': 'SPOTIFY_REFRESH_TOKEN'
       },
       'untis': {
         'server': 'UNTIS_SERVER',
@@ -91,7 +102,7 @@ class ConfigManager {
     fs.writeFileSync(this.envPath, lines.join('\n'));
   }
 
-  loadConfig() {
+  loadConfig({ redact = false } = {}) {
     let config = {};
 
     // Lade Haupt-Config
@@ -110,6 +121,7 @@ class ConfigManager {
       openweathermapApiKey: process.env.OPENWEATHERMAP_API_KEY,
       spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
       spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+      spotifyRefreshToken: process.env.SPOTIFY_REFRESH_TOKEN,
       untisServer: process.env.UNTIS_SERVER,
       untisUsername: process.env.UNTIS_USERNAME,
       untisPassword: process.env.UNTIS_PASSWORD,
@@ -119,7 +131,9 @@ class ConfigManager {
       presenceDimTimeout: parseInt(process.env.PRESENCE_DIM_TIMEOUT || '300000')
     };
 
-    config.env = envVars;
+    // Die .env-Werte gehören nur in den Renderer (via IPC), niemals in eine
+    // HTTP-Antwort.
+    config.env = redact ? {} : envVars;
 
     // Merge .env Werte in Module-Config (wenn in config.json leer)
     if (config.modules) {
@@ -138,6 +152,9 @@ class ConfigManager {
             }
             if (envVars.spotifyClientSecret) {
               mod.config.clientSecret = envVars.spotifyClientSecret;
+            }
+            if (envVars.spotifyRefreshToken) {
+              mod.config.refreshToken = envVars.spotifyRefreshToken;
             }
             break;
           case 'untis':
@@ -160,6 +177,41 @@ class ConfigManager {
       });
     }
 
+    if (redact) {
+      this.redactSecrets(config);
+    }
+
+    return config;
+  }
+
+  /**
+   * Ersetzt jeden im Mapping deklarierten sensiblen Wert durch den Platzhalter.
+   * Leere Felder bleiben leer - die Web-UI muss "nicht gesetzt" von
+   * "gesetzt, aber nicht sichtbar" unterscheiden können.
+   */
+  /**
+   * Namen der Felder, die für ein Modul als Geheimnis behandelt werden.
+   * Die Web-UI braucht das, um solche Felder maskiert darzustellen.
+   */
+  getSecretFields(moduleName) {
+    return Object.keys(this.sensitiveFieldsMapping[moduleName] || {});
+  }
+
+  redactSecrets(config) {
+    if (!config.modules) return config;
+
+    for (const mod of config.modules) {
+      const mapping = this.sensitiveFieldsMapping[mod.module];
+      if (!mapping || !mod.config) continue;
+
+      for (const fieldName of Object.keys(mapping)) {
+        const value = mod.config[fieldName];
+        if (value !== undefined && value !== null && value !== '') {
+          mod.config[fieldName] = SECRET_PLACEHOLDER;
+        }
+      }
+    }
+
     return config;
   }
 
@@ -180,9 +232,15 @@ class ConfigManager {
           Object.keys(moduleMapping).forEach(fieldName => {
             const envVarName = moduleMapping[fieldName];
 
-            // Wenn das Feld einen Wert hat, speichere es in .env
-            if (mod.config[fieldName] !== undefined && mod.config[fieldName] !== null && mod.config[fieldName] !== '') {
-              envVars[envVarName] = mod.config[fieldName];
+            const value = mod.config[fieldName];
+
+            // Der Platzhalter bedeutet "unverändert lassen". Ohne diese
+            // Behandlung würde die Web-UI beim ersten Speichern das echte
+            // Geheimnis mit der Zeichenkette "__SET__" überschreiben.
+            if (value === SECRET_PLACEHOLDER) {
+              // nichts tun - bestehenden .env-Wert behalten
+            } else if (value !== undefined && value !== null && value !== '') {
+              envVars[envVarName] = value;
               console.log(`Speichere ${mod.module}.${fieldName} in .env als ${envVarName}`);
             }
 
@@ -220,3 +278,4 @@ class ConfigManager {
 }
 
 module.exports = ConfigManager;
+module.exports.SECRET_PLACEHOLDER = SECRET_PLACEHOLDER;

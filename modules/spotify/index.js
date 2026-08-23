@@ -129,7 +129,7 @@ class SpotifyModule {
     if (this.config.showCover && track.album.images && track.album.images.length > 0) {
       const coverUrl = track.album.images[0].url;
       html += `<div class="spotify-cover">
-        <img src="${coverUrl}" alt="Album Cover" />
+        <img src="${this.escapeHtml(coverUrl)}" alt="Album Cover" />
       </div>`;
     }
 
@@ -184,9 +184,13 @@ class SpotifyModule {
   }
 
   escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    if (typeof window !== 'undefined' && window.mmEscapeHtml) {
+      return window.mmEscapeHtml(text);
+    }
+    if (text === null || text === undefined) return '';
+    return String(text).replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
   }
 
   destroy() {
