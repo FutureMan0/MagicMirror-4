@@ -209,7 +209,7 @@ async function checkLiveChannel() {
     });
 
     socket.send(JSON.stringify({ type: 'hello', clientId: 'smoke' }));
-    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config', 'system:*'] }));
+    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config:*', 'system:*'] }));
     await delay(500);
 
     if (!welcomed) problems.push('Der Hub hat die Begrüßung nicht beantwortet.');

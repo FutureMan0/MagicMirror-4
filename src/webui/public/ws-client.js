@@ -22,7 +22,9 @@
   let connected = false;
   let banner = null;
 
-  const topics = new Set(['config', 'presence:*', 'system:*']);
+  // 'config:*', nicht 'config': das Ereignis heisst config:changed, und ein
+  // Muster ohne :* trifft nur den exakten Namen. Sonst kommt nie etwas an.
+  const topics = new Set(['config:*', 'presence:*', 'system:*']);
 
   function setConnected(next) {
     if (connected === next) return;
