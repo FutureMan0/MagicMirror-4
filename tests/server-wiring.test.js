@@ -35,6 +35,33 @@ test('die Anmelderouten sind vor der Middleware registriert', () => {
   );
 });
 
+// Express arbeitet die Handler in Registrierungsreihenfolge ab. Stuende
+// registerBackendRoutes vor der Middleware, waeren /api/untis/*,
+// /api/presence/* und /api/spotify/* weiterhin offen - und zwar ohne dass
+// irgendetwas anderes auffaellig waere.
+test('Modul-Backends und Update-Endpunkte liegen hinter der Middleware', () => {
+  const middleware = mainSource.indexOf("expressApp.use('/api', auth.middleware");
+  assert.ok(middleware > -1, 'Auth-Middleware fehlt');
+
+  const mustComeAfter = {
+    'Modul-Backends': 'loader.registerBackendRoutes(expressApp',
+    'GET /api/config': "expressApp.get('/api/config'",
+    'PUT /api/config': "expressApp.put('/api/config'",
+    'GET /api/modules': "expressApp.get('/api/modules'",
+    'Update-Pruefung': "expressApp.get('/api/update/check'",
+    'Update-Ausfuehrung': "expressApp.post('/api/update/execute'"
+  };
+
+  for (const [label, needle] of Object.entries(mustComeAfter)) {
+    const position = mainSource.indexOf(needle);
+    assert.ok(position > -1, `${label} nicht gefunden (${needle})`);
+    assert.ok(
+      position > middleware,
+      `${label} ist vor der Auth-Middleware registriert und damit ungeschuetzt`
+    );
+  }
+});
+
 test('GET /api/config liefert nur maskierte Geheimnisse', () => {
   const handler = mainSource.slice(
     mainSource.indexOf("expressApp.get('/api/config'"),
