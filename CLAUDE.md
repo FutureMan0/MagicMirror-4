@@ -74,6 +74,12 @@ ebenfalls automatisch endet), `this.html` (escapendes Template-Tag),
   im Sekundentakt am gemeinsamen `tick:second` hängen.
 * **Fremde Daten nur über `this.html`.** Fach-, Raum- und Lehrernamen kommen
   von einer fremden API; ungeprüft in `innerHTML` führen sie Code aus.
+* **Nichts auf oberster Ebene deklarieren, was ein anderes Modul auch heißen
+  könnte.** Module werden als ES-Module geladen und haben damit ihren eigenen
+  Scope — unter `file://` aber als klassische Scripts mit *einem gemeinsamen*
+  globalen Scope. Zwei Module mit `const h` ließen dort das zweite mit einem
+  SyntaxError scheitern, sichtbar nur als „Modul konnte nicht geladen werden".
+  `tests/module-scope.test.js` wacht darüber.
 * **Keine globalen `process.on`-Handler in einem Backend.** Ein Modul hatte
   einen `uncaughtException`-Handler installiert, der Fehler der gesamten
   Anwendung schluckte. Der zentrale Handler steht in `src/main/main.js`.
