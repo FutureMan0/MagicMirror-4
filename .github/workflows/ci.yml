@@ -89,8 +89,11 @@ jobs:
             libdrm2 libgbm1 libasound2t64 libgtk-3-0 libxkbcommon0 \
             libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0
 
-      # Hier wird die Electron-Binärdatei bewusst mit heruntergeladen -
-      # ohne sie gibt es nichts zu starten.
+      # Hier wird die Electron-Binärdatei bewusst mit heruntergeladen - ohne
+      # sie gibt es nichts zu starten. Das postinstall übersetzt zugleich
+      # serialport für Electrons ABI; schlägt das fehl, meldet die Startprobe
+      # es als Warnung und der Job wird rot. Genau dieser Fall bleibt sonst
+      # unbemerkt: der Spiegel läuft weiter, nur der Sensor tut nichts.
       - name: Install dependencies
         run: npm ci
 

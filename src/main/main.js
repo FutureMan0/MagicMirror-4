@@ -11,7 +11,6 @@ const { createBusBridge } = require('./busBridge');
 const QRCode = require('qrcode');
 const express = require('express');
 const WebSocket = require('ws');
-const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
 
 let mainWindow = null;
 let configManager = null;
@@ -27,6 +26,16 @@ const { bus, receiveFromRenderer } = createBusBridge({
   getWindows: () => BrowserWindow.getAllWindows(),
   getWebSocketServer: () => wss,
   WebSocket
+});
+
+// Warnungen sammeln, sobald der Bus existiert. Modul-Backends melden schon
+// beim Registrieren ihrer Routen - also bevor die Startprobe zuhoeren
+// koennte.
+const startupWarnings = [];
+bus.on('system:warning', (payload) => {
+  if (!payload || !payload.message) return;
+  startupWarnings.push({ source: payload.source || 'unbekannt', message: payload.message });
+  console.warn(`[${payload.source || 'unbekannt'}] ${payload.message}`);
 });
 
 const args = process.argv.slice(2);
@@ -492,10 +501,13 @@ function runSmokeMode() {
   bus.on('system:modules-rendered', (payload) => {
     const failed = (payload && payload.failed) || [];
     finish({
-      ok: failed.length === 0,
-      reason: failed.length === 0 ? 'ok' : 'module-failed',
+      ok: failed.length === 0 && startupWarnings.length === 0,
+      reason: failed.length > 0
+        ? 'module-failed'
+        : (startupWarnings.length > 0 ? 'startup-warning' : 'ok'),
       mounted: (payload && payload.mounted) || [],
       failed,
+      warnings: startupWarnings,
       theme: payload && payload.theme
     });
   });

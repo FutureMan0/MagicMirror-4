@@ -189,9 +189,10 @@ child.on('exit', (code, signal) => {
   }
 
   if (!result.ok) {
-    const details = (result.failed || [])
-      .map(entry => `  - ${entry.module}: ${entry.error}`)
-      .join('\n');
+    const details = [
+      ...(result.failed || []).map(entry => `  - Modul ${entry.module}: ${entry.error}`),
+      ...(result.warnings || []).map(entry => `  - Warnung aus ${entry.source}: ${entry.message}`)
+    ].join('\n');
 
     fail(
       result.message || `Grund: ${result.reason}`,
