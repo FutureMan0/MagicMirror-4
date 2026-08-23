@@ -232,6 +232,26 @@ class RendererModuleLoader {
   }
 
   /**
+   * Zerstört genau eine Instanz.
+   *
+   * Bis hierher gab es nur destroyAll() - jede Konfigurationsänderung riss
+   * deshalb alle Module ab, auch die, an denen sich gar nichts geändert hat.
+   */
+  destroyInstance(instanceKey) {
+    const instance = this.loadedModules.get(instanceKey);
+    if (!instance) return false;
+
+    try {
+      if (typeof instance.destroy === 'function') instance.destroy();
+    } catch (error) {
+      console.error(`Fehler beim Zerstören von ${instanceKey}:`, error);
+    }
+
+    this.loadedModules.delete(instanceKey);
+    return true;
+  }
+
+  /**
    * Ruft eine Funktion für jede laufende Instanz auf.
    * Wird für Zustandswechsel gebraucht, die alle Module betreffen -
    * etwa den Privatsphäre-Modus.

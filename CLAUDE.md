@@ -171,6 +171,29 @@ deshalb kann `html[data-perf="low"]` jedem Theme den Blur abschalten.
 
 Alle Tokens: `src/renderer/styles/tokens.css`.
 
+## Konfigurationsänderungen
+
+`src/renderer/reconciler.js` vergleicht alte und neue Konfiguration und fasst
+nur an, was sich geändert hat. Vorher lief jede Änderung über einen
+Komplettneubau — wer die Schriftgröße der Uhr verstellte, löste damit aus, dass
+das Wetter neu geladen und der Stundenplan neu abgefragt wurde.
+
+| Änderung | Folge |
+| :--- | :--- |
+| Theme | nur Stylesheet tauschen |
+| Rastereinstellungen | nur CSS-Variablen neu setzen |
+| Modul verschoben | nur umplatzieren (Rasterposition liegt im Style, nicht in der DOM-Reihenfolge) |
+| Moduleinstellung | `onConfigChange` des Moduls entscheidet: patchen oder neu aufbauen |
+| Sprache | Komplettneubau — betrifft ohnehin jedes Modul |
+
+Ein Modul erklärt über `static patchable = [...]`, welche Schlüssel es ohne
+Neuaufbau übernehmen kann. **Ohne `onConfigChange` wird neu aufgebaut** — der
+sichere Weg.
+
+Jeder Modul-Eintrag bekommt beim Laden eine feste `id`. Über den Array-Index
+zu vergleichen ginge nicht: ein nach oben geschobenes Modul sähe aus wie „alle
+ausgetauscht".
+
 ## Privatsphäre
 
 Der Spiegel hängt in einem Bad mit Dusche. Drei Dinge, die oft verwechselt
