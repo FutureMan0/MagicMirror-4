@@ -68,6 +68,56 @@ module.exports = {
             if (bus) bus.emit(topic, payload);
         };
 
+        // --- Duschzone ---------------------------------------------------
+        //
+        // Der verbaute Sensor ist ein HLK-LD2410: er liefert Entfernung, aber
+        // KEINE Koordinaten. Eine Zone laesst sich damit nur ueber ein
+        // Entfernungsband beschreiben - das setzt voraus, dass Dusche und
+        // Waschbecken unterschiedlich weit vom Spiegel entfernt sind. Ist das
+        // nicht der Fall, hilft nur ein LD2450 (liefert X/Y), der seriell ein
+        // direkter Ersatz waere.
+        //
+        // Verweildauer und Nachlauf verhindern, dass ein kurzes Vorbeigehen
+        // den Duschmodus ausloest oder ein Schritt zur Seite ihn beendet.
+        let inZoneSince = null;
+        let outOfZoneSince = null;
+        let showerReported = false;
+
+        const evaluateShowerZone = (distanceCm) => {
+            const privacy = context && context.privacy;
+            if (!privacy) return;
+
+            const settings = privacy.settings().shower;
+            if (settings.trigger !== 'auto') return;
+
+            const zone = settings.zone || {};
+            const min = zone.minDistanceCm ?? 0;
+            const max = zone.maxDistanceCm ?? 120;
+            const inside = Number.isFinite(distanceCm) && distanceCm >= min && distanceCm <= max;
+            const now = Date.now();
+
+            if (inside) {
+                outOfZoneSince = null;
+                if (inZoneSince === null) inZoneSince = now;
+
+                if (!showerReported && now - inZoneSince >= (settings.dwellSeconds || 20) * 1000) {
+                    showerReported = true;
+                    addDebugLog('INFO', `Duschzone erkannt (${distanceCm} cm)`);
+                    privacy.reportShowerZone(true).catch(() => {});
+                }
+                return;
+            }
+
+            inZoneSince = null;
+            if (outOfZoneSince === null) outOfZoneSince = now;
+
+            if (showerReported && now - outOfZoneSince >= (settings.exitDelaySeconds || 60) * 1000) {
+                showerReported = false;
+                addDebugLog('INFO', 'Duschzone verlassen');
+                privacy.reportShowerZone(false).catch(() => {});
+            }
+        };
+
         // Ein kaputtes Binding faellt sonst niemandem auf - der Fehler wird
         // oben abgefangen, und der Spiegel laeuft ohne Sensor weiter.
         if (serialportProblem) {
@@ -282,6 +332,14 @@ module.exports = {
                 offset += 2;
 
                 // Check target status
+                // Die naehere der beiden Messungen ist die aussagekraeftige:
+                // steht jemand in der Dusche, meldet der Sensor ihn dort,
+                // auch wenn er weiter hinten noch etwas anderes sieht.
+                const nearest = [motionDistance, staticDistance]
+                    .filter(value => Number.isFinite(value) && value > 0)
+                    .sort((a, b) => a - b)[0];
+                evaluateShowerZone(nearest);
+
                 if (targetStatus === TARGET_MOVING || targetStatus === TARGET_STATIC || targetStatus === TARGET_BOTH) {
                     lastPresence = Date.now();
                     if (!isPersonPresent) {

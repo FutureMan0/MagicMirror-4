@@ -232,6 +232,17 @@ class RendererModuleLoader {
   }
 
   /**
+   * Ruft eine Funktion für jede laufende Instanz auf.
+   * Wird für Zustandswechsel gebraucht, die alle Module betreffen -
+   * etwa den Privatsphäre-Modus.
+   */
+  eachInstance(callback) {
+    for (const instance of this.loadedModules.values()) {
+      callback(instance);
+    }
+  }
+
+  /**
    * Liefert die laufende Instanz zu einem Instanz-Schlüssel
    */
   getInstance(instanceKey) {

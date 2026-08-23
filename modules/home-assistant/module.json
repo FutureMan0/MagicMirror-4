@@ -53,5 +53,6 @@
       "min": 5000,
       "description": "Aktualisierungsintervall in Millisekunden"
     }
-  }
+  },
+  "privacyLevel": "personal"
 }
