@@ -1,6 +1,6 @@
 .module-clock {
   text-align: center;
-  color: var(--text-primary);
+  color: var(--mm-color-text);
   padding: 5px 15px 2px 15px;
 }
 
@@ -9,8 +9,8 @@
   font-weight: 100;
   letter-spacing: 3px;
   margin-bottom: 2px;
-  color: #ffffff;
-  font-family: 'Segoe UI Light', 'Helvetica Neue', 'Arial', sans-serif;
+  color: var(--mm-color-text);
+  font-family: var(--mm-font-display);
   line-height: 0.95;
   position: relative;
   display: inline-block;
@@ -19,10 +19,10 @@
 .clock-date {
   font-size: 1rem;
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--mm-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 3px;
-  font-family: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+  font-family: var(--mm-font-sans);
 }
 
 .clock-time-suffix {

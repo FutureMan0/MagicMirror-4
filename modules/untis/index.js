@@ -515,9 +515,9 @@ class UntisModule {
           // Zeige gefilterte Stunden in dieser Zelle
           html += `<div class="untis-cell${isPastSlot ? ' untis-past' : ''}">`;
           filteredLessons.forEach(lesson => {
-            const color = this.getLessonColor(lesson);
+            const category = this.getLessonCategory(lesson);
             const info = this.getLessonInfo(lesson);
-            html += h`<div class="untis-lesson" style="background-color: ${color}">
+            html += h`<div class="untis-lesson untis-cat-${category}">
               <div class="untis-subject">${info.subject}</div>
               <div class="untis-room">${info.room}</div>
               <div class="untis-teacher">${info.teacher}</div>
@@ -571,9 +571,9 @@ class UntisModule {
     html += `<h3 class="untis-day-title">${this.t.today}, ${today.toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' })}</h3>`;
 
     lessons.forEach(lesson => {
-      const color = this.getLessonColor(lesson);
+      const category = this.getLessonCategory(lesson);
       const info = this.getLessonInfo(lesson);
-      html += h`<div class="untis-lesson-card" style="border-left: 4px solid ${color}">
+      html += h`<div class="untis-lesson-card untis-cat-${category}">
         <div class="untis-lesson-time">${this.formatTime(lesson.startTime)} - ${this.formatTime(lesson.endTime)}</div>
         <div class="untis-lesson-subject">${info.subject}</div>
         <div class="untis-lesson-details">${info.room} | ${info.teacher}</div>
@@ -602,7 +602,7 @@ class UntisModule {
       return;
     }
 
-    const color = this.getLessonColor(nextLesson);
+    const category = this.getLessonCategory(nextLesson);
     const info = this.getLessonInfo(nextLesson);
     const date = typeof nextLesson.date === 'number' ? this.parseDate(nextLesson.date) : new Date(nextLesson.date);
 
@@ -612,7 +612,7 @@ class UntisModule {
       <div class="untis-next-view">
         <div class="untis-next-label">${this.t.next_lesson}</div>
         <div class="untis-next-time">${date.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-        <div class="untis-next-subject" style="color: ${color}">${info.subject}</div>
+        <div class="untis-next-subject untis-cat-${category}">${info.subject}</div>
         <div class="untis-next-details">${this.formatTime(nextLesson.startTime)} - ${this.formatTime(nextLesson.endTime)}</div>
         <div class="untis-next-room">${info.room} | ${info.teacher}</div>
       </div>
@@ -655,88 +655,52 @@ class UntisModule {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
 
-  getLessonColor(lesson) {
-    // Entfallene Stunden - Rot mit Transparenz
+  /**
+   * Ordnet eine Stunde einer Kategorie zu.
+   *
+   * Vorher gab diese Funktion Hex-Farben zurück, die als Inline-Style
+   * gesetzt wurden. Inline-Styles schlagen jede Stylesheet-Regel - kein
+   * Theme konnte die Stundentafel jemals umfärben, egal wie viele
+   * !important es benutzte.
+   *
+   * Die Zuordnungslogik ist unverändert; nur der Rückgabewert ist jetzt ein
+   * stabiler Name, aus dem eine CSS-Klasse wird. Die Farben stehen in
+   * styles.css und zeigen auf --mm-cat-*, die jedes Theme neu belegen kann.
+   */
+  getLessonCategory(lesson) {
+    // Entfallene Stunden
     if (lesson.code === 'cancelled' || lesson.cellState === 'CANCEL') {
-      return '#EF5350'; // Material Red 400
+      return 'cancelled';
     }
 
-    // Vertretung/Änderung - Warmes Orange
+    // Vertretung/Änderung
     if (lesson.code === 'irregular' || lesson.cellState === 'SUBSTITUTION' || lesson.lstext) {
-      return '#FF9800'; // Material Orange
+      return 'substitution';
     }
 
-    // Farbwahl basierend auf Fach-Kategorie
     const info = this.getLessonInfo(lesson);
     const subject = info.subject.toLowerCase();
 
-    // Mathematik/Analysis - Lebendiges Cyan
-    if (['am', 'mat', 'mathe', 'mathematik', 'analysis'].some(s => subject.includes(s))) {
-      return '#00BCD4'; // Cyan 500
-    }
+    // Reihenfolge ist bedeutsam: die erste passende Regel gewinnt.
+    const includes = (...needles) => needles.some(s => subject.includes(s));
+    const startsWith = (...needles) => needles.some(s => subject === s || subject.startsWith(s));
+    const equals = (...needles) => needles.some(s => subject === s);
 
-    // Informatik/Programmieren - Tiefes Blau
-    if (['inf', 'informatik', 'dic', 'prog', 'syen', 'it'].some(s => subject.includes(s))) {
-      return '#2196F3'; // Blue 500
-    }
+    if (includes('am', 'mat', 'mathe', 'mathematik', 'analysis')) return 'math';
+    if (includes('inf', 'informatik', 'dic', 'prog', 'syen', 'it')) return 'it';
+    if (includes('fsst', 'hwe', 'hwt', 'nwt', 'ele', 'etec')) return 'electronics';
+    if (includes('phy', 'physik', 'eth', 'chemie', 'che')) return 'science';
+    if (startsWith('d', 'deu', 'deutsch')) return 'lang-de';
+    if (startsWith('e', 'eng', 'englisch')) return 'lang-en';
+    if (includes('wir', 'wirtschaft', 'bwl', 'vwl', 'recht', 'rw')) return 'economics';
+    if (includes('spo', 'sport', 'bsp', 'turn')) return 'sports';
+    if (equals('rel', 'religion', 'rk', 'ev', 're')) return 'religion';
+    if (includes('kunst', 'ku', 'musik', 'mu', 'kreativ')) return 'arts';
+    if (includes('lab', 'labor', 'prak', 'praktikum', 'la1', 'mtrs')) return 'lab';
+    if (includes('ksn', 'komm', 'ksnw')) return 'communication';
+    if (includes('w-', 'wahl', 'wpf')) return 'elective';
 
-    // Elektrotechnik/Hardware - Electric Blue
-    if (['fsst', 'hwe', 'hwt', 'nwt', 'ele', 'etec'].some(s => subject.includes(s))) {
-      return '#03A9F4'; // Light Blue 500
-    }
-
-    // Physik/Naturwissenschaft - Deep Purple
-    if (['phy', 'physik', 'eth', 'chemie', 'che'].some(s => subject.includes(s))) {
-      return '#673AB7'; // Deep Purple 500
-    }
-
-    // Sprachen (Deutsch) - Lebendiges Grün
-    if (['d', 'deu', 'deutsch'].some(s => subject === s || subject.startsWith(s))) {
-      return '#4CAF50'; // Green 500
-    }
-
-    // Sprachen (Englisch) - Teal
-    if (['e', 'eng', 'englisch'].some(s => subject === s || subject.startsWith(s))) {
-      return '#009688'; // Teal 500
-    }
-
-    // Wirtschaft/Recht - Elegantes Violett
-    if (['wir', 'wirtschaft', 'bwl', 'vwl', 'recht', 'rw'].some(s => subject.includes(s))) {
-      return '#9C27B0'; // Purple 500
-    }
-
-    // Sport - Energetisches Pink
-    if (['spo', 'sport', 'bsp', 'turn'].some(s => subject.includes(s))) {
-      return '#E91E63'; // Pink 500
-    }
-
-    // Religion/Ethik - Purple
-    if (['rel', 'religion', 'rk', 'ev', 're'].some(s => subject === s)) {
-      return '#9C27B0'; // Purple für Religion
-    }
-
-    // Kunst/Musik/Kreativ - Coral
-    if (['kunst', 'ku', 'musik', 'mu', 'kreativ'].some(s => subject.includes(s))) {
-      return '#FF7043'; // Deep Orange 400
-    }
-
-    // Labor/Praktikum - Mint
-    if (['lab', 'labor', 'prak', 'praktikum', 'la1', 'mtrs'].some(s => subject.includes(s))) {
-      return '#26A69A'; // Teal 400
-    }
-
-    // KSN/Kommunikation - Indigo
-    if (['ksn', 'komm', 'ksnw'].some(s => subject.includes(s))) {
-      return '#5C6BC0'; // Indigo 400
-    }
-
-    // w-di (Wahlpflicht) - Lime
-    if (['w-', 'wahl', 'wpf'].some(s => subject.includes(s))) {
-      return '#00ACC1'; // Cyan 600
-    }
-
-    // Standard-Farbe - Elegantes Slate Blue
-    return '#546E7A'; // Blue Grey 600
+    return 'default';
   }
 }
 

@@ -1,0 +1,60 @@
+/*
+ * Nature.
+ *
+ * Warme, gedämpfte Farben ohne Leuchtakzent. Die Flächen sind angedeutet
+ * statt gerahmt - ein weicher Verlauf statt einer Linie.
+ */
+@layer theme {
+  :root {
+    --mm-color-bg: #0d0f0c;
+    --mm-color-bg-elevated: #14170f;
+    --mm-color-surface: rgba(198, 176, 130, 0.07);
+    --mm-color-surface-2: rgba(198, 176, 130, 0.12);
+    --mm-color-border: rgba(198, 176, 130, 0.18);
+    --mm-color-border-strong: rgba(198, 176, 130, 0.34);
+
+    --mm-color-text: #eee6d6;
+    --mm-color-text-muted: rgba(238, 230, 214, 0.62);
+    --mm-color-text-faint: rgba(238, 230, 214, 0.36);
+
+    --mm-color-accent: #c3a76a;
+    --mm-color-accent-contrast: #14170f;
+    --mm-color-success: #8fbf7a;
+    --mm-color-warning: #d9a441;
+    --mm-color-danger: #c2624f;
+    --mm-color-info: #7fa8a0;
+
+    --mm-cat-1:  #8fbf7a;
+    --mm-cat-2:  #c2874f;
+    --mm-cat-3:  #7fa8a0;
+    --mm-cat-4:  #a98ec4;
+    --mm-cat-5:  #d9c05f;
+    --mm-cat-6:  #c47f96;
+    --mm-cat-7:  #6fa3bf;
+    --mm-cat-8:  #a7bf6f;
+    --mm-cat-9:  #cf9a5f;
+    --mm-cat-10: #8f95c4;
+    --mm-cat-11: #6fbfa8;
+    --mm-cat-12: #b57fc4;
+
+    --mm-font-display: 'Source Serif 4', Georgia, serif;
+
+    --mm-surface-bg: linear-gradient(
+      160deg,
+      rgba(198, 176, 130, 0.10),
+      rgba(198, 176, 130, 0.02)
+    );
+    --mm-surface-border: 1px solid var(--mm-color-border);
+    --mm-surface-radius: var(--mm-radius-lg);
+    --mm-surface-padding: var(--mm-space-5);
+    --mm-surface-shadow: none;
+    --mm-surface-filter: none;
+    --mm-glow: none;
+  }
+
+  .clock-time,
+  .weather-temp {
+    font-family: var(--mm-font-display);
+    font-weight: var(--mm-weight-light);
+  }
+}
