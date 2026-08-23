@@ -97,6 +97,24 @@
         "offDelay": 120,
         "hideUI": true
       }
+    },
+    {
+      "module": "github",
+      "position": {
+        "column": 3,
+        "row": 3,
+        "columnSpan": 1,
+        "rowSpan": 1,
+        "align": "start",
+        "justify": "start"
+      },
+      "enabled": false,
+      "config": {
+        "repos": "",
+        "maxCommits": 3,
+        "showPullRequests": true,
+        "showStars": true
+      }
     }
   ]
 }
