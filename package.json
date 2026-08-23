@@ -19,8 +19,13 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "node --test",
-    "verify": "npm run lint && npm test",
-    "routes": "node scripts/collect-routes.js"
+    "verify": "npm run lint && npm run check:tokens && npm test",
+    "routes": "node scripts/collect-routes.js",
+    "fonts:build": "node scripts/build-fonts.mjs",
+    "check:tokens": "node scripts/check-tokens.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "postinstall": "node scripts/rebuild-native.mjs",
+    "icons:build": "node scripts/build-icons.mjs"
   },
   "keywords": [
     "magic-mirror",
@@ -31,15 +36,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "dayjs": "^1.11.10",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
-    "node-fetch": "^3.3.2",
+    "qrcode": "^1.5.4",
     "ws": "^8.16.0"
   },
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1",
+    "@electron/rebuild": "^4.2.0",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.0.0",
     "eslint": "^9.39.5"
   },
   "build": {
@@ -56,6 +61,12 @@
     ]
   },
   "optionalDependencies": {
-    "serialport": "^12.0.0"
+    "serialport": "^13.0.0"
+  },
+  "allowScripts": {
+    "electron@28.3.3": true
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }

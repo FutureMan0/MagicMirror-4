@@ -1,0 +1,148 @@
+/*
+ * Gemeinsame Optik für alle Daten-Module.
+ *
+ * Ohne das bekommt jedes Modul seine eigene Fassung von "lädt", "Fehler" und
+ * "veraltet" - und der Spiegel sieht aus wie von fünf Leuten gebaut.
+ * Sämtliche Werte kommen aus Tokens, damit jedes Theme durchgreift.
+ */
+
+@layer base {
+  .dm-module {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+    min-width: 0;
+  }
+
+  .dm-title {
+    font-size: var(--mm-size-sm);
+    font-weight: var(--mm-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: var(--mm-tracking-wide);
+    color: var(--mm-color-text-muted);
+  }
+
+  .dm-status {
+    font-size: var(--mm-size-xs);
+    color: var(--mm-color-text-faint);
+  }
+
+  .dm-status-error {
+    color: var(--mm-color-warning);
+  }
+
+  .dm-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-2);
+    min-width: 0;
+  }
+
+  /* Skelett statt Spinner: es zeigt, wie viel gleich kommt, und die Anzeige
+     springt beim Eintreffen der Daten nicht. */
+  .dm-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mm-space-3);
+  }
+
+  .dm-skeleton span {
+    height: 12px;
+    border-radius: var(--mm-radius-sm);
+    background: var(--mm-color-surface-2);
+    animation: dm-pulse 1.6s ease-in-out infinite;
+    animation-play-state: var(--mm-anim-ambient);
+  }
+
+  .dm-skeleton span:nth-child(2) {
+    width: 80%;
+    animation-delay: 0.15s;
+  }
+
+  .dm-skeleton span:nth-child(3) {
+    width: 55%;
+    animation-delay: 0.3s;
+  }
+
+  @keyframes dm-pulse {
+    0%, 100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 0.75;
+    }
+  }
+
+  .dm-error {
+    font-size: var(--mm-size-sm);
+    color: var(--mm-color-text-muted);
+  }
+
+  /* Zeile mit Bezeichnung links und Wert rechts - das häufigste Muster. */
+  .dm-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--mm-space-3);
+    min-width: 0;
+  }
+
+  .dm-row-label {
+    color: var(--mm-color-text-muted);
+    font-size: var(--mm-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dm-row-value {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Balken für Auslastung, Speicher, Fortschritt. */
+  .dm-bar {
+    height: 6px;
+    border-radius: var(--mm-radius-pill);
+    background: var(--mm-color-surface-2);
+    overflow: hidden;
+  }
+
+  .dm-bar-fill {
+    height: 100%;
+    background: var(--mm-color-accent);
+    transition: width var(--mm-dur-normal) var(--mm-ease-standard);
+  }
+
+  .dm-bar-fill[data-level="warn"] {
+    background: var(--mm-color-warning);
+  }
+
+  .dm-bar-fill[data-level="critical"] {
+    background: var(--mm-color-danger);
+  }
+
+  /* Kleine Marke für Zustände: laufend, gestoppt, Anzahl. */
+  .dm-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--mm-space-1);
+    padding: 1px var(--mm-space-3);
+    border-radius: var(--mm-radius-pill);
+    background: var(--mm-color-surface-2);
+    font-size: var(--mm-size-xs);
+    white-space: nowrap;
+  }
+
+  .dm-pill[data-tone="ok"] {
+    color: var(--mm-color-success);
+  }
+
+  .dm-pill[data-tone="warn"] {
+    color: var(--mm-color-warning);
+  }
+
+  .dm-pill[data-tone="danger"] {
+    color: var(--mm-color-danger);
+  }
+}

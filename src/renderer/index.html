@@ -5,17 +5,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' http://localhost:3000 https://api.openweathermap.org https://*.webuntis.com https://accounts.spotify.com https://api.spotify.com; img-src 'self' data: https:;">
+    content="default-src 'self'; script-src 'self' file:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' http://localhost:3000 https://api.openweathermap.org https://*.webuntis.com https://accounts.spotify.com https://api.spotify.com; img-src 'self' data: https:;">
   <title>Magic Mirror</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Reihenfolge ist bedeutsam: tokens.css legt die @layer-Reihenfolge fest
+       und muss deshalb als erstes Stylesheet kommen. -->
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/fonts.css">
   <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/data-module.css">
+  <link rel="stylesheet" href="styles/forge.css">
+  <link rel="stylesheet" href="styles/privacy.css">
 </head>
 
 <body>
   <div id="modules-container"></div>
+  <script src="../shared/bus.js"></script>
+  <script src="bus.js"></script>
+  <script src="themeEngine.js"></script>
+  <script src="html.js"></script>
+  <script src="sdk.js"></script>
+  <script src="lib/DataModule.js"></script>
+  <script src="lib/ForgeModule.js"></script>
+  <script src="clockTick.js"></script>
   <script src="weatherEffects.js"></script>
+  <script src="reconciler.js"></script>
+  <script src="privacy.js"></script>
+  <script src="gestureRouter.js"></script>
+  <script src="pairing.js"></script>
   <script src="moduleLoader.js"></script>
   <script src="renderer.js"></script>
 </body>

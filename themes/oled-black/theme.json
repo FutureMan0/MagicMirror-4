@@ -1,0 +1,7 @@
+{
+  "name": "OLED Black",
+  "description": "Reines Schwarz, gedämpfte Helligkeit, keine Flächen. Auf OLED-Panels bleibt der Hintergrund vollständig dunkel und brennt nicht ein.",
+  "mode": "dark",
+  "author": "MagicMirror⁴",
+  "supports": { "blur": false, "ambientMotion": false }
+}

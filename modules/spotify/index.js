@@ -1,198 +1,166 @@
-class SpotifyModule {
+// Spotify-Anzeige.
+//
+// Die alte Fassung erneuerte den Zugangs-Token im Browser - mit dem Client
+// Secret, sichtbar in den Entwicklerwerkzeugen. Das ist jetzt Sache des
+// Backends; hier kommt nur noch fertig aufbereitetes an.
+var SpotifyBase = (typeof window !== 'undefined' && window.DataModule)
+  || (typeof window !== 'undefined' && window.MMModule)
+  || class {};
+
+class SpotifyModule extends SpotifyBase {
+  static moduleName = 'spotify';
+  static patchable = ['showCover', 'showProgress', 'showSpotifyCode'];
+
   constructor(config = {}) {
+    super(config);
+
     this.config = {
-      clientId: config.clientId || '',
-      clientSecret: config.clientSecret || '',
-      refreshToken: config.refreshToken || '',
       showCover: config.showCover !== false,
       showProgress: config.showProgress !== false,
       showSpotifyCode: config.showSpotifyCode !== false,
       updateInterval: config.updateInterval || 5000,
-      language: config.language || 'en'
+      language: config.language || 'de',
+      ...config
     };
 
-    this.translations = {
-      'de': {
-        not_configured: 'Spotify nicht konfiguriert. Bitte OAuth durchführen.',
-        nothing_playing: 'Kein Song wird abgespielt'
-      },
-      'en': {
-        not_configured: 'Spotify not configured. Please perform OAuth.',
-        nothing_playing: 'No song is playing'
-      }
-    };
-
-    this.container = null;
-    this.accessToken = null;
-    this.currentTrack = null;
-    this.updateInterval = null;
+    this.elements = {};
+    this.lastTrackId = null;
   }
 
-  get t() {
-    return this.translations[this.config.language] || this.translations['en'];
+  get endpoint() {
+    return '/api/spotify/now-playing';
   }
 
-  async render() {
-    this.container = document.createElement('div');
-    this.container.className = 'module-spotify';
+  get title() {
+    return null;
+  }
 
-    if (!this.config.clientId || !this.config.clientSecret || !this.config.refreshToken) {
-      this.container.innerHTML = `<div class="spotify-error">${this.t.not_configured}</div>`;
-      return this.container;
+  render() {
+    const container = super.render();
+
+    // Der laufende Fortschritt kommt nicht vom Server: alle zwei Sekunden
+    // nachzufragen wäre Verschwendung, und dazwischen stünde der Balken
+    // still. Stattdessen wird lokal weitergezählt.
+    if (this.bus) {
+      this.subscribe('tick:second', () => this.tickProgress());
+    } else {
+      this.timers.every(1000, () => this.tickProgress());
     }
 
-    // Hole Access Token
-    await this.refreshAccessToken();
+    // Der Titel selbst wird regelmässig geholt.
+    this.timers.every(Math.max(this.config.updateInterval, 3000), () => this.reload());
 
-    // Lade aktuellen Track
-    await this.loadCurrentTrack();
-
-    // Rendere UI
-    this.renderUI();
-
-    // Update regelmäßig
-    this.updateInterval = setInterval(() => {
-      this.loadCurrentTrack().then(() => this.renderUI());
-    }, this.config.updateInterval);
-
-    return this.container;
+    return container;
   }
 
-  async refreshAccessToken() {
-    if (!this.config.refreshToken) return;
-
-    try {
-      const response = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Basic ' + btoa(`${this.config.clientId}:${this.config.clientSecret}`)
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: this.config.refreshToken
-        })
-      });
-
-      const data = await response.json();
-      if (data.access_token) {
-        this.accessToken = data.access_token;
-      }
-    } catch (error) {
-      console.error('Fehler beim Token-Refresh:', error);
-    }
-  }
-
-  async loadCurrentTrack() {
-    if (!this.accessToken) return;
-
-    try {
-      const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`
-        }
-      });
-
-      if (response.status === 204) {
-        // Kein Track wird abgespielt
-        this.currentTrack = null;
-        return;
-      }
-
-      const data = await response.json();
-      this.currentTrack = data;
-    } catch (error) {
-      console.error('Fehler beim Laden des aktuellen Tracks:', error);
-    }
-  }
-
-  renderUI() {
-    if (!this.currentTrack || !this.currentTrack.item) {
-      this.container.innerHTML = `<div class="spotify-empty">${this.t.nothing_playing}</div>`;
+  renderData(data, root) {
+    if (!data || !data.track) {
+      root.textContent = '';
+      this.elements = {};
+      root.appendChild(this.buildNotice('dm-error', 'Gerade läuft nichts.'));
       return;
     }
 
-    const track = this.currentTrack.item;
-    const progress = this.currentTrack.progress_ms || 0;
-    const duration = track.duration_ms || 0;
-    const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
-
-    let html = '<div class="spotify-container">';
-
-    // Song Info oben
-    html += `<div class="spotify-info">
-      <div class="spotify-title">${this.escapeHtml(track.name)}</div>
-      <div class="spotify-artist">${this.escapeHtml(track.artists.map(a => a.name).join(', '))}</div>
-    </div>`;
-
-    // Album Cover
-    if (this.config.showCover && track.album.images && track.album.images.length > 0) {
-      const coverUrl = track.album.images[0].url;
-      html += `<div class="spotify-cover">
-        <img src="${coverUrl}" alt="Album Cover" />
-      </div>`;
+    // Nur bei einem Titelwechsel neu aufbauen. Sonst würde jede Sekunde das
+    // Cover neu geladen und die Anzeige flackern.
+    if (data.track.id !== this.lastTrackId || !this.elements.title) {
+      this.buildTrack(root, data);
+      this.lastTrackId = data.track.id;
     }
 
-    // Spotify Code & Controls
-    html += `<div class="spotify-controls">
-      <div class="spotify-logo">🎵</div>
-      <div class="spotify-waveform">
-        ${this.generateWaveform()}
-      </div>
-    </div>`;
+    this.updateProgress(data.progressMs, data.track.durationMs);
 
-    // Progress Bar
-    if (this.config.showProgress) {
-      html += `<div class="spotify-progress">
-        <div class="spotify-progress-bar" style="width: ${progressPercent}%"></div>
-      </div>`;
-
-      html += `<div class="spotify-time">
-        <span class="spotify-time-current">${this.formatTime(progress)}</span>
-        <span class="spotify-time-total">${this.formatTime(duration)}</span>
-      </div>`;
+    if (this.elements.state) {
+      this.elements.state.textContent = data.isPlaying ? '▶' : '❚❚';
     }
-
-    // Device Info
-    if (this.currentTrack.device) {
-      html += `<div class="spotify-device">
-        <span class="spotify-device-icon">🖥️</span>
-        <span class="spotify-device-name">${this.escapeHtml(this.currentTrack.device.name)}</span>
-      </div>`;
-    }
-
-    html += '</div>';
-
-    this.container.innerHTML = html;
   }
 
-  generateWaveform() {
-    // Generiere einfache Waveform-Visualisierung
-    let waveform = '';
-    for (let i = 0; i < 20; i++) {
-      const height = Math.random() * 30 + 10;
-      waveform += `<div class="waveform-bar" style="height: ${height}px"></div>`;
+  buildTrack(root, data) {
+    root.textContent = '';
+    this.elements = {};
+
+    const layout = document.createElement('div');
+    layout.className = 'spotify-layout';
+
+    if (this.config.showCover && data.track.coverUrl) {
+      const cover = document.createElement('img');
+      cover.className = 'spotify-cover';
+      cover.alt = '';
+      cover.src = data.track.coverUrl;
+      layout.appendChild(cover);
     }
-    return waveform;
+
+    const info = document.createElement('div');
+    info.className = 'spotify-info';
+
+    this.elements.title = document.createElement('div');
+    this.elements.title.className = 'spotify-title';
+    this.elements.title.textContent = data.track.name;
+    info.appendChild(this.elements.title);
+
+    this.elements.artist = document.createElement('div');
+    this.elements.artist.className = 'spotify-artist';
+    this.elements.artist.textContent = data.track.artists.join(', ');
+    info.appendChild(this.elements.artist);
+
+    if (this.config.showProgress) {
+      const bar = document.createElement('div');
+      bar.className = 'dm-bar spotify-progress';
+
+      this.elements.fill = document.createElement('div');
+      this.elements.fill.className = 'dm-bar-fill';
+      bar.appendChild(this.elements.fill);
+      info.appendChild(bar);
+
+      const times = document.createElement('div');
+      times.className = 'spotify-times';
+
+      this.elements.elapsed = document.createElement('span');
+      this.elements.total = document.createElement('span');
+      this.elements.state = document.createElement('span');
+      this.elements.state.className = 'spotify-state';
+
+      times.append(this.elements.elapsed, this.elements.state, this.elements.total);
+      info.appendChild(times);
+    }
+
+    layout.appendChild(info);
+    root.appendChild(layout);
+  }
+
+  /** Zählt lokal weiter, ohne dafür zu fragen. */
+  tickProgress() {
+    if (!this.data || !this.data.track || !this.data.isPlaying) return;
+
+    this.data.progressMs = Math.min(
+      this.data.progressMs + 1000,
+      this.data.track.durationMs
+    );
+
+    this.updateProgress(this.data.progressMs, this.data.track.durationMs);
+  }
+
+  updateProgress(progressMs, durationMs) {
+    if (!this.elements.fill || !durationMs) return;
+
+    const percent = Math.min(100, (progressMs / durationMs) * 100);
+    this.elements.fill.style.width = `${percent}%`;
+
+    if (this.elements.elapsed) this.elements.elapsed.textContent = this.formatTime(progressMs);
+    if (this.elements.total) this.elements.total.textContent = this.formatTime(durationMs);
   }
 
   formatTime(ms) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  }
-
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    const total = Math.floor((ms || 0) / 1000);
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
   }
 
   destroy() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-    }
+    if (super.destroy) super.destroy();
+    this.elements = {};
+    this.lastTrackId = null;
   }
 }
 

@@ -1,3 +1,11 @@
+// Bewusst `var` und nicht `const`: unter file:// werden Module als klassische
+// Scripts geladen und teilen sich einen globalen Scope. Ein zweites `const`
+// desselben Namens wuerde das Modul mit einem SyntaxError scheitern lassen.
+// Als ES-Modul (der Normalfall) ist die Deklaration ohnehin modul-lokal.
+var h = (typeof window !== 'undefined' && window.mmHtml)
+  ? window.mmHtml
+  : (strings, ...values) => strings.reduce((out, chunk, i) => out + String(values[i - 1] ?? '') + chunk);
+
 class mmWavePresenceModule {
     constructor(config = {}) {
         this.config = {
@@ -13,6 +21,7 @@ class mmWavePresenceModule {
         this.displayOn = true;
         this.container = null;
         this.updateTimer = null;
+        this.unsubscribe = null;
     }
 
     render() {
@@ -112,7 +121,7 @@ class mmWavePresenceModule {
         if (this.lastPresence) {
             const last = new Date(this.lastPresence);
             const timeStr = last.toLocaleTimeString(this.config.language, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            details.innerHTML = `
+            details.innerHTML = h`
         <div class="detail-item">
           <span>Last Presence:</span>
           <span>${timeStr}</span>
@@ -130,7 +139,26 @@ class mmWavePresenceModule {
     }
 
     startUpdating() {
+        // Einmal den Ist-Zustand holen, danach zuhoeren. Frueher lief hier ein
+        // Dauer-Poll - und weil der Endpunkt wegen eines Config-Fehlers gar
+        // nicht existierte, waren das jahrelang 404er im Sekundentakt.
         this.updateStatus();
+
+        if (window.mmBus) {
+            this.unsubscribe = window.mmBus.on('presence:changed', (payload) => {
+                if (!payload) return;
+                this.presence = payload.present;
+                if (payload.lastPresence) this.lastPresence = payload.lastPresence;
+                this.updateUI();
+            });
+
+            // Deutlich seltener nachfassen: nur um Verbindungsstatus und
+            // Zaehler aktuell zu halten, nicht fuer die Anwesenheit selbst.
+            this.updateTimer = setInterval(() => this.updateStatus(), 60000);
+            return;
+        }
+
+        // Ohne Bus (etwa in einem einfachen Browser) bleibt das Polling.
         this.updateTimer = setInterval(() => this.updateStatus(), 5000);
     }
 
@@ -138,6 +166,10 @@ class mmWavePresenceModule {
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
             this.updateTimer = null;
+        }
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
         }
         this.container = null;
     }

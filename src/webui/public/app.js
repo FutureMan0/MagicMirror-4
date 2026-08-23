@@ -1,3 +1,14 @@
+// Muss zu SECRET_PLACEHOLDER in src/main/configManager.js passen.
+const SECRET_PLACEHOLDER = '__SET__';
+
+// Escaping fuer Werte aus fremden APIs, die in Markup eingesetzt werden.
+function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[char]));
+}
+
 // Web Config Interface JavaScript
 
 let currentConfig = null;
@@ -26,12 +37,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Theme-Picker Setup (WebUI)
   setupThemePicker();
 
-  // Mirror Theme-Picker Setup
-  setupMirrorThemePicker();
-
   // Lade zuerst Module, dann Config
   await loadModules();
   await loadConfig();
+
+  // Erst danach die Theme-Auswahl aufbauen: sie markiert das aktive Theme
+  // und braucht dafür die geladene Konfiguration.
+  await setupMirrorThemePicker();
+  setupLiveView();
   renderModuleList();
 
   // Warte kurz, bis initGridSettings gelaufen ist
@@ -283,16 +296,177 @@ async function loadConfig() {
   }
 }
 
-// Mirror Theme System
-function setupMirrorThemePicker() {
-  const themeButtons = document.querySelectorAll('#mirror-theme-picker button[data-mirror-theme]');
+/**
+ * Live-Ansicht des Spiegels.
+ *
+ * Zeigt denselben Renderer, der auch auf dem Spiegel laeuft - ueber HTTP in
+ * einem iframe. Der Layout-Editor zeigt sonst nur Kaestchen mit Modulnamen;
+ * ob eine Uhr wirklich passt oder ein Theme zu dunkel ist, sieht man daran
+ * nicht.
+ *
+ * Der Rahmen laedt in voller Aufloesung und wird als Ganzes skaliert. Ein
+ * einfach verkleinerter iframe wuerde stattdessen ein Handy-Layout rendern -
+ * also gerade nicht das, was am Spiegel zu sehen ist.
+ */
+function setupLiveView() {
+  const section = document.getElementById('live-view');
+  const toggle = document.getElementById('toggle-live-view');
+  const frame = document.getElementById('live-view-iframe');
+  const reload = document.getElementById('live-view-reload');
+  const hint = document.getElementById('live-view-hint');
+  if (!section || !toggle || !frame) return;
 
-  themeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const theme = button.getAttribute('data-mirror-theme');
-      setMirrorTheme(theme);
-    });
+  const MIRROR_WIDTH = 1920;
+  let visible = localStorage.getItem('liveViewVisible') === '1';
+
+  function url() {
+    return `/mirror/index.html?instance=${encodeURIComponent(currentInstance)}&preview=1`;
+  }
+
+  function rescale() {
+    const wrapper = frame.parentElement;
+    if (!wrapper) return;
+    const scale = wrapper.clientWidth / MIRROR_WIDTH;
+    wrapper.style.setProperty('--live-view-scale', String(scale));
+  }
+
+  function apply() {
+    section.hidden = !visible;
+    toggle.classList.toggle('active', visible);
+    localStorage.setItem('liveViewVisible', visible ? '1' : '0');
+
+    if (visible) {
+      // Erst beim Einblenden laden: sonst laeuft im Hintergrund dauerhaft ein
+      // zweiter Spiegel samt aller Netzabfragen mit.
+      if (frame.getAttribute('src') !== url()) frame.setAttribute('src', url());
+      rescale();
+      if (hint) hint.textContent = 'zeigt den Spiegel, wie er gerade aussieht';
+    } else {
+      frame.removeAttribute('src');
+    }
+  }
+
+  toggle.addEventListener('click', () => {
+    visible = !visible;
+    apply();
   });
+
+  reload?.addEventListener('click', () => {
+    frame.setAttribute('src', url());
+  });
+
+  window.addEventListener('resize', rescale);
+
+  // Beim Wechsel der Instanz die andere Anzeige zeigen.
+  document.getElementById('instance-select')?.addEventListener('change', () => {
+    if (visible) frame.setAttribute('src', url());
+  });
+
+  apply();
+}
+
+/**
+ * Laedt Module und Konfiguration neu, ohne die Seite zu verwerfen.
+ *
+ * Ein location.reload() wuerde die Wisch-Geste zwar auch bedienen, aber die
+ * Verbindung neu aufbauen und die Ansicht zuruecksetzen - fuer ein
+ * "aktualisieren" ist das zu viel.
+ */
+window.reloadEverything = async function reloadEverything() {
+  await loadModules();
+  await loadConfig();
+  renderModuleList();
+  updateMirrorThemeUI();
+  if (window.refreshActiveLayoutView) {
+    window.refreshActiveLayoutView();
+  } else {
+    renderPreview();
+  }
+};
+
+// Eine Aenderung von einem anderen Geraet - oder vom Spiegel selbst -
+// erreicht diese Oberflaeche jetzt sofort, statt bis zum naechsten Neuladen
+// unsichtbar zu bleiben.
+document.addEventListener('mm:config', (event) => {
+  const payload = event.detail || {};
+  if (payload.instance && payload.instance !== currentInstance) return;
+
+  // Waehrend eine Bearbeitung offen ist, nicht dazwischenfunken - sonst
+  // verschwinden Eingaben unter den Fingern.
+  const settingsOpen = document.getElementById('settings-actions')?.style.display !== 'none';
+  if (settingsOpen) {
+    showNotification('Die Konfiguration wurde anderswo geändert. Nach dem Speichern neu laden.');
+    return;
+  }
+
+  if (!payload.config) return;
+
+  currentConfig = payload.config;
+  renderModuleList();
+  updateMirrorThemeUI();
+  if (window.refreshActiveLayoutView) {
+    window.refreshActiveLayoutView();
+  } else {
+    renderPreview();
+  }
+});
+
+// Mirror Theme System
+//
+// Die Auswahl stand frueher fest im HTML. Ein neues Theme war damit
+// unsichtbar, bis jemand die Datei anfasste. Jetzt kommt die Liste aus
+// GET /api/themes, das themes/ scannt.
+let availableThemes = [];
+
+async function setupMirrorThemePicker() {
+  const picker = document.getElementById('mirror-theme-picker');
+  if (!picker) return;
+
+  try {
+    const response = await fetch('/api/themes');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    availableThemes = await response.json();
+  } catch (error) {
+    console.error('Themes konnten nicht geladen werden:', error);
+    picker.textContent = 'Themes konnten nicht geladen werden.';
+    return;
+  }
+
+  picker.innerHTML = '';
+  picker.classList.add('theme-cards');
+
+  for (const theme of availableThemes) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'theme-card';
+    card.dataset.mirrorTheme = theme.id;
+
+    const swatch = document.createElement('span');
+    swatch.className = 'theme-card-swatch';
+    swatch.dataset.mode = theme.mode;
+
+    const name = document.createElement('span');
+    name.className = 'theme-card-name';
+    name.textContent = theme.name;
+
+    const description = document.createElement('span');
+    description.className = 'theme-card-description';
+    description.textContent = theme.description || '';
+
+    card.append(swatch, name, description);
+
+    if (theme.mode === 'light') {
+      const badge = document.createElement('span');
+      badge.className = 'theme-card-badge';
+      badge.textContent = 'hell';
+      card.appendChild(badge);
+    }
+
+    card.addEventListener('click', () => setMirrorTheme(theme.id));
+    picker.appendChild(card);
+  }
+
+  updateMirrorThemeUI();
 }
 
 function updateMirrorThemeUI() {
@@ -302,7 +476,9 @@ function updateMirrorThemeUI() {
   const buttons = document.querySelectorAll('#mirror-theme-picker button');
   buttons.forEach(btn => btn.classList.remove('active'));
 
-  const activeBtn = document.querySelector(`#mirror-theme-picker button[data-mirror-theme="${currentTheme}"]`);
+  const activeBtn = document.querySelector(
+    `#mirror-theme-picker button[data-mirror-theme="${CSS.escape(currentTheme)}"]`
+  );
   if (activeBtn) activeBtn.classList.add('active');
 }
 
@@ -576,6 +752,7 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   html += '</div>';
 
   // Modul-spezifische Einstellungen
+  const secretFields = moduleInfo?.secretFields || [];
   if (moduleInfo?.info?.config) {
     Object.entries(moduleInfo.info.config).forEach(([key, schema]) => {
       html += '<div class="form-group">';
@@ -588,6 +765,19 @@ function showModuleSettings(moduleConfig, moduleInfo) {
         html += `</div>`;
       } else if (schema.type === 'number') {
         html += `<input type="number" name="${key}" value="${moduleConfig.config?.[key] ?? schema.default ?? ''}">`;
+      } else if (secretFields.includes(key)) {
+        // Geheimnisse verlassen den Pi nicht. Der Server liefert stattdessen
+        // den Platzhalter SECRET_PLACEHOLDER. Ein leer gelassenes Feld
+        // bedeutet "unverändert".
+        const isSet = moduleConfig.config?.[key] === SECRET_PLACEHOLDER;
+        html += `<input type="password" name="${key}" value="" autocomplete="new-password"`;
+        html += ` placeholder="${isSet ? '•••••••• (gespeichert)' : 'nicht gesetzt'}"`;
+        html += ` data-secret="true" data-was-set="${isSet}">`;
+        html += `<small style="color: var(--text-secondary); display: block; margin-top: 4px;">`;
+        html += isSet
+          ? 'Gespeichert. Leer lassen, um den Wert unverändert zu übernehmen.'
+          : 'Noch nicht gesetzt.';
+        html += `</small>`;
       } else {
         html += `<input type="text" name="${key}" value="${moduleConfig.config?.[key] ?? schema.default ?? ''}" placeholder="${schema.default || ''}">`;
       }
@@ -615,27 +805,11 @@ function showModuleSettings(moduleConfig, moduleInfo) {
     html += '</div>';
   }
 
-  // Spotify: OAuth Authentifizierung
+  // Spotify: Einrichtung
   if (moduleConfig.module === 'spotify') {
-    const hasRefreshToken = moduleConfig.config?.refreshToken;
-    html += '<div class="form-group" style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">';
-    html += '<label>Spotify Authentifizierung</label>';
-    html += '<div style="display: flex; gap: 8px; align-items: center; flex-direction: column; align-items: stretch;">';
-
-    if (hasRefreshToken) {
-      html += '<div style="padding: 10px; background: rgba(0,255,0,0.1); border: 1px solid rgba(0,255,0,0.3); border-radius: 6px; color: #00ff00;">';
-      html += '✓ Spotify ist verbunden';
-      html += '</div>';
-      html += '<button type="button" class="btn-secondary" id="spotify-reauth-btn">Erneut verbinden</button>';
-    } else {
-      html += '<div style="padding: 10px; background: rgba(255,200,0,0.1); border: 1px solid rgba(255,200,0,0.3); border-radius: 6px; color: #ffcc00;">';
-      html += '⚠ Spotify nicht verbunden';
-      html += '</div>';
-      html += '<button type="button" class="btn-primary" id="spotify-auth-btn">Mit Spotify verbinden</button>';
-    }
-
-    html += '</div>';
-    html += '<small style="color: var(--text-secondary); margin-top: 8px; display: block;">Der OAuth-Flow öffnet ein neues Fenster. Nach erfolgreicher Anmeldung wird der Refresh Token automatisch gespeichert.</small>';
+    html += '<div class="form-group spotify-setup">';
+    html += '<label>Spotify-Verbindung</label>';
+    html += '<div id="spotify-setup-body">Wird geprüft …</div>';
     html += '</div>';
   }
 
@@ -648,7 +822,7 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   }
 
   if (moduleConfig.module === 'spotify') {
-    initSpotifyAuth(moduleConfig);
+    initSpotifySetup();
   }
 
   // Position Type Switcher
@@ -692,7 +866,8 @@ async function initUntisClassPicker(moduleConfig) {
 
       select.innerHTML = '<option value="">Klasse wählen…</option>' + classes.map(c => {
         const label = c.longName || c.name || `Klasse ${c.id}`;
-        return `<option value="${c.id}">${label}</option>`;
+        // Name und Id stammen aus der WebUntis-Antwort.
+        return `<option value="${escapeHtml(c.id)}">${escapeHtml(label)}</option>`;
       }).join('');
     } catch (error) {
       console.error('Fehler beim Laden der Klassen:', error);
@@ -717,73 +892,261 @@ async function initUntisClassPicker(moduleConfig) {
   }
 }
 
-function initSpotifyAuth(moduleConfig) {
-  const authBtn = document.getElementById('spotify-auth-btn');
-  const reauthBtn = document.getElementById('spotify-reauth-btn');
+/**
+ * Einrichtungs-Assistent für Spotify.
+ *
+ * Der Wunsch war "ohne viel Tamtam". Was dem im Weg stand:
+ *
+ *  1. Man muss sich selbst eine Spotify-App anlegen. Das lässt sich nicht
+ *     umgehen - im Development Mode braucht der App-Besitzer Premium und darf
+ *     nur fünf Testnutzer haben, eine mitgelieferte Client-ID wäre also nach
+ *     fünf Leuten am Ende.
+ *  2. Man musste Client ID UND Secret abtippen. Das Secret entfällt jetzt
+ *     dank PKCE.
+ *  3. Die Rückleitungsadresse musste man von Hand eintragen und exakt
+ *     treffen. Sie steht jetzt hier zum Kopieren.
+ *
+ * Übrig bleiben: App anlegen, zwei Werte kopieren, eine ID einfügen,
+ * verbinden.
+ */
+async function initSpotifySetup() {
+  const body = document.getElementById('spotify-setup-body');
+  if (!body) return;
 
-  const startAuth = async () => {
-    try {
-      // Hole Auth-URL vom Backend
-      const response = await fetch(`/api/spotify/auth-url?instance=${currentInstance}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || 'Fehler beim Starten der Authentifizierung.');
-        return;
-      }
-
-      // Öffne Auth-Fenster
-      const authWindow = window.open(
-        data.authUrl,
-        'Spotify Authentifizierung',
-        'width=600,height=800,left=100,top=100'
-      );
-
-      // Polling für Callback-Result
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(`/api/spotify/auth-status?instance=${currentInstance}`);
-          const statusData = await statusResponse.json();
-
-          if (statusData.status === 'completed') {
-            clearInterval(pollInterval);
-            if (authWindow && !authWindow.closed) {
-              authWindow.close();
-            }
-
-            // Reload Config und zeige Success
-            await loadConfig();
-            alert('✓ Spotify erfolgreich verbunden!');
-            selectModule(selectedModule); // Refresh Settings-UI
-          } else if (statusData.status === 'error') {
-            clearInterval(pollInterval);
-            if (authWindow && !authWindow.closed) {
-              authWindow.close();
-            }
-            alert('Fehler bei der Authentifizierung: ' + (statusData.error || 'Unbekannter Fehler'));
-          }
-        } catch (error) {
-          console.error('Fehler beim Polling:', error);
-        }
-      }, 2000);
-
-      // Stop Polling nach 5 Minuten
-      setTimeout(() => {
-        clearInterval(pollInterval);
-      }, 300000);
-
-    } catch (error) {
-      console.error('Fehler beim Starten der Authentifizierung:', error);
-      alert('Fehler beim Starten der Authentifizierung.');
-    }
-  };
-
-  if (authBtn) {
-    authBtn.addEventListener('click', startAuth);
+  let status;
+  try {
+    const response = await fetch(`/api/spotify/auth-status?instance=${currentInstance}`);
+    status = await response.json();
+  } catch (error) {
+    body.textContent = 'Status konnte nicht geladen werden.';
+    return;
   }
 
-  if (reauthBtn) {
-    reauthBtn.addEventListener('click', startAuth);
+  body.textContent = '';
+
+  if (status.connected) {
+    body.appendChild(buildSpotifyConnected());
+    return;
+  }
+
+  body.appendChild(buildSpotifySteps(status));
+}
+
+function buildSpotifyConnected() {
+  const box = document.createElement('div');
+  box.className = 'spotify-connected';
+
+  const line = document.createElement('div');
+  line.className = 'spotify-status-ok';
+  line.textContent = '✓ Verbunden';
+  box.appendChild(line);
+
+  const disconnect = document.createElement('button');
+  disconnect.type = 'button';
+  disconnect.className = 'btn-secondary';
+  disconnect.textContent = 'Verbindung trennen';
+  disconnect.addEventListener('click', async () => {
+    await fetch('/api/spotify/disconnect', { method: 'POST' });
+    initSpotifySetup();
+  });
+  box.appendChild(disconnect);
+
+  return box;
+}
+
+function buildSpotifySteps(status) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'spotify-steps';
+
+  const hint = document.createElement('p');
+  hint.className = 'spotify-hint';
+  // Ohne diesen Hinweis läuft man in ein 403, dessen Ursache nirgends steht.
+  hint.textContent = 'Spotify verlangt für eigene Apps ein Premium-Konto.';
+  wrapper.appendChild(hint);
+
+  wrapper.appendChild(buildSpotifyStep(1,
+    'Spotify-App anlegen',
+    'Im Dashboard auf „Create app". Name und Beschreibung sind frei wählbar.',
+    (content) => {
+      const link = document.createElement('a');
+      link.href = 'https://developer.spotify.com/dashboard';
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'btn-secondary spotify-link';
+      link.textContent = 'Dashboard öffnen';
+      content.appendChild(link);
+    }
+  ));
+
+  wrapper.appendChild(buildSpotifyStep(2,
+    'Diese Adresse als Redirect URI eintragen',
+    'Sie muss exakt übereinstimmen — deshalb kopieren statt abtippen.',
+    (content) => content.appendChild(buildCopyField(status.redirectUri))
+  ));
+
+  wrapper.appendChild(buildSpotifyStep(3,
+    'Client ID einfügen',
+    'Aus der Übersicht der eben angelegten App. Ein Client Secret wird nicht gebraucht.',
+    (content) => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'spotify-client-id';
+      input.placeholder = 'z. B. 4c2a9f18…';
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      content.appendChild(input);
+
+      const save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'btn-secondary';
+      save.textContent = 'Speichern';
+      save.addEventListener('click', async () => {
+        const value = input.value.trim();
+        if (!value) return;
+
+        const moduleConfig = currentConfig.modules.find(m => m.module === 'spotify');
+        if (!moduleConfig) return;
+
+        moduleConfig.config = { ...(moduleConfig.config || {}), clientId: value };
+        await saveConfig();
+        initSpotifySetup();
+      });
+      content.appendChild(save);
+    }
+  ));
+
+  const connectStep = buildSpotifyStep(4,
+    'Verbinden',
+    status.hasClientId
+      ? 'Es öffnet sich Spotify. Nach dem Erlauben geht es automatisch zurück.'
+      : 'Erst die Client ID speichern.',
+    (content) => {
+      const connect = document.createElement('button');
+      connect.type = 'button';
+      connect.className = 'btn-primary';
+      connect.textContent = 'Mit Spotify verbinden';
+      connect.disabled = !status.hasClientId;
+      connect.addEventListener('click', startSpotifyAuth);
+      content.appendChild(connect);
+
+      // Rückfallebene: Chromes HTTPS-First-Mode kann die Rückleitung
+      // blockieren, und im Mobilfunk ist der Spiegel gar nicht erreichbar.
+      const details = document.createElement('details');
+      details.className = 'spotify-fallback';
+      details.innerHTML = `
+        <summary>Es kam kein automatischer Rücksprung</summary>
+        <p>Dann steht auf der Spotify-Seite ein Code. Hier einfügen:</p>
+      `;
+
+      const codeInput = document.createElement('input');
+      codeInput.type = 'text';
+      codeInput.placeholder = 'Code von der Rückleitungsseite';
+      details.appendChild(codeInput);
+
+      const paste = document.createElement('button');
+      paste.type = 'button';
+      paste.className = 'btn-secondary';
+      paste.textContent = 'Code einlösen';
+      paste.addEventListener('click', async () => {
+        const state = sessionStorage.getItem('spotifyState');
+        if (!state) {
+          alert('Bitte zuerst „Mit Spotify verbinden" antippen.');
+          return;
+        }
+
+        const response = await fetch('/api/spotify/paste-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeInput.value.trim(), state })
+        });
+
+        const result = await response.json();
+        if (result.ok) initSpotifySetup();
+        else alert(result.error || 'Der Code wurde nicht angenommen.');
+      });
+      details.appendChild(paste);
+
+      content.appendChild(details);
+    }
+  );
+  wrapper.appendChild(connectStep);
+
+  return wrapper;
+}
+
+function buildSpotifyStep(number, title, description, fill) {
+  const step = document.createElement('div');
+  step.className = 'spotify-step';
+
+  const badge = document.createElement('span');
+  badge.className = 'spotify-step-number';
+  badge.textContent = String(number);
+  step.appendChild(badge);
+
+  const content = document.createElement('div');
+  content.className = 'spotify-step-content';
+
+  const heading = document.createElement('div');
+  heading.className = 'spotify-step-title';
+  heading.textContent = title;
+  content.appendChild(heading);
+
+  const text = document.createElement('div');
+  text.className = 'spotify-step-description';
+  text.textContent = description;
+  content.appendChild(text);
+
+  fill(content);
+  step.appendChild(content);
+  return step;
+}
+
+/** Ein Feld, das man antippt und dessen Inhalt in der Zwischenablage landet. */
+function buildCopyField(value) {
+  const row = document.createElement('div');
+  row.className = 'spotify-copy';
+
+  const field = document.createElement('code');
+  field.textContent = value;
+  row.appendChild(field);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-secondary';
+  button.textContent = 'Kopieren';
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      button.textContent = 'Kopiert';
+      if (window.mmPwa) window.mmPwa.tap();
+      setTimeout(() => { button.textContent = 'Kopieren'; }, 2000);
+    } catch {
+      // Ohne Zwischenablage bleibt Markieren - das Feld ist dafür ausgelegt.
+      button.textContent = 'Bitte markieren';
+    }
+  });
+  row.appendChild(button);
+
+  return row;
+}
+
+async function startSpotifyAuth() {
+  try {
+    const response = await fetch(`/api/spotify/auth-url?instance=${currentInstance}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Der Anmeldevorgang ließ sich nicht starten.');
+      return;
+    }
+
+    // Den state merken: die Rückfallebene braucht ihn beim Einlösen von Hand.
+    const state = new URL(data.authUrl).searchParams.get('state');
+    sessionStorage.setItem('spotifyState', state);
+
+    window.location.href = data.authUrl;
+  } catch (error) {
+    alert('Der Anmeldevorgang ließ sich nicht starten.');
   }
 }
 
@@ -830,15 +1193,28 @@ async function saveModuleSettings() {
   }
 
   // Speichere alle Formular-Daten
+  const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
+  const secretFields = moduleInfo?.secretFields || [];
+
   for (const [key, value] of formData.entries()) {
     if (key !== 'position') {
-      const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
       const schema = moduleInfo?.info.config?.[key];
 
       if (schema?.type === 'boolean') {
         moduleConfig.config[key] = value === 'on';
       } else if (schema?.type === 'number') {
         moduleConfig.config[key] = parseFloat(value);
+      } else if (secretFields.includes(key)) {
+        const input = form.querySelector(`input[name="${key}"]`);
+        const wasSet = input?.dataset.wasSet === 'true';
+
+        if (value) {
+          moduleConfig.config[key] = value;          // neuer Wert
+        } else if (wasSet) {
+          moduleConfig.config[key] = SECRET_PLACEHOLDER; // unverändert lassen
+        } else {
+          delete moduleConfig.config[key];           // war und bleibt leer
+        }
       } else {
         moduleConfig.config[key] = value;
       }
@@ -860,7 +1236,12 @@ async function saveModuleSettings() {
   try {
     const response = await fetch(`/api/config?instance=${currentInstance}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        // Der Server gibt die Kennung im Ereignis zurueck; diese Oberflaeche
+        // ignoriert dann ihr eigenes Echo und ueberschreibt sich nicht selbst.
+        'X-MM-Client-Id': window.mmLive ? window.mmLive.clientId : ''
+      },
       body: JSON.stringify(currentConfig)
     });
 
@@ -872,6 +1253,7 @@ async function saveModuleSettings() {
         renderPreview();
       }
       hideSettings();
+      document.dispatchEvent(new CustomEvent('mm:saved'));
     }
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
@@ -1235,12 +1617,17 @@ async function checkUpdate() {
     const data = await response.json();
 
     if (data.updateAvailable) {
-      message.textContent = t('updateAvailable');
+      const commits = data.behind === 1
+        ? (currentLanguage === 'de' ? '1 neuer Commit' : '1 new commit')
+        : (currentLanguage === 'de' ? `${data.behind} neue Commits` : `${data.behind} new commits`);
+      message.textContent = `${t('updateAvailable')} (${commits})`;
       message.style.color = 'var(--accent-cyan)';
       if (actionDiv) actionDiv.style.display = 'block';
       showNotification(t('updateAvailable'));
     } else {
-      message.textContent = t('systemUpToDate');
+      // note kommt z.B. bei einem Branch ohne Upstream - dann ist "aktuell"
+      // die falsche Auskunft.
+      message.textContent = data.note || t('systemUpToDate');
       message.style.color = 'var(--text-secondary)';
       if (actionDiv) actionDiv.style.display = 'none';
     }
@@ -1274,6 +1661,20 @@ async function executeUpdate() {
       setTimeout(() => {
         location.reload();
       }, 5000);
+    } else if (data.code === 'DIRTY_WORKING_TREE') {
+      // Verhaltensaenderung: frueher wurden lokale Aenderungen still
+      // weggestasht und waren praktisch unauffindbar. Jetzt bricht das Update
+      // ab und sagt, welche Dateien betroffen sind.
+      alert(
+        (currentLanguage === 'de'
+          ? 'Update abgebrochen: es gibt lokale Änderungen im Projektverzeichnis.\n\n'
+          + 'Sie wurden NICHT verworfen. Betroffene Dateien:\n\n'
+          : 'Update cancelled: there are local changes in the project directory.\n\n'
+          + 'They were NOT discarded. Affected files:\n\n')
+        + (data.details || '')
+      );
+      btn.disabled = false;
+      btn.textContent = t('installUpdate');
     } else {
       alert('Update failed: ' + (data.error || 'Unknown error'));
       btn.disabled = false;

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>MagicMirror⁴ — Spotify verbinden</title>
+  <style>
+    :root { color-scheme: dark; }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #05080c;
+      color: #f2f5fa;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    }
+
+    .card { width: 100%; max-width: 420px; text-align: center; }
+    h1 { font-size: 1.3rem; margin: 0 0 12px; }
+    p { color: rgba(242, 245, 250, 0.66); line-height: 1.5; margin: 0 0 16px; }
+
+    code {
+      display: block;
+      margin: 16px 0;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 0.85rem;
+      word-break: break-all;
+      user-select: all;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: 0;
+      border-radius: 10px;
+      background: #1db954;
+      color: #06120b;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      margin-top: 10px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      color: #f2f5fa;
+      font-weight: 400;
+    }
+
+    .hidden { display: none; }
+    .error { color: #ff8b8b; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1 id="title">Zurück zum Spiegel …</h1>
+    <p id="message">Einen Moment.</p>
+
+    <!--
+      Rückfallebene. Sie ist nicht optional:
+
+      Diese Seite läuft über HTTPS, der Spiegel im Heimnetz über HTTP. Eine
+      Weiterleitung von hier dorthin ist als Seitenaufruf erlaubt (die
+      Mixed-Content-Sperre gilt für nachgeladene Inhalte, nicht für
+      Navigation) - aber Chromes HTTPS-First-Mode kann trotzdem
+      dazwischenfunken, und wer das hier im Mobilfunk öffnet, erreicht das
+      Heimnetz ohnehin nicht.
+
+      Dann kopiert man den Code und fügt ihn im Spiegel-Dialog ein.
+    -->
+    <div id="fallback" class="hidden">
+      <code id="code"></code>
+      <button id="copy" type="button">Code kopieren</button>
+      <button id="retry" type="button" class="secondary">Weiterleitung erneut versuchen</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var title = document.getElementById('title');
+      var message = document.getElementById('message');
+      var fallback = document.getElementById('fallback');
+      var codeBox = document.getElementById('code');
+
+      var params = new URLSearchParams(window.location.search);
+      var code = params.get('code');
+      var state = params.get('state');
+      var authError = params.get('error');
+
+      function showFallback(headline, text) {
+        title.textContent = headline;
+        message.textContent = text;
+        message.className = '';
+        fallback.className = '';
+        codeBox.textContent = code || '';
+      }
+
+      if (authError) {
+        title.textContent = 'Abgebrochen';
+        message.textContent = authError === 'access_denied'
+          ? 'Der Zugriff wurde nicht erlaubt. Du kannst den Vorgang im Spiegel erneut starten.'
+          : 'Spotify meldet: ' + authError;
+        message.className = 'error';
+        return;
+      }
+
+      if (!code || !state) {
+        title.textContent = 'Etwas fehlt';
+        message.textContent = 'Diese Seite wird von Spotify aufgerufen und braucht Code und State.';
+        message.className = 'error';
+        return;
+      }
+
+      // Die Adresse des Spiegels steckt im state - so, wie das Handy ihn
+      // tatsächlich erreicht hat. Das übersteht auch einen Wechsel der
+      // IP-Adresse.
+      var target = null;
+      try {
+        var decoded = JSON.parse(atob(state.replace(/-/g, '+').replace(/_/g, '/')));
+        // Nur http/https und nur ein Host - sonst wäre das hier eine
+        // Weiterleitung auf beliebige Adressen.
+        if (decoded && typeof decoded.r === 'string' && /^https?:\/\/[\w.:-]+$/.test(decoded.r)) {
+          target = decoded.r;
+        }
+      } catch (e) {
+        target = null;
+      }
+
+      if (!target) {
+        showFallback('Code kopieren', 'Die Adresse des Spiegels ließ sich nicht ablesen. Kopiere den Code und füge ihn im Spiegel ein.');
+        return;
+      }
+
+      var url = target + '/api/spotify/callback?code=' + encodeURIComponent(code)
+        + '&state=' + encodeURIComponent(state);
+
+      function go() {
+        window.location.replace(url);
+      }
+
+      document.getElementById('retry').addEventListener('click', go);
+
+      document.getElementById('copy').addEventListener('click', function () {
+        var button = this;
+        var done = function () {
+          button.textContent = 'Kopiert';
+          setTimeout(function () { button.textContent = 'Code kopieren'; }, 2000);
+        };
+
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(code).then(done, function () {
+            // Ohne Zwischenablage: der Code ist markierbar (user-select: all).
+            button.textContent = 'Bitte von Hand markieren';
+          });
+        } else {
+          button.textContent = 'Bitte von Hand markieren';
+        }
+      });
+
+      // Klappt die Weiterleitung nicht binnen drei Sekunden, gibt es den Code
+      // zum Abtippen - statt einer Seite, die einfach hängt.
+      setTimeout(function () {
+        showFallback('Klappt nicht automatisch',
+          'Kopiere den Code und füge ihn im Spiegel-Dialog ein.');
+      }, 3000);
+
+      go();
+    })();
+  </script>
+</body>
+
+</html>

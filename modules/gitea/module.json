@@ -1,0 +1,65 @@
+{
+  "apiVersion": 2,
+  "name": "gitea",
+  "displayName": "Gitea",
+  "version": "1.0.0",
+  "description": "Letzte Commits und offene Vorgänge einer Gitea- oder Forgejo-Instanz.",
+  "author": "MagicMirror⁴",
+  "secrets": [
+    {
+      "key": "token",
+      "env": "GITEA_TOKEN",
+      "label": "Gitea Token",
+      "exposeToRenderer": false
+    }
+  ],
+  "provides": [
+    "data:gitea"
+  ],
+  "config": {
+    "instanceUrl": {
+      "type": "string",
+      "default": "",
+      "description": "Adresse der Instanz, z. B. https://git.zuhause.lan"
+    },
+    "repos": {
+      "type": "string",
+      "default": "",
+      "description": "Repositories, kommagetrennt (z. B. luis/spiegel, team/website)"
+    },
+    "token": {
+      "type": "string",
+      "default": "",
+      "description": "Zugriffstoken. Für private Repositories nötig."
+    },
+    "maxCommits": {
+      "type": "number",
+      "default": 3,
+      "min": 1,
+      "max": 10,
+      "description": "Anzahl der angezeigten Commits je Repository"
+    },
+    "showOpenIssues": {
+      "type": "boolean",
+      "default": true,
+      "description": "Anzahl offener Vorgänge anzeigen"
+    },
+    "showStars": {
+      "type": "boolean",
+      "default": true,
+      "description": "Sterne anzeigen"
+    },
+    "allowInsecureTls": {
+      "type": "boolean",
+      "default": false,
+      "description": "Selbstsigniertes Zertifikat akzeptieren (nur im eigenen Netz sinnvoll)"
+    },
+    "updateInterval": {
+      "type": "number",
+      "default": 300000,
+      "min": 60000,
+      "description": "Aktualisierungsintervall in Millisekunden"
+    }
+  },
+  "privacyLevel": "personal"
+}

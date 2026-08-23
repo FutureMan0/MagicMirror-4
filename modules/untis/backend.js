@@ -1,7 +1,6 @@
 // Untis Backend API Module
 // Stellt API-Routen für WebUntis bereit
 
-const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
 
 // Cache für Untis-Daten
 const untisCache = new Map();
@@ -34,10 +33,14 @@ async function handleTimetable(req, res, { instanceName, ConfigManager }) {
     const moduleConfig = untisModule.config || {};
     const envConfig = config.env || {};
 
-    const server = req.body.server || moduleConfig.server || envConfig.untisServer;
-    const username = req.body.username || moduleConfig.username || envConfig.untisUsername;
-    const password = req.body.password || moduleConfig.password || envConfig.untisPassword;
-    const school = req.body.school || moduleConfig.school || envConfig.untisSchool;
+    // Zugangsdaten kommen ausschliesslich aus Konfiguration und .env, nie aus
+    // dem Request. Vorher konnte ein Aufrufer Server und Anmeldedaten frei
+    // vorgeben - der Spiegel haette damit beliebige Hosts kontaktiert und
+    // fremde Zugangsdaten dorthin geschickt.
+    const server = moduleConfig.server || envConfig.UNTIS_SERVER;
+    const username = moduleConfig.username || envConfig.UNTIS_USERNAME;
+    const password = moduleConfig.password || envConfig.UNTIS_PASSWORD;
+    const school = moduleConfig.school || envConfig.UNTIS_SCHOOL;
     const classIdRaw = req.body.classId || moduleConfig.classId || 0;
     let className = req.body.className || moduleConfig.className || '';
     let classId = parseInt(classIdRaw, 10);
@@ -262,10 +265,10 @@ async function handleTestAuth(req, res, { instanceName, ConfigManager }) {
     const moduleConfig = untisModule.config || {};
     const envConfig = config.env || {};
 
-    const server = moduleConfig.server || envConfig.untisServer;
-    const username = moduleConfig.username || envConfig.untisUsername;
-    const password = moduleConfig.password || envConfig.untisPassword;
-    const school = moduleConfig.school || envConfig.untisSchool;
+    const server = moduleConfig.server || envConfig.UNTIS_SERVER;
+    const username = moduleConfig.username || envConfig.UNTIS_USERNAME;
+    const password = moduleConfig.password || envConfig.UNTIS_PASSWORD;
+    const school = moduleConfig.school || envConfig.UNTIS_SCHOOL;
 
     console.log('=== WebUntis Auth Test ===');
     console.log('Server:', server);
@@ -349,10 +352,10 @@ async function handleClasses(req, res, { instanceName, ConfigManager }) {
     const moduleConfig = untisModule.config || {};
     const envConfig = config.env || {};
 
-    const server = moduleConfig.server || envConfig.untisServer;
-    const username = moduleConfig.username || envConfig.untisUsername;
-    const password = moduleConfig.password || envConfig.untisPassword;
-    const school = moduleConfig.school || envConfig.untisSchool;
+    const server = moduleConfig.server || envConfig.UNTIS_SERVER;
+    const username = moduleConfig.username || envConfig.UNTIS_USERNAME;
+    const password = moduleConfig.password || envConfig.UNTIS_PASSWORD;
+    const school = moduleConfig.school || envConfig.UNTIS_SCHOOL;
 
     if (!server || !username || !password) {
       return res.status(400).json({ error: 'WebUntis ist nicht vollständig konfiguriert.' });

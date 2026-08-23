@@ -20,9 +20,11 @@ const browserGlobals = {
   requestAnimationFrame: 'readonly',
   cancelAnimationFrame: 'readonly',
   localStorage: 'readonly',
+  sessionStorage: 'readonly',
   WebSocket: 'readonly',
   CustomEvent: 'readonly',
   Event: 'readonly',
+  URL: 'readonly',
   URLSearchParams: 'readonly',
   Image: 'readonly',
   Audio: 'readonly',
@@ -30,6 +32,7 @@ const browserGlobals = {
   alert: 'readonly',
   confirm: 'readonly',
   crypto: 'readonly',
+  CSS: 'readonly',
   FormData: 'readonly',
   btoa: 'readonly',
   atob: 'readonly',
@@ -87,7 +90,25 @@ export default [
     ignores: ['node_modules/**', 'dist/**', 'logs/**', 'src/webui/public/vendor/**']
   },
   {
-    files: ['src/main/**/*.js', 'modules/**/backend.js', 'scripts/**/*.js', 'tests/**/*.js'],
+    // Tests richten sich per installDom() eine Renderer-Umgebung ein und
+    // benutzen danach document und window wie im Browser.
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'commonjs',
+      globals: {
+        ...nodeGlobals,
+        document: 'readonly',
+        window: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        WebSocket: 'readonly'
+      }
+    },
+    rules
+  },
+  {
+    files: ['src/main/**/*.js', 'modules/**/backend.js', 'scripts/**/*.js'],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'commonjs',
@@ -103,6 +124,29 @@ export default [
       ecmaVersion: 2023,
       sourceType: 'script',
       globals: { ...browserGlobals, ...nodeGlobals }
+    },
+    rules
+  },
+  {
+    // Ein Service Worker laeuft in einem eigenen globalen Scope - weder
+    // window noch document existieren dort.
+    files: ['src/webui/public/sw.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'script',
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        fetch: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        AbortController: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        console: 'readonly'
+      }
     },
     rules
   },

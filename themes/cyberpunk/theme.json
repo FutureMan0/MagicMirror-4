@@ -1,0 +1,7 @@
+{
+  "name": "Cyberpunk",
+  "description": "HUD-Optik mit abgeschnittenen Ecken, Cyan und Gelb, Rajdhani in Versalien. Portiert auf die Theme-Engine — ohne die 21 !important der Erstfassung.",
+  "mode": "dark",
+  "author": "MagicMirror⁴",
+  "supports": { "blur": false, "ambientMotion": true }
+}

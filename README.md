@@ -52,6 +52,139 @@ git clone https://github.com/FutureMan0/MagicMirror-4.git && cd MagicMirror-4 &&
 
 ---
 
+## 🔐 Anmeldung
+
+Der Konfigurations-Server ist nicht mehr offen. Beim ersten Start erzeugt MM⁴ ein Admin-Token und legt es als `MM_ADMIN_TOKEN` in der `.env` ab.
+
+**Handy koppeln:**
+
+1. `http://<pi-ip>:3000` im Browser öffnen.
+2. **„Kopplung am Spiegel starten"** antippen.
+3. Der Spiegel zeigt 60 Sekunden lang einen QR-Code. Scannen — oder den achtstelligen Code darunter abtippen.
+
+Der Code steht ausschließlich auf dem Spiegel und geht nie über das Netzwerk. Wer ihn lesen kann, steht im Raum: genau das ist der Nachweis.
+
+Ein gekoppeltes Gerät bleibt 30 Tage angemeldet.
+
+**Ausgesperrt?** Das Token aus der `.env` reicht ebenfalls — in der Anmeldemaske unter „Stattdessen mit Token anmelden".
+
+**Was ohne Anmeldung geht:** Anfragen von der Maschine selbst (`127.0.0.1`). Die Module am Spiegel holen ihre Daten über HTTP von der eigenen Adresse, und wer Zugriff auf den Pi hat, hat ohnehin eine Shell.
+
+> `MM_AUTH=off` in der `.env` schaltet die Anmeldung ab. Dann kann jeder im Netzwerk die Konfiguration ändern und Updates auslösen — nur als Notausgang gedacht.
+
+---
+
+## 🔒 Privatsphäre
+
+Vier Zustände, umschaltbar am Handy im Tab **Privat**:
+
+| | |
+| :--- | :--- |
+| **Normal** | Alles sichtbar |
+| **Gäste** | Nur Uhr und Wetter. Endet nach 30 Minuten von selbst |
+| **Dusche** | Nur eine große Uhr, Sensoren aus |
+| **Aus** | Anzeige komplett dunkel |
+
+Was ausgeblendet wird, steht im Manifest jedes Moduls. **Ohne Angabe gilt ein
+Modul als heikel** — neue Module sind privat, bis man sie freigibt.
+
+Der Dusch-Modus kann sich selbst einschalten: der vorhandene mmWave-Sensor
+meldet, wenn jemand länger in einem einstellbaren Entfernungsband steht.
+
+> **Zum Sensor, ehrlich:** Ein Software-Aus ist Komfort, keine Garantie. Auf
+> einem Raspberry Pi lässt sich nicht einmal ein einzelner USB-Port stromlos
+> schalten — alle Downstream-Ports hängen zusammen. Wenn eine Kamera im Raum
+> ist, ist ein **physischer Schalter im Kabel** (ca. 8 €) die einzige
+> überzeugende Abschaltung. Die Anzeige im Handy zeigt den *gemessenen*
+> Zustand und meldet im Zweifel „aktiv".
+
+---
+
+## 🔌 Weitere Module
+
+Alle vier bauen auf demselben Fundament: Zwischenspeicher auf Platte,
+wachsender Abstand bei Fehlern, ein Abruf für alle Anzeigen. Bei einem
+Ausfall bleibt der letzte bekannte Stand sichtbar — sichtbar gekennzeichnet
+als *„Nicht erreichbar — zeigt den Stand von vor 12 min"*.
+
+| Modul | Braucht |
+| :--- | :--- |
+| **GitHub** | Repositories als `besitzer/name`. Ab zwei Repositories einen Token — ohne erlaubt GitHub nur 60 Anfragen pro Stunde. |
+| **Gitea** | Adresse der Instanz und Token. Selbstsignierte Zertifikate sind erlaubt, wenn eingeschaltet. |
+| **Unraid** | Unraid 7.2 (oder Connect-Plugin), *Settings → Management Access → Developer Options* eingeschaltet, Schlüssel via `unraid-api apikey --create`. |
+| **Home Assistant** | Adresse und langlebigen Zugriffstoken (im HA-Profil ganz unten, zehn Jahre gültig). |
+
+Jedes Modul hat einen **Verbindungstest**, der nicht nur „geht/geht nicht"
+sagt: Unraid nennt die verfügbaren Abschnitte (das GraphQL-Schema
+unterscheidet sich je Version), Home Assistant nennt Entitäten, die es nicht
+findet — ein Tippfehler in einer Kennung ist der häufigste Grund dafür, dass
+nichts angezeigt wird.
+
+### Schalten mit Home Assistant
+
+Am Spiegel sind die Kacheln **schreibgeschützt** — er ist kein Touchscreen,
+und ein versehentlicher Griff im Vorbeigehen wäre ärgerlicher als nützlich.
+Geschaltet wird am Handy, im Tab **Steuerung**.
+
+Dafür muss *„Schalten erlauben"* ausdrücklich eingeschaltet werden. Auch dann
+gelten drei Schranken, die alle greifen müssen:
+
+1. Die Entität muss in deiner Liste stehen.
+2. Ihre Gattung muss schaltbar sein — Licht, Schalter, Szene, Skript, Medien,
+   Rollladen, Lüfter, Klima.
+3. Der Dienst muss bekannt sein.
+
+**Türschlösser, Alarmanlagen und `homeassistant.stop` lassen sich nicht
+schalten**, auch nicht, wenn man sie einträgt. Diese Liste steht im Code, nicht
+in der Konfiguration.
+
+---
+
+## 🎵 Spotify verbinden
+
+Geht vollständig am Handy, in vier Schritten im Modul-Dialog:
+
+1. **App anlegen** im Spotify-Dashboard (Name frei wählbar).
+2. **Redirect URI eintragen** — steht im Dialog zum Kopieren. Sie muss exakt
+   stimmen, deshalb kopieren statt abtippen.
+3. **Client ID einfügen.** Ein Client Secret wird nicht mehr gebraucht.
+4. **Verbinden.**
+
+> Spotify verlangt für eigene Apps ein **Premium-Konto**. Ohne das endet der
+> Vorgang in einem 403, dessen Ursache nirgends steht.
+
+**Warum eine fremde Rückleitungsadresse?** Spotify erlaubt seit dem 27.11.2025
+nur noch `https://` oder wörtliche Loopback-Adressen als Redirect URI — die
+LAN-Adresse des Pi ist damit ausgeschlossen. Die Rückleitung läuft deshalb über
+eine statische HTTPS-Seite, die nichts tut außer weiterzuleiten: sie liest die
+Adresse deines Spiegels aus dem `state` und schickt dich dorthin zurück. Die
+Zugangsdaten selbst laufen nie über sie.
+
+Klappt der automatische Rücksprung nicht — Chromes HTTPS-First-Mode kann
+dazwischenfunken —, steht auf der Seite ein Code zum Einfügen.
+
+---
+
+## 📱 Als App aufs Handy
+
+Die Web-Oberfläche ist eine installierbare PWA.
+
+1. `http://<pi-ip>:3000` öffnen und koppeln (siehe oben).
+2. Etwas speichern — danach fragt die App, ob sie auf den Home-Bildschirm soll.
+   Auf iOS steht dort stattdessen die Anleitung über *Teilen*.
+3. Ab dann startet MM⁴ im Vollbild, ohne Browser-Leiste.
+
+Sie funktioniert kurz auch ohne Verbindung: die Oberfläche lädt weiter, zeigt
+den zuletzt bekannten Stand und **sperrt dabei die Speichern-Knöpfe**. Wer
+offline weiterklickt, würde sonst einen Stand überschreiben, den er nie
+gesehen hat.
+
+> **Hinweis zum Offline-Betrieb:** Browser erlauben Service Worker nur über
+> HTTPS oder auf `localhost`. Im Heimnetz per IP ist die Offline-Hülle deshalb
+> inaktiv — installieren und alles andere funktioniert trotzdem.
+
+---
+
 ## 🧯 Troubleshooting (Raspberry Pi / PM2)
 
 ### Electron exits with: `Missing X server or $DISPLAY`
@@ -85,6 +218,47 @@ MM⁴ grows with your needs. Every module can be customized in seconds via the W
 *   🌤️ **Weather**: Stunning background animations matching the current weather.
 *   📅 **WebUntis**: Your school schedule, perfectly visualized.
 *   🎵 **Spotify**: Streaming status with cover art & real-time sync.
+
+---
+
+## 🎨 Themes
+
+Sechs mitgelieferte Themes, umschaltbar in den Einstellungen der Web-Oberfläche:
+
+| Theme | | |
+| :--- | :--- | :--- |
+| **Minimal** | dunkel | Nur Typografie. Keine Flächen, keine Rahmen, keine Dauer-Animationen — und damit die sparsamste Variante. |
+| **OLED Black** | dunkel | Reines Schwarz und gedämpfte Helligkeit. Auf OLED-Panels bleibt der Hintergrund unbeleuchtet und brennt nicht ein. |
+| **Newspaper** | **hell** | Serifensatz mit Haarlinien statt Kästen. Wirkt wie eine gedruckte Titelseite. |
+| **Nature** | dunkel | Warme Erdtöne, weiche Verläufe, Serifen-Überschriften. |
+| **Glass** | dunkel | Milchglas-Flächen und weiche Schatten. |
+| **Cyberpunk** | dunkel | HUD-Optik mit geschnittenen Ecken, Cyan und Gelb, Rajdhani in Versalien. |
+
+### Ein eigenes Theme
+
+Ein Theme belegt Design-Tokens neu — es muss die Module nicht kennen:
+
+```
+themes/mein-theme/
+  theme.css     @layer theme { :root { --mm-color-accent: ...; } }
+  theme.json    { "name": "Mein Theme", "mode": "dark", "description": "..." }
+```
+
+Der Ordner genügt; die Auswahl in der Web-Oberfläche wird aus `themes/`
+gelesen. Sämtliche Tokens stehen in `src/renderer/styles/tokens.css`.
+
+Zwei Dinge, die den Unterschied machen:
+
+* **Kein `!important` nötig.** Modul-CSS liegt in `@layer module`, Themes in
+  `@layer theme` — die Layer-Reihenfolge schlägt Spezifität und
+  Quellreihenfolge. Die erste Fassung des Cyberpunk-Themes brauchte dafür noch
+  21 `!important`.
+* **`npm run check:tokens`** schlägt fehl, sobald ein Modul-Stylesheet eine
+  rohe Farbe enthält. Was nicht über ein Token läuft, kann kein Theme
+  umfärben — und im Standard-Theme fällt das niemandem auf.
+
+Auf schwacher Hardware setzt MM⁴ automatisch `data-perf="low"` und schaltet
+damit für **jedes** Theme Blur, Schatten und Dauer-Animationen ab.
 
 ---
 

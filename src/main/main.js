@@ -4,16 +4,77 @@ const fs = require('fs');
 const ConfigManager = require('./configManager');
 const ModuleLoader = require('./moduleLoader');
 const { applyGpuFlags } = require('./gpu');
+const updater = require('./updater');
+const { Auth, getLanAddress } = require('./auth');
+const ThemeManager = require('./themeManager');
+const { createBusBridge } = require('./busBridge');
+const { createWsHub } = require('./wsHub');
+const { PrivacyManager } = require('./privacyManager');
+const { SensorPower } = require('./sensorPower');
+const { InputHub } = require('./inputHub');
+const QRCode = require('qrcode');
 const express = require('express');
-const WebSocket = require('ws');
-const fetch = (...args) => import('node-fetch').then(({ default: fetchFn }) => fetchFn(...args));
 
 let mainWindow = null;
 let configManager = null;
 let moduleLoader = null;
-let presenceModule = null;
 let webServer = null;
-let wss = null;
+let auth = null;
+let wsHub = null;
+let privacy = null;
+let inputHub = null;
+
+// Ein Bus fuer den gesamten Hauptprozess. Modul-Backends bekommen ihn im
+// Kontext und koennen damit den Spiegel und die Web-UI erreichen, ohne beide
+// zu kennen.
+const { bus, receiveFromRenderer } = createBusBridge({
+  getWindows: () => BrowserWindow.getAllWindows(),
+  getWsHub: () => wsHub
+});
+
+// Warnungen sammeln, sobald der Bus existiert. Modul-Backends melden schon
+// beim Registrieren ihrer Routen - also bevor die Startprobe zuhoeren
+// koennte.
+// Aufraeumarbeiten, die Modul-Backends anmelden. Sie duerfen das NICHT ueber
+// eigene process.on('SIGTERM')-Handler tun: ein Signal-Handler ersetzt das
+// Standardverhalten, und wenn er nicht selbst beendet, laesst sich die App
+// gar nicht mehr stoppen. Genau das ist passiert - pm2 und systemd haetten
+// auf dem Pi jedes Mal bis zum SIGKILL warten muessen.
+const shutdownHooks = [];
+let shuttingDown = false;
+
+function registerShutdownHook(fn) {
+  if (typeof fn === 'function') shutdownHooks.push(fn);
+}
+
+function shutdown(reason, exitCode = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
+  console.log(`Beende (${reason}) …`);
+
+  for (const hook of shutdownHooks) {
+    try {
+      hook();
+    } catch (error) {
+      console.error('Aufräumen fehlgeschlagen:', error.message);
+    }
+  }
+
+  // Kurze Frist fuer Aufraeumarbeiten, danach wird beendet - egal was noch
+  // laeuft.
+  const force = setTimeout(() => app.exit(exitCode), 2000);
+  force.unref?.();
+
+  app.exit(exitCode);
+}
+
+const startupWarnings = [];
+bus.on('system:warning', (payload) => {
+  if (!payload || !payload.message) return;
+  startupWarnings.push({ source: payload.source || 'unbekannt', message: payload.message });
+  console.warn(`[${payload.source || 'unbekannt'}] ${payload.message}`);
+});
 
 const args = process.argv.slice(2);
 const instanceName = args.find(arg => arg.startsWith('--instance='))?.split('=')[1] || process.env.DEFAULT_INSTANCE || 'display1';
@@ -22,6 +83,14 @@ const isDev = args.includes('--dev');
 const noServer = args.includes('--no-server');
 const customPort = args.find(arg => arg.startsWith('--port='))?.split('=')[1];
 const forceDisableGpu = args.includes('--disable-gpu') || process.env.MM_DISABLE_GPU === '1';
+// Startprobe: die App faehrt hoch, meldet, ob jedes Modul gemountet ist, und
+// beendet sich. Ohne das ist "die Tests sind gruen" kein Beleg dafuer, dass
+// der Spiegel ueberhaupt startet.
+const smokeMode = args.includes('--smoke');
+const smokeTimeoutMs = parseInt(
+  args.find(arg => arg.startsWith('--smoke-timeout='))?.split('=')[1] || '30000',
+  10
+);
 
 // Chromium-Flags und userData-Pfad MUESSEN vor app.whenReady() gesetzt werden.
 // Der userData-Pfad wurde bislang erst danach umgebogen - zu diesem Zeitpunkt
@@ -48,7 +117,6 @@ function logCrash(kind, detail) {
 
 function createWindow() {
   configManager = new ConfigManager(instanceName);
-  const config = configManager.loadConfig();
 
   const displays = screen.getAllDisplays();
   const targetDisplay = displays[screenIndex] || displays[0];
@@ -72,7 +140,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  loadMirror();
 
   // Erst zeigen, wenn wirklich etwas zu sehen ist - sonst blitzt beim Start
   // ein leeres Fenster auf.
@@ -99,12 +167,44 @@ function createWindow() {
 
   mainWindow.webContents.once('did-finish-load', () => {
     mainWindow.webContents.send('config-loaded', {
-      config,
+      // Geheimnisse mit exposeToRenderer:false bleiben draussen.
+      config: configManager.loadConfigForRenderer(),
       modules: moduleLoader.scanModules(),
       instanceName,
-      perfProfile
+      perfProfile,
+      privacy: privacy ? privacy.state() : null
     });
   });
+}
+
+/**
+ * Laedt die Spiegel-Ansicht.
+ *
+ * Bevorzugt ueber HTTP; scheitert das - etwa weil dieser Instanz mit
+ * --no-server kein Server zur Verfuegung steht oder der Port belegt ist -,
+ * wird die Datei direkt geoeffnet. Ein toter Server darf den Spiegel niemals
+ * schwarz lassen.
+ */
+function loadMirror() {
+  const fileUrl = path.join(__dirname, '../renderer/index.html');
+
+  if (args.includes('--legacy-file-protocol')) {
+    mainWindow.loadFile(fileUrl);
+    return;
+  }
+
+  const port = customPort || process.env.CONFIG_PORT || 3000;
+  const url = `http://127.0.0.1:${port}/mirror/index.html?instance=${encodeURIComponent(instanceName)}`;
+
+  let fallbackUsed = false;
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, failedUrl) => {
+    if (fallbackUsed || !failedUrl.startsWith('http://127.0.0.1')) return;
+    fallbackUsed = true;
+    console.warn(`Spiegel konnte nicht ueber HTTP geladen werden (${errorDescription}), nutze file://`);
+    mainWindow.loadFile(fileUrl);
+  });
+
+  mainWindow.loadURL(url);
 }
 
 function startWebServer() {
@@ -113,13 +213,232 @@ function startWebServer() {
   const expressApp = express();
   const port = customPort || process.env.CONFIG_PORT || 3000;
 
+  // Nicht aktivieren: mit `trust proxy` koennte ein X-Forwarded-For-Header
+  // eine entfernte Anfrage als Loopback ausgeben und die Anmeldung umgehen.
+  expressApp.disable('trust proxy');
+  expressApp.disable('x-powered-by');
+
   expressApp.use(express.json());
-  expressApp.use(express.static(path.join(__dirname, '../webui/public')));
+
+  const envHelper = new ConfigManager(instanceName);
+  auth = new Auth({
+    configDir: path.join(__dirname, '../../config'),
+    envPath: envHelper.envPath,
+    readEnv: () => envHelper._readEnvFile(),
+    writeEnv: (vars) => envHelper._writeEnvFile(vars)
+  });
+
+  if (!auth.enabled) {
+    console.warn('');
+    console.warn('  !!  MM_AUTH=off - der Konfigurations-Server ist UNGESCHUETZT.');
+    console.warn('  !!  Jeder im Netzwerk kann Einstellungen aendern und Updates ausloesen.');
+    console.warn('');
+  }
+
+  // Der Kopplungscode wird auf dem Spiegel angezeigt. Wer ihn lesen kann,
+  // steht im Raum - das ist der eigentliche Nachweis.
+  auth.onPairingChange = async (state) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    if (!state.active) {
+      mainWindow.webContents.send('pairing-ended');
+      return;
+    }
+
+    const url = `http://${getLanAddress()}:${port}/?pair=${state.code}`;
+    let svg = null;
+    try {
+      svg = await QRCode.toString(url, { type: 'svg', margin: 1, width: 320 });
+    } catch (error) {
+      console.error('QR-Code konnte nicht erzeugt werden:', error.message);
+    }
+
+    mainWindow.webContents.send('pairing-started', {
+      code: state.code,
+      url,
+      svg,
+      expiresAt: state.expiresAt
+    });
+  };
+
+  // Statische Dateien bleiben oeffentlich - sonst laedt die Anmeldeseite nicht.
+  expressApp.use(express.static(path.join(__dirname, '../webui/public'), {
+    setHeaders(res, filePath) {
+      // Nicht jede Umgebung kennt .webmanifest; ohne den richtigen Typ
+      // ignorieren Browser das Manifest stillschweigend und die App laesst
+      // sich nicht installieren.
+      if (filePath.endsWith('.webmanifest')) {
+        res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+      }
+      // Der Service Worker darf nicht aus dem Zwischenspeicher kommen -
+      // sonst bleibt eine kaputte Fassung haengen.
+      if (filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    }
+  }));
+
+  // Der Spiegel selbst wird ueber HTTP ausgeliefert statt per file:// geladen.
+  // Das loest gleich mehreres auf einmal:
+  //   - relative fetch-Aufrufe aus Modulen funktionieren (unter file:// landen
+  //     sie auf file:///api/... und schlagen immer fehl),
+  //   - dynamisches import() wird moeglich, das Chromium unter file:// sperrt,
+  //   - und die Ansicht laesst sich spaeter am Handy oeffnen.
+  // http://127.0.0.1 gilt in Chromium als secure context, moderne APIs stehen
+  // also zur Verfuegung.
+  expressApp.use('/mirror', express.static(path.join(__dirname, '../renderer')));
+  expressApp.use('/themes', express.static(path.join(__dirname, '../../themes')));
+  // Von Haupt- und Renderer-Prozess gemeinsam genutzte Bausteine (Bus,
+  // Manifest-Auslegung). Enthalten keine Geheimnisse.
+  expressApp.use('/shared', express.static(path.join(__dirname, '../shared')));
+
+  // Modul-Dateien nur auf Whitelist. backend.js wird bewusst NIE ausgeliefert:
+  // es laeuft im Hauptprozess und hat Zugriff auf Konfiguration und .env.
+  const MODULE_PUBLIC_FILES = new Set(['index.js', 'styles.css', 'module.json']);
+
+  expressApp.get('/modules/:name/:file', (req, res) => {
+    const { name, file } = req.params;
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(name) || !MODULE_PUBLIC_FILES.has(file)) {
+      return res.status(404).end();
+    }
+
+    const filePath = path.join(__dirname, '../../modules', name, file);
+    if (!fs.existsSync(filePath)) return res.status(404).end();
+
+    res.sendFile(filePath);
+  });
+
+  expressApp.get('/api/auth/status', (req, res) => {
+    res.json({
+      authRequired: auth.enabled,
+      authenticated: auth.isAuthenticated(req),
+      isLocal: Auth.isLoopback(req),
+      pairing: { active: auth.getPairingState().active }
+    });
+  });
+
+  expressApp.post('/api/auth/pair/start', (req, res) => {
+    try {
+      const state = auth.startPairing(req.socket.remoteAddress || 'unbekannt');
+      // Der Code selbst wird NICHT zurueckgegeben - er steht auf dem Spiegel.
+      res.json({ started: true, expiresAt: state.expiresAt });
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/auth/pair/claim', (req, res) => {
+    try {
+      const label = (req.headers['user-agent'] || 'unbekanntes Geraet').slice(0, 120);
+      const sessionId = auth.claimPairing(req.body?.code, label);
+      res.setHeader('Set-Cookie', Auth.sessionCookie(sessionId));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/auth/login', (req, res) => {
+    try {
+      const label = (req.headers['user-agent'] || 'unbekanntes Geraet').slice(0, 120);
+      const sessionId = auth.loginWithToken(req.body?.token, label);
+      res.setHeader('Set-Cookie', Auth.sessionCookie(sessionId));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/auth/logout', (req, res) => {
+    auth.revokeSession(Auth.readCookie(req, 'mm4_session'));
+    res.setHeader('Set-Cookie', Auth.clearCookie());
+    res.json({ success: true });
+  });
+
+  // Ab hier ist alles unter /api geschuetzt.
+  expressApp.use('/api', auth.middleware(['/auth/']));
+
+  // --- Privatsphaere und Gesten ------------------------------------------
+
+  const readConfig = () => new ConfigManager(instanceName).loadConfig();
+
+  // Ultraleap-Kennung (2936) fuer den Fall, dass ein Leap-Controller
+  // angeschlossen ist. Ohne Geraet bleibt das folgenlos.
+  const sensorPower = new SensorPower({
+    vendorIds: ['2936'],
+    serviceName: 'ultraleap-hand-tracking-service',
+    bus
+  });
+
+  privacy = new PrivacyManager({ bus, getConfig: readConfig });
+  privacy.attachSensorControl(sensorPower);
+
+  inputHub = new InputHub({
+    bus,
+    getConfig: readConfig,
+    getPrivacyMode: () => privacy.mode
+  });
+
+  // Der Sensor startet AUS und geht erst an, wenn der Zustand das hergibt.
+  sensorPower.disable('Start').catch(() => {});
+  inputHub.start().catch(error => console.error('Gesten:', error.message));
+
+  bus.on('privacy:changed', (state) => {
+    inputHub.onPrivacyChange(state.mode).catch(() => {});
+  });
+
+  registerShutdownHook(() => {
+    privacy.stop();
+    inputHub.stop().catch(() => {});
+  });
+
+  expressApp.get('/api/privacy', (req, res) => {
+    res.json(privacy.state());
+  });
+
+  expressApp.post('/api/privacy', async (req, res) => {
+    try {
+      const state = await privacy.setMode(req.body?.mode, {
+        ttlMinutes: req.body?.ttlMinutes ?? null
+      });
+      res.json(state);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/privacy/sensor', async (req, res) => {
+    const enabled = req.body?.enabled === true;
+    // Einschalten nur, wenn der Zustand das ueberhaupt zulaesst.
+    if (enabled && privacy.mode !== 'normal') {
+      return res.status(409).json({
+        error: `Im Zustand "${privacy.mode}" bleibt der Sensor aus.`
+      });
+    }
+
+    res.json(enabled ? await sensorPower.enable() : await sensorPower.disable('von Hand'));
+  });
+
+  expressApp.get('/api/input/status', (req, res) => {
+    res.json(inputHub.status());
+  });
+
+  expressApp.post('/api/input/test', (req, res) => {
+    try {
+      res.json({ ok: true, event: inputHub.trigger(req.body?.gesture, req.body?.extra || {}) });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error.message });
+    }
+  });
+
 
   expressApp.get('/api/config', (req, res) => {
     const instance = req.query.instance || instanceName;
     const instanceConfigManager = new ConfigManager(instance);
-    res.json(instanceConfigManager.loadConfig());
+    // Ueber HTTP niemals Klartext-Geheimnisse. Der Renderer bekommt die
+    // vollstaendige Config weiterhin ueber IPC.
+    res.json(instanceConfigManager.loadConfig({ redact: true }));
   });
 
   expressApp.put('/api/config', (req, res) => {
@@ -127,15 +446,23 @@ function startWebServer() {
       const instance = req.query.instance || instanceName;
       const instanceConfigManager = new ConfigManager(instance);
       instanceConfigManager.saveConfig(req.body);
-      if (wss) {
-        wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'config-updated', instance }));
-          }
-        });
-      }
+
+      // Frisch laden statt req.body weiterzureichen: der Body enthaelt fuer
+      // unveraenderte Geheimnisse nur den Platzhalter "__SET__", der Spiegel
+      // braucht aber die echten Werte.
+      const savedConfig = instanceConfigManager.loadConfigForRenderer();
+
+      // Ueber den Bus statt von Hand an alle Verbundenen: so bekommen nur
+      // Abonnenten die Nachricht, und "origin" verhindert, dass der eigene
+      // Speichervorgang die gerade offene Bearbeitung ueberschreibt.
+      bus.emit('config:changed', {
+        instance,
+        origin: req.get('X-MM-Client-Id') || null,
+        config: instanceConfigManager.loadConfig({ redact: true })
+      });
+
       if (mainWindow && instance === instanceName) {
-        mainWindow.webContents.send('config-update', req.body);
+        mainWindow.webContents.send('config-update', savedConfig);
       }
       res.json({ success: true });
     } catch (error) {
@@ -143,86 +470,67 @@ function startWebServer() {
     }
   });
 
+  // Themes werden aus dem Verzeichnis gelesen, nicht in der Oberflaeche
+  // aufgezaehlt. Ein neuer Ordner unter themes/ taucht damit sofort auf.
+  expressApp.get('/api/themes', (req, res) => {
+    const themeManager = new ThemeManager(path.join(__dirname, '../../themes'));
+    res.json(themeManager.scanThemes());
+  });
+
   expressApp.get('/api/modules', (req, res) => {
     const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
-    res.json(loader.scanModules().map(m => ({ name: m.name, info: m.info })));
+    const secretsHelper = new ConfigManager(instanceName);
+    res.json(loader.scanModules().map(m => ({
+      name: m.name,
+      info: m.info,
+      // Damit die Web-UI diese Felder maskiert darstellt und beim Speichern
+      // nicht versehentlich den Platzhalter zurueckschreibt.
+      secretFields: secretsHelper.getSecretFields(m.name)
+    })));
   });
 
   const loader = moduleLoader || new ModuleLoader(path.join(__dirname, '../../modules'));
-  loader.registerBackendRoutes(expressApp, { instanceName, ConfigManager, fetch });
+  loader.registerBackendRoutes(expressApp, {
+    instanceName,
+    ConfigManager,
+    fetch,
+    bus,
+    // Statt eigener Signal-Handler: hier anmelden.
+    onShutdown: registerShutdownHook,
+    // Der Praesenzsensor meldet die Duschzone - entscheiden tut der
+    // Privatsphaere-Zustand, es gibt genau einen Besitzer.
+    privacy
+  });
 
-  // Update Endpoints
+  // Update Endpoints. Die eigentliche Arbeit liegt in src/main/updater.js -
+  // dort werden ausschliesslich execFile-Aufrufe mit Argument-Arrays benutzt,
+  // damit nichts mehr durch eine Shell laeuft.
   expressApp.get('/api/update/check', async (req, res) => {
     try {
-      const { exec } = require('child_process');
-      exec('git fetch && git status -uno', (error, stdout, stderr) => {
-        if (error) {
-          return res.status(500).json({ error: error.message });
-        }
-        const hasUpdate = stdout.includes('behind');
-        res.json({ updateAvailable: hasUpdate });
-      });
+      res.json(await updater.checkForUpdate());
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message, details: error.stderr });
     }
   });
 
   expressApp.post('/api/update/execute', async (req, res) => {
     try {
-      const { exec } = require('child_process');
-      
-      // Get project directory (two levels up from src/main/main.js)
-      const projectDir = path.join(__dirname, '../..');
-      
-      // Get current user (not root)
-      const currentUser = process.env.USER || process.env.SUDO_USER || 'pi';
-      
-      // Step 1: Stash local changes if any (prevents merge conflicts)
-      exec(`cd "${projectDir}" && git stash push -m "Auto-stashed before update"`, (stashError, stashStdout, stashStderr) => {
-        const hasLocalChanges = !stashError && stashStdout.includes('Saved working directory');
-        
-        // Step 2: Pull latest changes
-        exec(`cd "${projectDir}" && git pull`, (pullError, pullStdout, pullStderr) => {
-          if (pullError) {
-            return res.status(500).json({ 
-              error: pullError.message, 
-              details: pullStderr,
-              note: hasLocalChanges ? 'Local changes were stashed. Use "git stash list" to see them.' : ''
-            });
-          }
-          
-          // Step 3: Install dependencies (as the correct user, not root)
-          exec(`cd "${projectDir}" && sudo -u ${currentUser} npm install`, (npmError, npmStdout, npmStderr) => {
-            if (npmError) {
-              return res.status(500).json({ 
-                error: npmError.message, 
-                details: npmStderr,
-                note: 'Git pull succeeded but npm install failed. Try running manually: cd ~/MagicMirror-4 && npm install'
-              });
-            }
-            
-            let logMessage = pullStdout + '\n\n' + npmStdout;
-            if (hasLocalChanges) {
-              logMessage += '\n\nNote: Local changes were automatically stashed. Use "git stash list" to review them.';
-            }
-            
-            res.json({ 
-              success: true, 
-              log: logMessage,
-              stashedChanges: hasLocalChanges
-            });
+      const result = await updater.executeUpdate();
+      res.json({ success: true, log: result.log });
 
-            // Restart after a short delay
-            setTimeout(() => {
-              exec('pm2 restart all', (e) => {
-                if (e) console.error('Auto-Restart failed:', e);
-              });
-            }, 2000);
-          });
+      // Kurz warten, damit die Antwort den Client sicher erreicht.
+      setTimeout(() => {
+        updater.restart((error) => {
+          console.error('Auto-Restart fehlgeschlagen:', error.message);
         });
-      });
+      }, 2000);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        code: error.code,
+        details: error.details || error.stderr
+      });
     }
   });
 
@@ -230,18 +538,15 @@ function startWebServer() {
     console.log(`Web Config Server läuft auf http://localhost:${port}`);
   });
 
-  wss = new WebSocket.Server({ server: webServer });
+  wsHub = createWsHub({ server: webServer, auth });
 }
 
 // IPC Handlers
-ipcMain.handle('get-module-code', async (event, moduleName) => {
-  const modulePath = path.join(__dirname, '../../modules', moduleName, 'index.js');
-  if (fs.existsSync(modulePath)) {
-    const code = fs.readFileSync(modulePath, 'utf8');
-    const browserCode = code.replace(/module\.exports\s*=\s*/g, 'return ').replace(/require\([^)]+\)/g, '{}');
-    return { success: true, code: browserCode };
+// Ereignisse aus dem Renderer (spaeter: Gesten, Nutzeraktionen am Spiegel).
+ipcMain.on('bus-emit', (event, message) => {
+  if (message && typeof message.topic === 'string') {
+    receiveFromRenderer(message.topic, message.payload);
   }
-  return { success: false, error: 'Modul nicht gefunden' };
 });
 
 ipcMain.handle('get-module-styles', async (event, moduleName) => {
@@ -302,13 +607,77 @@ process.on('uncaughtException', (err) => {
   app.exit(1);
 });
 
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 process.on('unhandledRejection', (reason) => {
   logCrash('unhandledRejection', reason && reason.stack ? reason.stack : String(reason));
 });
 
+/**
+ * Startprobe. Wartet darauf, dass der Renderer meldet, welche Module gemountet
+ * sind, schreibt eine Zeile auf stdout und beendet sich.
+ */
+function runSmokeMode() {
+  let finished = false;
+
+  const finish = (result) => {
+    if (finished) return;
+    finished = true;
+
+    // Eine klar erkennbare Zeile - der Rest von stdout ist Electron-Rauschen.
+    process.stdout.write(`MM4_SMOKE_RESULT ${JSON.stringify(result)}\n`);
+
+    // Scheitert das Hochfahren, hat weiteres Warten keinen Zweck.
+    if (!result.ok) {
+      app.exit(1);
+      return;
+    }
+
+    // Sonst am Leben bleiben: die Startprobe prueft anschliessend noch den
+    // Live-Kanal, und dafuer muss der Server laufen. Beendet wird von aussen.
+    process.stdout.write('MM4_SMOKE_READY\n');
+
+    // Sicherheitsnetz, falls der Aufrufer verschwindet.
+    const guard = setTimeout(() => app.exit(0), 60000);
+    guard.unref?.();
+  };
+
+  const timer = setTimeout(() => {
+    finish({
+      ok: false,
+      reason: 'timeout',
+      message: `Der Renderer hat sich innerhalb von ${smokeTimeoutMs} ms nicht gemeldet.`
+    });
+  }, smokeTimeoutMs);
+  timer.unref?.();
+
+  bus.on('system:modules-rendered', (payload) => {
+    const failed = (payload && payload.failed) || [];
+    finish({
+      ok: failed.length === 0 && startupWarnings.length === 0,
+      reason: failed.length > 0
+        ? 'module-failed'
+        : (startupWarnings.length > 0 ? 'startup-warning' : 'ok'),
+      mounted: (payload && payload.mounted) || [],
+      failed,
+      warnings: startupWarnings,
+      theme: payload && payload.theme
+    });
+  });
+
+  bus.on('system:render-failed', (payload) => {
+    finish({ ok: false, reason: 'render-failed', message: payload && payload.error });
+  });
+}
+
 app.whenReady().then(() => {
-  createWindow();
+  // Server zuerst: das Fenster laedt den Spiegel ueber HTTP und wuerde sonst
+  // auf die Rueckfallebene file:// fallen, nur weil der Port noch nicht
+  // lauscht.
   startWebServer();
+  if (smokeMode) runSmokeMode();
+  createWindow();
 });
 
 app.on('activate', () => {

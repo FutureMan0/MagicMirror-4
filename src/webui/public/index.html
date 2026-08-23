@@ -3,10 +3,27 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- viewport-fit=cover, damit env(safe-area-inset-*) ueberhaupt Werte
+       liefert. maximum-scale/user-scalable sind bewusst weg: Zoom zu
+       verbieten ist eine Barriere, und iOS ignoriert es ohnehin. Wo Zoom
+       stoert - im Layout-Editor - regelt das touch-action. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>MagicMirror⁴ Config</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#05080c">
+  <meta name="color-scheme" content="dark light">
+
+  <!-- iOS kennt das Manifest nur teilweise und braucht diese Angaben. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MM⁴">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="mobile.css">
 </head>
 
 <body data-theme="dark">
@@ -55,8 +72,23 @@
                   <button class="mode-btn active" id="mode-btn-visual">Visual</button>
                   <button class="mode-btn" id="mode-btn-classic">Classic</button>
                 </div>
+                <button class="btn-secondary" id="toggle-live-view">Live-Ansicht</button>
               </div>
             </div>
+
+            <!-- Zeigt den Spiegel wirklich, nicht nur Kästchen: derselbe
+                 Renderer, über HTTP geladen. -->
+            <section class="live-view" id="live-view" hidden>
+              <div class="live-view-header">
+                <span class="live-view-title">Live-Ansicht</span>
+                <span class="live-view-hint" id="live-view-hint"></span>
+                <button class="btn-secondary" id="live-view-reload">Neu laden</button>
+              </div>
+              <div class="live-view-frame">
+                <iframe id="live-view-iframe" title="Live-Ansicht des Spiegels"
+                        sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>
+              </div>
+            </section>
 
             <!-- Visueller Layout Editor -->
             <div class="preview-section" id="visual-editor-desktop">
@@ -110,6 +142,22 @@
         </div>
       </section>
 
+      <!-- Tab: Steuerung (Home Assistant) -->
+      <section id="tab-control" class="tab-content">
+        <div class="control-section">
+          <h2>Steuerung</h2>
+          <div id="control-body">Wird geladen …</div>
+        </div>
+      </section>
+
+      <!-- Tab: Privatsphäre -->
+      <section id="tab-privacy" class="tab-content">
+        <div class="privacy-section">
+          <h2>Privatsphäre</h2>
+          <div id="privacy-body">Wird geladen …</div>
+        </div>
+      </section>
+
       <!-- Tab 4: Einstellungen -->
       <section id="tab-settings" class="tab-content">
         <div class="settings-section">
@@ -126,10 +174,8 @@
 
           <div class="settings-group">
             <h3 data-i18n="mirrorTheme">Mirror Theme</h3>
-            <div class="theme-picker" id="mirror-theme-picker">
-              <button data-mirror-theme="default" class="active" data-i18n="themeDefault">Default</button>
-              <button data-mirror-theme="cyberpunk" data-i18n="themeCyberpunk">Cyberpunk</button>
-            </div>
+            <!-- Wird aus GET /api/themes gefuellt, das themes/ scannt. -->
+            <div class="theme-picker" id="mirror-theme-picker"></div>
           </div>
 
           <div class="settings-group">
@@ -228,16 +274,29 @@
       <span class="icon">🏪</span>
       <span data-i18n="appStore">Store</span>
     </button>
+    <button data-tab="control" id="nav-control" hidden>
+      <span class="icon">💡</span>
+      <span>Steuerung</span>
+    </button>
+    <button data-tab="privacy">
+      <span class="icon">🔒</span>
+      <span>Privat</span>
+    </button>
     <button data-tab="settings">
       <span class="icon">⚙️</span>
       <span data-i18n="settings">Einstellungen</span>
     </button>
   </nav>
 
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="vendor/Sortable.min.js"></script>
+  <script src="auth.js"></script>
+  <script src="ws-client.js"></script>
   <script src="i18n.js"></script>
   <script src="visual-editor.js"></script>
   <script src="app.js"></script>
+  <script src="control.js"></script>
+  <script src="privacy.js"></script>
+  <script src="pwa.js"></script>
 </body>
 
 </html>

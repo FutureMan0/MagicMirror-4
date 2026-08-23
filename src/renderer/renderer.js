@@ -2,6 +2,16 @@
 let config = null;
 let moduleLoader = null;
 
+// Manifeste der installierten Module, kommen mit config-loaded mit. Der
+// Renderer braucht daraus vor allem die Privatsphäre-Stufe.
+let moduleInfo = new Map();
+
+// Was gerade angezeigt wird: Schlüssel -> { container, entry }. Der Abgleich
+// braucht das, um zu erkennen, was schon da ist.
+let rendered = new Map();
+let gridEl = null;
+let absoluteEl = null;
+
 // Wetter-Effekte werden erst erzeugt, wenn ein Modul sie tatsächlich anfordert.
 // Vorher lief hier beim Start unbedingt ein vollflächiger Canvas mit, auch wenn
 // gar kein Wetter-Modul aktiv war.
@@ -144,26 +154,91 @@ function calculateGridArea(start, span) {
   return `${start}`;
 }
 
-function applyTheme() {
-  const themeLink = document.getElementById('theme-stylesheet');
-  const currentTheme = config.theme || 'default';
+// Metadaten der verfügbaren Themes, damit der Renderer den Hell/Dunkel-Modus
+// kennt. Wird beim ersten Bedarf geholt und danach gemerkt.
+let themeCatalog = null;
 
-  if (currentTheme !== 'default') {
-    if (!themeLink) {
-      const link = document.createElement('link');
-      link.id = 'theme-stylesheet';
-      link.rel = 'stylesheet';
-      link.href = `../../themes/${currentTheme}.css`;
-      document.head.appendChild(link);
-    } else {
-      themeLink.href = `../../themes/${currentTheme}.css`;
-    }
-  } else {
-    // Wenn Theme "default" ist, entferne das Stylesheet
-    if (themeLink) {
-      themeLink.remove();
+async function getThemeMeta(themeId) {
+  if (!themeCatalog) {
+    try {
+      const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+      const response = await fetch(`${apiBase}/api/themes`);
+      themeCatalog = response.ok ? await response.json() : [];
+    } catch {
+      // Ohne Server läuft der Spiegel trotzdem - nur ohne Modus-Angabe.
+      themeCatalog = [];
     }
   }
+  return themeCatalog.find((theme) => theme.id === themeId) || {};
+}
+
+async function applyTheme() {
+  const themeId = config.theme || 'default';
+  const meta = await getThemeMeta(themeId);
+  await window.mmThemeEngine.applyTheme(themeId, meta);
+}
+
+/** Baut den Rahmen eines Moduls samt seiner Attribute. */
+function createModuleContainer(moduleConfig) {
+  const element = document.createElement('div');
+  element.className = 'module-container';
+  element.dataset.moduleName = moduleConfig.module;
+
+  // Nach diesen Attributen blendet privacy.css aus - ohne Neuaufbau.
+  // Fehlt die Angabe, gilt das Modul als heikel.
+  const info = moduleInfo.get(moduleConfig.module) || {};
+  element.dataset.privacyLevel = info.privacyLevel || 'sensitive';
+  if (info.showInShower) element.dataset.showInShower = 'true';
+
+  // Optionale Modulseite - nur gesetzt, wenn die Konfiguration eine nennt.
+  if (moduleConfig.page) element.dataset.page = String(moduleConfig.page);
+
+  return element;
+}
+
+/**
+ * Setzt einen Rahmen an seinen Platz. Getrennt vom Erzeugen, weil eine
+ * verschobene Kachel nur neu platziert werden muss - nicht neu gebaut.
+ */
+function placeModuleContainer(element, moduleConfig) {
+  const parsed = parsePosition(moduleConfig.position, config.gridSettings);
+
+  // Alte Platzierung zurücksetzen, sonst bleiben Reste stehen, wenn ein Modul
+  // von absolut auf Raster wechselt.
+  element.style.gridColumn = '';
+  element.style.gridRow = '';
+  element.style.justifySelf = '';
+  element.style.alignSelf = '';
+  element.style.position = '';
+  element.style.left = '';
+  element.style.top = '';
+  element.style.width = '';
+  element.style.height = '';
+  element.style.zIndex = '';
+
+  if (parsed && parsed.type === 'grid') {
+    element.style.gridColumn = parsed.gridColumn;
+    element.style.gridRow = parsed.gridRow;
+    element.style.justifySelf = parsed.justifySelf;
+    element.style.alignSelf = parsed.alignSelf;
+    gridEl.appendChild(element);
+    return;
+  }
+
+  if (parsed && parsed.type === 'absolute') {
+    element.style.position = 'absolute';
+    if (parsed.x) element.style.left = parsed.x;
+    if (parsed.y) element.style.top = parsed.y;
+    if (parsed.width) element.style.width = parsed.width;
+    if (parsed.height) element.style.height = parsed.height;
+    if (parsed.zIndex) element.style.zIndex = parsed.zIndex;
+    absoluteEl.appendChild(element);
+    return;
+  }
+
+  // Ohne verwertbare Angabe ins Raster - die automatische Platzierung
+  // übernimmt.
+  gridEl.appendChild(element);
 }
 
 let isRendering = false;
@@ -180,7 +255,7 @@ async function renderModules() {
       moduleLoader.destroyAll();
     }
 
-    applyTheme();
+    await applyTheme();
 
     const container = document.getElementById('modules-container');
     if (!container || !config || !config.modules) return;
@@ -199,71 +274,187 @@ async function renderModules() {
     absoluteContainer.className = 'modules-absolute';
     container.appendChild(absoluteContainer);
 
+    gridEl = gridContainer;
+    absoluteEl = absoluteContainer;
+    rendered = new Map();
+
     // Grid-CSS dynamisch anwenden
     buildGridCSS(config.gridSettings);
 
     if (!moduleLoader) {
       moduleLoader = new window.RendererModuleLoader();
+      // privacy.js benachrichtigt darüber die Module.
+      window.mmModuleLoader = moduleLoader;
     }
 
     const envConfig = config.env || {};
 
+    // Ergebnis je Modul festhalten. Der Smoke-Test in CI wertet das aus - es
+    // ist der einzige Nachweis, dass die App wirklich startet und nicht nur
+    // die Tests gruen sind.
+    const mounted = [];
+    const failed = [];
+
     for (const [moduleIndex, moduleConfig] of config.modules.entries()) {
       if (moduleConfig.enabled === false) continue;
 
-      const moduleContainer = document.createElement('div');
-      moduleContainer.className = 'module-container';
-      moduleContainer.dataset.moduleName = moduleConfig.module;
-
-      // Parse Position mit neuer Funktion
-      const parsedPos = parsePosition(moduleConfig.position, config.gridSettings);
-
-      if (parsedPos) {
-        if (parsedPos.type === 'grid') {
-          // Grid-basierte Position
-          moduleContainer.style.gridColumn = parsedPos.gridColumn;
-          moduleContainer.style.gridRow = parsedPos.gridRow;
-          moduleContainer.style.justifySelf = parsedPos.justifySelf;
-          moduleContainer.style.alignSelf = parsedPos.alignSelf;
-          gridContainer.appendChild(moduleContainer);
-        } else if (parsedPos.type === 'absolute') {
-          // Absolute Position
-          moduleContainer.style.position = 'absolute';
-          if (parsedPos.x) moduleContainer.style.left = parsedPos.x;
-          if (parsedPos.y) moduleContainer.style.top = parsedPos.y;
-          if (parsedPos.width) moduleContainer.style.width = parsedPos.width;
-          if (parsedPos.height) moduleContainer.style.height = parsedPos.height;
-          if (parsedPos.zIndex) moduleContainer.style.zIndex = parsedPos.zIndex;
-          absoluteContainer.appendChild(moduleContainer);
-        }
-      } else {
-        // Fallback: zum Grid hinzufügen
-        gridContainer.appendChild(moduleContainer);
-      }
+      const moduleContainer = createModuleContainer(moduleConfig);
+      placeModuleContainer(moduleContainer, moduleConfig);
 
       try {
-        const moduleElement = await moduleLoader.createModuleInstance(
+        const result = await moduleLoader.createModuleInstance(
           moduleConfig.module,
           moduleConfig.config || {},
           envConfig,
           config.language || 'en',
-          `${moduleConfig.module}#${moduleIndex}`
+          window.mmReconciler.keyOf(moduleConfig, moduleIndex)
         );
 
-        if (moduleElement) {
-          moduleContainer.appendChild(moduleElement);
+        if (result.element) {
+          moduleContainer.appendChild(result.element);
+        } else if (result.headless) {
+          // Modul ohne Anzeige: kein leerer Container im Raster.
+          moduleContainer.remove();
+        }
+
+        if (result.ok) {
+          mounted.push(moduleConfig.module);
+          rendered.set(window.mmReconciler.keyOf(moduleConfig, moduleIndex), {
+            container: moduleContainer,
+            entry: moduleConfig
+          });
         } else {
-          moduleContainer.appendChild(createErrorPlaceholder(moduleConfig.module));
+          failed.push({ module: moduleConfig.module, error: result.error });
         }
       } catch (error) {
         console.error(`Fehler bei Modul ${moduleConfig.module}:`, error);
         moduleContainer.appendChild(createErrorPlaceholder(moduleConfig.module, error.message));
+        failed.push({ module: moduleConfig.module, error: error.message });
       }
+    }
+
+    if (window.mmBus) {
+      window.mmBus.publish('system:modules-rendered', {
+        mounted,
+        failed,
+        theme: config.theme || 'default'
+      });
     }
   } catch (error) {
     console.error('Fehler beim Rendern der Module:', error);
+    if (window.mmBus) {
+      window.mmBus.publish('system:render-failed', { error: error.message });
+    }
   } finally {
     isRendering = false;
+  }
+}
+
+/**
+ * Wendet eine geänderte Konfiguration an - und fasst dabei nur an, was sich
+ * wirklich geändert hat.
+ *
+ * Vorher lief jede Änderung über renderModules(): alle Module zerstören,
+ * alles neu aufbauen. Wer am Handy eine Einstellung der Uhr verstellte, löste
+ * damit aus, dass das Wetter neu geladen und der Stundenplan neu abgefragt
+ * wurde - und für einen Moment stand der halbe Spiegel leer.
+ */
+async function applyConfig(nextConfig) {
+  const previous = config;
+  config = nextConfig;
+
+  // Ohne bisherigen Stand oder ohne Reconciler bleibt nur der Komplettaufbau.
+  if (!previous || !window.mmReconciler || rendered.size === 0) {
+    return renderModules();
+  }
+
+  const changes = window.mmReconciler.diff(previous, nextConfig);
+
+  if (window.mmReconciler.isEmpty(changes)) return;
+
+  document.documentElement.lang = nextConfig.language || 'en';
+
+  // Sprache betrifft jedes Modul - da lohnt der Abgleich nicht.
+  if (changes.language) return renderModules();
+
+  if (changes.theme) await applyTheme();
+  if (changes.grid) buildGridCSS(nextConfig.gridSettings);
+
+  for (const { key } of changes.removed) {
+    const current = rendered.get(key);
+    if (!current) continue;
+
+    moduleLoader.destroyInstance(key);
+    current.container.remove();
+    rendered.delete(key);
+  }
+
+  // Nur umplatzieren: Rasterposition liegt im Style, nicht in der
+  // DOM-Reihenfolge - ein Verschieben kostet damit nichts.
+  for (const { key, entry } of changes.moved) {
+    const current = rendered.get(key);
+    if (!current) continue;
+
+    placeModuleContainer(current.container, entry);
+    current.entry = entry;
+  }
+
+  for (const change of changes.patched) {
+    const current = rendered.get(change.key);
+    if (!current) continue;
+
+    const instance = moduleLoader.getInstance(change.key);
+    const decision = window.mmReconciler.decide(instance, change.entry, change.changed);
+
+    if (change.moved) placeModuleContainer(current.container, change.entry);
+    current.entry = change.entry;
+
+    if (decision === 'patch') {
+      // Das Modul übernimmt die neuen Werte selbst.
+      Object.assign(instance.config, change.entry.config || {});
+      instance.requestUpdate ? instance.requestUpdate() : instance.update?.();
+      continue;
+    }
+
+    await remountModule(change.key, change.entry, current.container);
+  }
+
+  for (const { key, entry } of changes.added) {
+    const container = createModuleContainer(entry);
+    placeModuleContainer(container, entry);
+    rendered.set(key, { container, entry });
+    await remountModule(key, entry, container);
+  }
+}
+
+/** Baut genau ein Modul neu auf, ohne die übrigen anzufassen. */
+async function remountModule(key, entry, container) {
+  moduleLoader.destroyInstance(key);
+  container.textContent = '';
+
+  try {
+    const result = await moduleLoader.createModuleInstance(
+      entry.module,
+      entry.config || {},
+      config.env || {},
+      config.language || 'en',
+      key
+    );
+
+    if (result.element) {
+      container.appendChild(result.element);
+    } else if (result.headless) {
+      container.remove();
+      rendered.delete(key);
+      return;
+    }
+
+    if (!result.ok) {
+      container.appendChild(createErrorPlaceholder(entry.module, result.error));
+    }
+  } catch (error) {
+    console.error(`Fehler bei Modul ${entry.module}:`, error);
+    container.appendChild(createErrorPlaceholder(entry.module, error.message));
   }
 }
 
@@ -282,10 +473,89 @@ function createErrorPlaceholder(moduleName, errorMessage) {
   return placeholder;
 }
 
+/**
+ * Hinweis, wenn die Ansicht ohne Konfiguration dasteht. Ohne das bliebe ein
+ * schwarzes Bild - nicht unterscheidbar von "der Spiegel ist einfach aus".
+ */
+function showStandaloneError(message) {
+  const container = document.getElementById('modules-container');
+  if (!container) return;
+
+  const box = document.createElement('div');
+  box.className = 'module-placeholder standalone-error';
+  box.appendChild(Object.assign(document.createElement('div'), {
+    className: 'module-error-title',
+    textContent: 'MagicMirror⁴'
+  }));
+  box.appendChild(Object.assign(document.createElement('div'), {
+    className: 'module-error-message',
+    textContent: message
+  }));
+
+  container.innerHTML = '';
+  container.appendChild(box);
+}
+
+/**
+ * In einem normalen Browser gibt es kein IPC. Damit die Vorschau trotzdem
+ * mitzieht, wenn jemand die Konfiguration aendert, haengt sie sich an
+ * denselben WebSocket wie die Web-Oberflaeche.
+ */
+function connectLivePreview(instance) {
+  if (typeof WebSocket === 'undefined') return;
+
+  const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  let socket;
+  try {
+    socket = new WebSocket(`${scheme}//${window.location.host}/ws`);
+  } catch {
+    return;
+  }
+
+  socket.addEventListener('open', () => {
+    socket.send(JSON.stringify({ type: 'hello', clientId: `mirror-preview-${Date.now()}` }));
+    socket.send(JSON.stringify({ type: 'subscribe', topics: ['config:*', 'presence:*'] }));
+  });
+
+  socket.addEventListener('message', (event) => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+
+    if (message.type !== 'event') return;
+
+    if (message.topic === 'config:changed') {
+      const payload = message.payload || {};
+      if (instance && payload.instance && payload.instance !== instance) return;
+      if (!payload.config) return;
+
+      applyConfig(payload.config);
+    }
+
+    if (message.topic === 'presence:display' && !document.documentElement.dataset.preview) {
+      document.body.style.opacity = message.payload && message.payload.on ? '1' : '0.1';
+    }
+  });
+
+  // Bricht die Verbindung weg, laeuft die Vorschau einfach ohne Nachfuehrung
+  // weiter - ein Reconnect waere hier mehr Aufwand als Nutzen.
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.electronAPI) {
     window.electronAPI.onConfigLoaded((data) => {
       config = data.config;
+
+      if (Array.isArray(data.modules)) {
+        moduleInfo = new Map(data.modules.map(entry => [entry.name, entry.info || {}]));
+      }
+
+      if (data.privacy && window.mmPrivacy) {
+        window.mmPrivacy.apply(data.privacy);
+      }
       // Perf-Profil aus dem Hauptprozess. Steuert Blur, Dauer-Animationen und
       // die Bildrate der Wetter-Effekte (siehe main.css und weatherEffects.js).
       if (data.perfProfile) {
@@ -295,25 +565,48 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.electronAPI.onConfigUpdate((newConfig) => {
-      config = newConfig;
-      renderModules();
+      applyConfig(newConfig);
     });
 
-    window.electronAPI.onPresenceDetected(() => {
-      document.body.style.opacity = '1';
-    });
-
-    window.electronAPI.onPresenceLost(() => {
-      document.body.style.opacity = '0.1';
+    // Dimmen laeuft jetzt ueber den Bus. Die eigenen IPC-Kanaele
+    // presence-detected/-lost entfallen damit.
+    window.mmBus.on('presence:display', (payload) => {
+      if (document.documentElement.dataset.preview) return;
+      document.body.style.opacity = payload && payload.on ? '1' : '0.1';
     });
   } else {
+    // Kein electronAPI: die Ansicht laeuft in einem normalen Browser, etwa als
+    // Live-Vorschau am Handy. Instanz und Vorschau-Modus stehen dann in der
+    // Adresse.
+    const params = new URLSearchParams(window.location.search);
+    const instance = params.get('instance');
+    const isPreview = params.get('preview') === '1';
+
+    if (isPreview) {
+      // In der Vorschau nicht dimmen - sonst sieht man ein fast schwarzes
+      // Bild und haelt die Vorschau fuer kaputt.
+      document.documentElement.dataset.preview = '1';
+    }
+
     const apiBase = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
-    fetch(`${apiBase}/api/config`)
-      .then(res => res.json())
+    const query = instance ? `?instance=${encodeURIComponent(instance)}` : '';
+
+    fetch(`${apiBase}/api/config${query}`, { credentials: 'same-origin' })
+      .then(res => {
+        if (res.status === 401) throw new Error('nicht angemeldet');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         config = data;
         renderModules();
+        connectLivePreview(instance);
       })
-      .catch(err => console.error('Config laden fehlgeschlagen:', err));
+      .catch(err => {
+        console.error('Config laden fehlgeschlagen:', err);
+        showStandaloneError(err.message === 'nicht angemeldet'
+          ? 'Nicht angemeldet — bitte die Web-Oberfläche öffnen und koppeln.'
+          : `Konfiguration konnte nicht geladen werden: ${err.message}`);
+      });
   }
 });
