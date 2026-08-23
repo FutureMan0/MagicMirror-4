@@ -218,6 +218,12 @@ async function renderModules() {
 
     const envConfig = config.env || {};
 
+    // Ergebnis je Modul festhalten. Der Smoke-Test in CI wertet das aus - es
+    // ist der einzige Nachweis, dass die App wirklich startet und nicht nur
+    // die Tests gruen sind.
+    const mounted = [];
+    const failed = [];
+
     for (const [moduleIndex, moduleConfig] of config.modules.entries()) {
       if (moduleConfig.enabled === false) continue;
 
@@ -252,7 +258,7 @@ async function renderModules() {
       }
 
       try {
-        const moduleElement = await moduleLoader.createModuleInstance(
+        const result = await moduleLoader.createModuleInstance(
           moduleConfig.module,
           moduleConfig.config || {},
           envConfig,
@@ -260,18 +266,37 @@ async function renderModules() {
           `${moduleConfig.module}#${moduleIndex}`
         );
 
-        if (moduleElement) {
-          moduleContainer.appendChild(moduleElement);
+        if (result.element) {
+          moduleContainer.appendChild(result.element);
+        } else if (result.headless) {
+          // Modul ohne Anzeige: kein leerer Container im Raster.
+          moduleContainer.remove();
+        }
+
+        if (result.ok) {
+          mounted.push(moduleConfig.module);
         } else {
-          moduleContainer.appendChild(createErrorPlaceholder(moduleConfig.module));
+          failed.push({ module: moduleConfig.module, error: result.error });
         }
       } catch (error) {
         console.error(`Fehler bei Modul ${moduleConfig.module}:`, error);
         moduleContainer.appendChild(createErrorPlaceholder(moduleConfig.module, error.message));
+        failed.push({ module: moduleConfig.module, error: error.message });
       }
+    }
+
+    if (window.mmBus) {
+      window.mmBus.publish('system:modules-rendered', {
+        mounted,
+        failed,
+        theme: config.theme || 'default'
+      });
     }
   } catch (error) {
     console.error('Fehler beim Rendern der Module:', error);
+    if (window.mmBus) {
+      window.mmBus.publish('system:render-failed', { error: error.message });
+    }
   } finally {
     isRendering = false;
   }

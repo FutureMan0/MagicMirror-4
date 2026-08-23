@@ -90,14 +90,20 @@ class RendererModuleLoader {
    * @param {object} config - Konfiguration für das Modul
    * @param {object} envConfig - Umgebungsvariablen
    * @param {string} language - Aktuelle Sprache
-   * @returns {Promise<HTMLElement|null>} - Gerenderte Modul-Instanz
+   * @returns {Promise<{ok: boolean, element: HTMLElement, error?: string}>}
+   *
+   * Liefert bewusst ein Ergebnisobjekt statt nur eines Elements: bei einem
+   * Fehler entsteht ebenfalls ein Element (der Platzhalter), und der Aufrufer
+   * konnte bisher nicht unterscheiden, ob das Modul lief oder nur so aussah.
+   * Der Smoke-Test haengt genau daran.
    */
   async createModuleInstance(moduleName, config = {}, envConfig = {}, language = 'en', instanceKey = null) {
     // Lade Modul, falls noch nicht geladen
     if (!this.moduleClasses.has(moduleName)) {
       const loaded = await this.loadModule(moduleName);
       if (!loaded) {
-        return this.createPlaceholder(moduleName, 'Modul konnte nicht geladen werden');
+        const message = 'Modul konnte nicht geladen werden';
+        return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
     }
 
@@ -111,17 +117,29 @@ class RendererModuleLoader {
       const instance = new ModuleClass(mergedConfig);
       this.loadedModules.set(instanceKey || moduleName, instance);
 
-      // Rufe render() Methode auf
-      if (typeof instance.render === 'function') {
-        const element = await instance.render();
-        return element;
-      } else {
-        console.error(`Modul ${moduleName} hat keine render() Methode`);
-        return this.createPlaceholder(moduleName, 'Modul hat keine render() Methode');
+      if (typeof instance.render !== 'function') {
+        const message = 'Modul hat keine render() Methode';
+        console.error(`Modul ${moduleName}: ${message}`);
+        return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
+
+      // init() ist optional und darf asynchron vorbereiten, bevor gezeichnet wird.
+      if (typeof instance.init === 'function') {
+        await instance.init();
+      }
+
+      const element = await instance.render();
+
+      // null ist erlaubt: ein Modul ohne Anzeige (etwa der Praesenzsensor mit
+      // hideUI). Dann entsteht auch kein Container.
+      return { ok: true, element: element || null, headless: !element };
     } catch (error) {
       console.error(`Fehler beim Erstellen der Modul-Instanz ${moduleName}:`, error);
-      return this.createPlaceholder(moduleName, `Fehler: ${error.message}`);
+      return {
+        ok: false,
+        error: error.message,
+        element: this.createPlaceholder(moduleName, `Fehler: ${error.message}`)
+      };
     }
   }
 

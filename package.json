@@ -22,7 +22,8 @@
     "verify": "npm run lint && npm run check:tokens && npm test",
     "routes": "node scripts/collect-routes.js",
     "fonts:build": "node scripts/build-fonts.mjs",
-    "check:tokens": "node scripts/check-tokens.mjs"
+    "check:tokens": "node scripts/check-tokens.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "keywords": [
     "magic-mirror",
@@ -60,5 +61,8 @@
   },
   "optionalDependencies": {
     "serialport": "^12.0.0"
+  },
+  "allowScripts": {
+    "electron@28.3.3": true
   }
 }

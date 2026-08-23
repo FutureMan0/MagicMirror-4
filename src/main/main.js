@@ -36,6 +36,14 @@ const isDev = args.includes('--dev');
 const noServer = args.includes('--no-server');
 const customPort = args.find(arg => arg.startsWith('--port='))?.split('=')[1];
 const forceDisableGpu = args.includes('--disable-gpu') || process.env.MM_DISABLE_GPU === '1';
+// Startprobe: die App faehrt hoch, meldet, ob jedes Modul gemountet ist, und
+// beendet sich. Ohne das ist "die Tests sind gruen" kein Beleg dafuer, dass
+// der Spiegel ueberhaupt startet.
+const smokeMode = args.includes('--smoke');
+const smokeTimeoutMs = parseInt(
+  args.find(arg => arg.startsWith('--smoke-timeout='))?.split('=')[1] || '30000',
+  10
+);
 
 // Chromium-Flags und userData-Pfad MUESSEN vor app.whenReady() gesetzt werden.
 // Der userData-Pfad wurde bislang erst danach umgebogen - zu diesem Zeitpunkt
@@ -456,11 +464,53 @@ process.on('unhandledRejection', (reason) => {
   logCrash('unhandledRejection', reason && reason.stack ? reason.stack : String(reason));
 });
 
+/**
+ * Startprobe. Wartet darauf, dass der Renderer meldet, welche Module gemountet
+ * sind, schreibt eine Zeile auf stdout und beendet sich.
+ */
+function runSmokeMode() {
+  let finished = false;
+
+  const finish = (result) => {
+    if (finished) return;
+    finished = true;
+
+    // Eine klar erkennbare Zeile - der Rest von stdout ist Electron-Rauschen.
+    process.stdout.write(`MM4_SMOKE_RESULT ${JSON.stringify(result)}\n`);
+    app.exit(result.ok ? 0 : 1);
+  };
+
+  const timer = setTimeout(() => {
+    finish({
+      ok: false,
+      reason: 'timeout',
+      message: `Der Renderer hat sich innerhalb von ${smokeTimeoutMs} ms nicht gemeldet.`
+    });
+  }, smokeTimeoutMs);
+  timer.unref?.();
+
+  bus.on('system:modules-rendered', (payload) => {
+    const failed = (payload && payload.failed) || [];
+    finish({
+      ok: failed.length === 0,
+      reason: failed.length === 0 ? 'ok' : 'module-failed',
+      mounted: (payload && payload.mounted) || [],
+      failed,
+      theme: payload && payload.theme
+    });
+  });
+
+  bus.on('system:render-failed', (payload) => {
+    finish({ ok: false, reason: 'render-failed', message: payload && payload.error });
+  });
+}
+
 app.whenReady().then(() => {
   // Server zuerst: das Fenster laedt den Spiegel ueber HTTP und wuerde sonst
   // auf die Rueckfallebene file:// fallen, nur weil der Port noch nicht
   // lauscht.
   startWebServer();
+  if (smokeMode) runSmokeMode();
   createWindow();
 });
 
