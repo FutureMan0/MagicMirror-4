@@ -100,15 +100,53 @@ Der Wert wandert beim Speichern in die `.env` und wird beim Laden wieder in
 nie erreicht — das Modul muss dann über sein `backend.js` gehen. Über HTTP
 liefert `GET /api/config` ohnehin nur `"__SET__"`.
 
-### Backend
+### Ein Modul, das eine fremde Schnittstelle abfragt
+
+Dafür gibt es ein Fundament — **nicht selbst bauen**. `defineHttpModule`
+liefert Abfragetakt, Zwischenspeicher auf Platte, Backoff, bedingte Anfragen,
+Fehlerbehandlung und die Routen:
+
+```js
+const { defineHttpModule } = require('../../src/main/integrations/httpModule');
+
+module.exports = defineHttpModule({
+  name: 'mein-modul',
+  defaults: { updateInterval: 300000 },
+  buildRequests: (config) => [{ url: '…', headers: { … } }],
+  transform: (antworten, config) => ({ … })
+});
+```
+
+Daraus entstehen `GET /api/<name>/data`, `POST /api/<name>/refresh`,
+`POST /api/<name>/test` und optionale `action/:id`-Routen.
+
+Im Renderer erbt das Modul von `DataModule` und implementiert **nur**
+`renderData(data, root)`. Ladeanzeige, Fehler, Kennzeichnung veralteter Daten,
+Nachladen über den Bus und Aufräumen kommen aus der Basisklasse.
+
+`modules/github/` ist das Beispiel: ein vollständiges Modul in rund 120 Zeilen
+Frontend und 100 Zeilen Backend, von denen die Hälfte Kommentare sind.
+
+Warum das ein Fundament braucht und nicht jedes Modul für sich: Ohne
+Plattenspeicher steht der Spiegel nach jedem `pm2 restart` — also nach jedem
+Update — minutenlang leer. Ohne Backoff schreibt ein nicht erreichbarer Dienst
+dieselbe Fehlermeldung im Minutentakt. Ohne Bündelung fragen Spiegel,
+Live-Ansicht und Konfigurationsseite dreimal dasselbe ab. Ohne ETag ist das
+GitHub-Kontingent bei drei Repositories aufgebraucht.
+
+### Backend von Hand
+
+Wenn das Fundament nicht passt — etwa bei Push statt Abfrage:
 
 ```js
 module.exports = {
-  registerRoutes(app, { instanceName, ConfigManager, fetch, bus }) {
+  registerRoutes(app, { instanceName, ConfigManager, fetch, bus, onShutdown }) {
     app.get('/api/mein-modul/data', async (req, res) => { });
   }
 };
 ```
+
+`onShutdown(fn)` für Aufräumarbeiten — **keine eigenen Signal-Handler**.
 
 `bus.emit('mein-modul:changed', payload)` erreicht Spiegel und Web-Oberfläche,
 ohne eines von beiden zu kennen. Die ältere Form `{ routes: [...] }` wird

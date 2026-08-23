@@ -1,0 +1,52 @@
+{
+  "apiVersion": 2,
+  "name": "github",
+  "displayName": "GitHub",
+  "version": "1.0.0",
+  "description": "Letzte Commits, offene Pull Requests und Sterne für ausgewählte Repositories.",
+  "author": "MagicMirror⁴",
+  "secrets": [
+    {
+      "key": "token",
+      "env": "GITHUB_TOKEN",
+      "label": "GitHub Token (optional)",
+      "exposeToRenderer": false
+    }
+  ],
+  "provides": ["data:github"],
+  "config": {
+    "repos": {
+      "type": "string",
+      "default": "",
+      "description": "Repositories, kommagetrennt (z. B. FutureMan0/MagicMirror-4, torvalds/linux)"
+    },
+    "token": {
+      "type": "string",
+      "default": "",
+      "description": "Persönlicher Zugriffstoken. Ohne ihn erlaubt GitHub nur 60 Anfragen pro Stunde — ab zwei Repositories reicht das nicht."
+    },
+    "maxCommits": {
+      "type": "number",
+      "default": 3,
+      "min": 1,
+      "max": 10,
+      "description": "Anzahl der angezeigten Commits je Repository"
+    },
+    "showPullRequests": {
+      "type": "boolean",
+      "default": true,
+      "description": "Offene Pull Requests anzeigen"
+    },
+    "showStars": {
+      "type": "boolean",
+      "default": true,
+      "description": "Sterne anzeigen"
+    },
+    "updateInterval": {
+      "type": "number",
+      "default": 300000,
+      "min": 60000,
+      "description": "Aktualisierungsintervall in Millisekunden"
+    }
+  }
+}
