@@ -24,9 +24,6 @@ class ConfigManager {
         'username': 'UNTIS_USERNAME',
         'password': 'UNTIS_PASSWORD',
         'school': 'UNTIS_SCHOOL'
-      },
-      'presence': {
-        'port': 'PRESENCE_SENSOR_PORT'
       }
     };
   }
@@ -74,7 +71,7 @@ class ConfigManager {
       } else {
         const [key] = trimmed.split('=');
         const cleanKey = key.trim();
-        if (envVars.hasOwnProperty(cleanKey)) {
+        if (Object.prototype.hasOwnProperty.call(envVars, cleanKey)) {
           lines.push(`${cleanKey}=${envVars[cleanKey]}`);
           processedKeys.add(cleanKey);
         } else {
@@ -155,11 +152,6 @@ class ConfigManager {
             }
             if (envVars.untisSchool) {
               mod.config.school = envVars.untisSchool;
-            }
-            break;
-          case 'presence':
-            if (envVars.presenceSensorPort) {
-              mod.config.port = envVars.presenceSensorPort;
             }
             break;
         }

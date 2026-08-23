@@ -1,14 +1,31 @@
 class WeatherEffects {
-  constructor() {
+  constructor(options = {}) {
     this.canvas = null;
     this.ctx = null;
     this.animationId = null;
     this.currentEffect = null;
     this.particles = [];
+
+    // Auf schwacher Hardware kostet ein vollflaechiger 60-fps-Canvas mehr als
+    // der gesamte Rest der Oberflaeche. Bildrate und Partikelzahl sind deshalb
+    // an das Perf-Profil gekoppelt.
+    const lowPerf = options.perfProfile === 'low';
+    this.maxFps = options.maxFps || (lowPerf ? 20 : 30);
+    this.particleScale = options.particleScale || (lowPerf ? 0.5 : 1);
+    this.frameInterval = 1000 / this.maxFps;
+    this.lastFrameTime = 0;
+
+    this.onResize = () => this.resize();
   }
 
+  // Der Canvas wird erst angelegt, wenn es wirklich etwas zu zeigen gibt.
   init() {
-    // Erstelle Canvas für Wetter-Effekte
+    return this;
+  }
+
+  ensureCanvas() {
+    if (this.canvas) return;
+
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'weather-effects-canvas';
     this.canvas.style.position = 'fixed';
@@ -17,26 +34,39 @@ class WeatherEffects {
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     this.canvas.style.pointerEvents = 'none';
-    this.canvas.style.zIndex = '9999';
+    this.canvas.style.zIndex = 'var(--mm-z-effects, 200)';
     this.canvas.style.opacity = '0.3';
     document.body.appendChild(this.canvas);
 
     this.ctx = this.canvas.getContext('2d');
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    window.addEventListener('resize', this.onResize);
+  }
+
+  destroyCanvas() {
+    if (!this.canvas) return;
+    window.removeEventListener('resize', this.onResize);
+    this.canvas.remove();
+    this.canvas = null;
+    this.ctx = null;
+  }
+
+  // Skaliert eine Partikel-Obergrenze mit dem Perf-Profil.
+  cap(value) {
+    return Math.max(1, Math.round(value * this.particleScale));
   }
 
   resize() {
+    if (!this.canvas) return;
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
   }
 
   setEffect(weatherCode) {
-    // Stoppe aktuelle Animation
-    if (this.animationId) {
-      cancelAnimationFrame(this.animationId);
-      this.particles = [];
-    }
+    // Vollstaendig stoppen. Frueher wurde hier nur cancelAnimationFrame
+    // aufgerufen, ohne animationId zurueckzusetzen - zwei setEffect-Aufrufe
+    // hinterliessen dann zwei parallele rAF-Schleifen auf demselben Canvas.
+    this.stop();
 
     // Bestimme Effekt basierend auf Wetter-Code
     if (weatherCode >= 200 && weatherCode < 300) {
@@ -58,12 +88,25 @@ class WeatherEffects {
     }
 
     if (this.currentEffect) {
+      this.ensureCanvas();
       this.startAnimation();
+    } else {
+      this.destroyCanvas();
     }
   }
 
   startAnimation() {
-    const animate = () => {
+    const animate = (timestamp) => {
+      this.animationId = requestAnimationFrame(animate);
+
+      if (!this.ctx) return;
+
+      // Drosselung: nur zeichnen, wenn seit dem letzten Bild genug Zeit
+      // vergangen ist. Der Rest der Frames kostet nichts.
+      const now = timestamp || 0;
+      if (now - this.lastFrameTime < this.frameInterval) return;
+      this.lastFrameTime = now;
+
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
       switch (this.currentEffect) {
@@ -90,15 +133,15 @@ class WeatherEffects {
           break;
       }
 
-      this.animationId = requestAnimationFrame(animate);
     };
 
-    animate();
+    this.lastFrameTime = 0;
+    this.animationId = requestAnimationFrame(animate);
   }
 
   animateRain() {
     // Erstelle neue Tropfen
-    if (this.particles.length < 150) {
+    if (this.particles.length < this.cap(150)) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * -this.canvas.height,
@@ -133,7 +176,7 @@ class WeatherEffects {
 
   animateDrizzle() {
     // Leichterer Regen - weniger Tropfen, langsamer
-    if (this.particles.length < 80) {
+    if (this.particles.length < this.cap(80)) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * -this.canvas.height,
@@ -167,7 +210,7 @@ class WeatherEffects {
 
   animateSnow() {
     // Erstelle neue Schneeflocken
-    if (this.particles.length < 100) {
+    if (this.particles.length < this.cap(100)) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * -this.canvas.height,
@@ -233,17 +276,14 @@ class WeatherEffects {
       this.ctx.globalAlpha = 0.9;
       this.ctx.fillRect(x - 2, 0, 4, this.canvas.height);
       this.ctx.globalAlpha = 1.0;
-
-      // Blitz verschwindet schnell
-      setTimeout(() => {
-        this.ctx.clearRect(x - 2, 0, 4, this.canvas.height);
-      }, 100);
+      // Kein setTimeout zum Aufraeumen noetig: der naechste Frame loescht den
+      // Canvas ohnehin vollstaendig.
     }
   }
 
   animateFog() {
     // Erstelle neue Nebel-Partikel
-    if (this.particles.length < 50) {
+    if (this.particles.length < this.cap(50)) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * this.canvas.height,
@@ -276,7 +316,7 @@ class WeatherEffects {
 
   animateClouds() {
     // Erstelle neue Wolken
-    if (this.particles.length < 30) {
+    if (this.particles.length < this.cap(30)) {
       this.particles.push({
         x: Math.random() * this.canvas.width,
         y: Math.random() * this.canvas.height * 0.4,
@@ -312,9 +352,16 @@ class WeatherEffects {
       this.animationId = null;
     }
     this.particles = [];
-    if (this.ctx) {
+    this.lastFrameTime = 0;
+    if (this.ctx && this.canvas) {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+  }
+
+  destroy() {
+    this.stop();
+    this.currentEffect = null;
+    this.destroyCanvas();
   }
 }
 

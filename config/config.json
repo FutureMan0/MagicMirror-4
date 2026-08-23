@@ -80,15 +80,6 @@
       }
     },
     {
-      "module": "presence",
-      "position": "bottom_center",
-      "enabled": false,
-      "config": {
-        "timeout": 60000,
-        "dimTimeout": 300000
-      }
-    },
-    {
       "module": "mmwave-presence",
       "position": {
         "column": 1,

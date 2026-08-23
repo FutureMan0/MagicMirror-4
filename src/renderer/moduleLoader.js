@@ -23,11 +23,10 @@ class RendererModuleLoader {
     }
 
     try {
-      // Lade Modul als Script-Tag statt via eval
+      // Lade Modul als Script-Tag statt via eval.
+      // script.onload feuert erst nach der Ausfuehrung des Scripts, das Modul
+      // hat sich zu diesem Zeitpunkt also bereits registriert.
       await this.loadModuleScript(moduleName);
-
-      // Warte kurz, bis das Script geladen ist
-      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Prüfe ob die Klasse registriert wurde
       if (!window.MagicMirrorModules || !window.MagicMirrorModules[moduleName]) {
@@ -74,7 +73,7 @@ class RendererModuleLoader {
    * @param {string} language - Aktuelle Sprache
    * @returns {Promise<HTMLElement|null>} - Gerenderte Modul-Instanz
    */
-  async createModuleInstance(moduleName, config = {}, envConfig = {}, language = 'en') {
+  async createModuleInstance(moduleName, config = {}, envConfig = {}, language = 'en', instanceKey = null) {
     // Lade Modul, falls noch nicht geladen
     if (!this.moduleClasses.has(moduleName)) {
       const loaded = await this.loadModule(moduleName);
@@ -91,7 +90,7 @@ class RendererModuleLoader {
 
       // Erstelle Instanz
       const instance = new ModuleClass(mergedConfig);
-      this.loadedModules.set(`${moduleName}-${Date.now()}`, instance);
+      this.loadedModules.set(instanceKey || moduleName, instance);
 
       // Rufe render() Methode auf
       if (typeof instance.render === 'function') {
@@ -167,6 +166,13 @@ class RendererModuleLoader {
       </div>
     `;
     return placeholder;
+  }
+
+  /**
+   * Liefert die laufende Instanz zu einem Instanz-Schlüssel
+   */
+  getInstance(instanceKey) {
+    return this.loadedModules.get(instanceKey) || null;
   }
 
   /**
