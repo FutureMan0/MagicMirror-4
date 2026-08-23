@@ -486,7 +486,20 @@ function runSmokeMode() {
 
     // Eine klar erkennbare Zeile - der Rest von stdout ist Electron-Rauschen.
     process.stdout.write(`MM4_SMOKE_RESULT ${JSON.stringify(result)}\n`);
-    app.exit(result.ok ? 0 : 1);
+
+    // Scheitert das Hochfahren, hat weiteres Warten keinen Zweck.
+    if (!result.ok) {
+      app.exit(1);
+      return;
+    }
+
+    // Sonst am Leben bleiben: die Startprobe prueft anschliessend noch den
+    // Live-Kanal, und dafuer muss der Server laufen. Beendet wird von aussen.
+    process.stdout.write('MM4_SMOKE_READY\n');
+
+    // Sicherheitsnetz, falls der Aufrufer verschwindet.
+    const guard = setTimeout(() => app.exit(0), 60000);
+    guard.unref?.();
   };
 
   const timer = setTimeout(() => {
