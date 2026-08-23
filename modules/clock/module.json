@@ -25,5 +25,7 @@
       "default": "Europe/Vienna",
       "description": "Zeitzone"
     }
-  }
+  },
+  "privacyLevel": "public",
+  "showInShower": true
 }

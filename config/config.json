@@ -176,5 +176,38 @@
         "showUnavailable": false
       }
     }
-  ]
+  ],
+  "privacy": {
+    "mode": "normal",
+    "default": "normal",
+    "guest": {
+      "autoRevertMinutes": 30
+    },
+    "shower": {
+      "trigger": "auto",
+      "zone": {
+        "minDistanceCm": 0,
+        "maxDistanceCm": 120
+      },
+      "dwellSeconds": 20,
+      "exitDelaySeconds": 60,
+      "display": "clock",
+      "dimOpacity": 0.35,
+      "sensorHardOff": true
+    }
+  },
+  "input": {
+    "enabled": false,
+    "provider": "mock",
+    "cooldownMs": 400,
+    "minConfidence": 0.6,
+    "bindings": {
+      "swipe_left": "page.next",
+      "swipe_right": "page.prev",
+      "swipe_up": "spotify.next",
+      "swipe_down": "spotify.previous",
+      "palm_hold": "privacy.toggleGuest",
+      "hand_present": "display.wake"
+    }
+  }
 }

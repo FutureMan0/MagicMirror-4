@@ -9,6 +9,9 @@ const { Auth, getLanAddress } = require('./auth');
 const ThemeManager = require('./themeManager');
 const { createBusBridge } = require('./busBridge');
 const { createWsHub } = require('./wsHub');
+const { PrivacyManager } = require('./privacyManager');
+const { SensorPower } = require('./sensorPower');
+const { InputHub } = require('./inputHub');
 const QRCode = require('qrcode');
 const express = require('express');
 
@@ -18,6 +21,8 @@ let moduleLoader = null;
 let webServer = null;
 let auth = null;
 let wsHub = null;
+let privacy = null;
+let inputHub = null;
 
 // Ein Bus fuer den gesamten Hauptprozess. Modul-Backends bekommen ihn im
 // Kontext und koennen damit den Spiegel und die Web-UI erreichen, ohne beide
@@ -166,7 +171,8 @@ function createWindow() {
       config: configManager.loadConfigForRenderer(),
       modules: moduleLoader.scanModules(),
       instanceName,
-      perfProfile
+      perfProfile,
+      privacy: privacy ? privacy.state() : null
     });
   });
 }
@@ -353,6 +359,80 @@ function startWebServer() {
   // Ab hier ist alles unter /api geschuetzt.
   expressApp.use('/api', auth.middleware(['/auth/']));
 
+  // --- Privatsphaere und Gesten ------------------------------------------
+
+  const readConfig = () => new ConfigManager(instanceName).loadConfig();
+
+  // Ultraleap-Kennung (2936) fuer den Fall, dass ein Leap-Controller
+  // angeschlossen ist. Ohne Geraet bleibt das folgenlos.
+  const sensorPower = new SensorPower({
+    vendorIds: ['2936'],
+    serviceName: 'ultraleap-hand-tracking-service',
+    bus
+  });
+
+  privacy = new PrivacyManager({ bus, getConfig: readConfig });
+  privacy.attachSensorControl(sensorPower);
+
+  inputHub = new InputHub({
+    bus,
+    getConfig: readConfig,
+    getPrivacyMode: () => privacy.mode
+  });
+
+  // Der Sensor startet AUS und geht erst an, wenn der Zustand das hergibt.
+  sensorPower.disable('Start').catch(() => {});
+  inputHub.start().catch(error => console.error('Gesten:', error.message));
+
+  bus.on('privacy:changed', (state) => {
+    inputHub.onPrivacyChange(state.mode).catch(() => {});
+  });
+
+  registerShutdownHook(() => {
+    privacy.stop();
+    inputHub.stop().catch(() => {});
+  });
+
+  expressApp.get('/api/privacy', (req, res) => {
+    res.json(privacy.state());
+  });
+
+  expressApp.post('/api/privacy', async (req, res) => {
+    try {
+      const state = await privacy.setMode(req.body?.mode, {
+        ttlMinutes: req.body?.ttlMinutes ?? null
+      });
+      res.json(state);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  expressApp.post('/api/privacy/sensor', async (req, res) => {
+    const enabled = req.body?.enabled === true;
+    // Einschalten nur, wenn der Zustand das ueberhaupt zulaesst.
+    if (enabled && privacy.mode !== 'normal') {
+      return res.status(409).json({
+        error: `Im Zustand "${privacy.mode}" bleibt der Sensor aus.`
+      });
+    }
+
+    res.json(enabled ? await sensorPower.enable() : await sensorPower.disable('von Hand'));
+  });
+
+  expressApp.get('/api/input/status', (req, res) => {
+    res.json(inputHub.status());
+  });
+
+  expressApp.post('/api/input/test', (req, res) => {
+    try {
+      res.json({ ok: true, event: inputHub.trigger(req.body?.gesture, req.body?.extra || {}) });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error.message });
+    }
+  });
+
+
   expressApp.get('/api/config', (req, res) => {
     const instance = req.query.instance || instanceName;
     const instanceConfigManager = new ConfigManager(instance);
@@ -416,7 +496,10 @@ function startWebServer() {
     fetch,
     bus,
     // Statt eigener Signal-Handler: hier anmelden.
-    onShutdown: registerShutdownHook
+    onShutdown: registerShutdownHook,
+    // Der Praesenzsensor meldet die Duschzone - entscheiden tut der
+    // Privatsphaere-Zustand, es gibt genau einen Besitzer.
+    privacy
   });
 
   // Update Endpoints. Die eigentliche Arbeit liegt in src/main/updater.js -

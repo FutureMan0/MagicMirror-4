@@ -1908,3 +1908,88 @@ body {
   padding: 8px 0;
   font-size: 0.9rem;
 }
+
+/* ==================== Privatsphäre ==================== */
+.privacy-section h2 {
+  margin-bottom: 16px;
+}
+
+.privacy-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.privacy-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 14px;
+  text-align: left;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 12px;
+  background: var(--bg-secondary, #1a1a1a);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-height: var(--touch-target-min, 44px);
+}
+
+.privacy-mode.active {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.privacy-mode-label {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.privacy-mode-hint {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.privacy-notice {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.privacy-error {
+  border-color: var(--accent-red, #ff4444);
+  color: var(--accent-red, #ff4444);
+}
+
+.privacy-sensor {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color, #333);
+}
+
+.privacy-sensor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Rot heisst an. Das ist die einzige Farbe, die hier eindeutig sein muss -
+   deshalb bewusst kräftig und nicht als dezenter Akzent. */
+.privacy-sensor-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #444;
+  flex-shrink: 0;
+}
+
+.privacy-sensor-dot[data-active="true"] {
+  background: #ff3b30;
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.6);
+}

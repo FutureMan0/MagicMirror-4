@@ -89,6 +89,13 @@ function normalizeManifest(raw, moduleName, { warn = () => {} } = {}) {
     styles: manifest.styles || 'styles.css',
     backend: manifest.backend || 'backend.js',
 
+    // Fail-safe: ohne Angabe gilt ein Modul als heikel. Neue Module sind
+    // damit privat, bis jemand sie ausdruecklich freigibt - nie umgekehrt.
+    privacyLevel: ['public', 'personal', 'sensitive'].includes(manifest.privacyLevel)
+      ? manifest.privacyLevel
+      : 'sensitive',
+    showInShower: manifest.showInShower === true,
+
     hidden: manifest.hidden === true,
     singleton: manifest.singleton === true,
     headless: manifest.headless === true,
