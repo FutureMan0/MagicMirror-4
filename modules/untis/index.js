@@ -73,7 +73,7 @@ class UntisModule {
     this.container.className = 'module-untis';
 
     // Lade Stundenplan über Backend mit Retry
-    this.container.innerHTML = `<div class="untis-loading">${this.t.loading}</div>`;
+    this.container.innerHTML = h`<div class="untis-loading">${this.t.loading}</div>`;
 
     await this.loadTimetableWithRetry(3);
 
@@ -601,7 +601,7 @@ class UntisModule {
       })[0];
 
     if (!nextLesson) {
-      this.container.innerHTML = `<div class="untis-empty">${this.t.no_more_lessons}</div>`;
+      this.container.innerHTML = h`<div class="untis-empty">${this.t.no_more_lessons}</div>`;
       return;
     }
 

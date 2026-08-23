@@ -805,27 +805,11 @@ function showModuleSettings(moduleConfig, moduleInfo) {
     html += '</div>';
   }
 
-  // Spotify: OAuth Authentifizierung
+  // Spotify: Einrichtung
   if (moduleConfig.module === 'spotify') {
-    const hasRefreshToken = moduleConfig.config?.refreshToken;
-    html += '<div class="form-group" style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">';
-    html += '<label>Spotify Authentifizierung</label>';
-    html += '<div style="display: flex; gap: 8px; align-items: center; flex-direction: column; align-items: stretch;">';
-
-    if (hasRefreshToken) {
-      html += '<div style="padding: 10px; background: rgba(0,255,0,0.1); border: 1px solid rgba(0,255,0,0.3); border-radius: 6px; color: #00ff00;">';
-      html += '✓ Spotify ist verbunden';
-      html += '</div>';
-      html += '<button type="button" class="btn-secondary" id="spotify-reauth-btn">Erneut verbinden</button>';
-    } else {
-      html += '<div style="padding: 10px; background: rgba(255,200,0,0.1); border: 1px solid rgba(255,200,0,0.3); border-radius: 6px; color: #ffcc00;">';
-      html += '⚠ Spotify nicht verbunden';
-      html += '</div>';
-      html += '<button type="button" class="btn-primary" id="spotify-auth-btn">Mit Spotify verbinden</button>';
-    }
-
-    html += '</div>';
-    html += '<small style="color: var(--text-secondary); margin-top: 8px; display: block;">Der OAuth-Flow öffnet ein neues Fenster. Nach erfolgreicher Anmeldung wird der Refresh Token automatisch gespeichert.</small>';
+    html += '<div class="form-group spotify-setup">';
+    html += '<label>Spotify-Verbindung</label>';
+    html += '<div id="spotify-setup-body">Wird geprüft …</div>';
     html += '</div>';
   }
 
@@ -838,7 +822,7 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   }
 
   if (moduleConfig.module === 'spotify') {
-    initSpotifyAuth(moduleConfig);
+    initSpotifySetup();
   }
 
   // Position Type Switcher
@@ -908,73 +892,261 @@ async function initUntisClassPicker(moduleConfig) {
   }
 }
 
-function initSpotifyAuth(moduleConfig) {
-  const authBtn = document.getElementById('spotify-auth-btn');
-  const reauthBtn = document.getElementById('spotify-reauth-btn');
+/**
+ * Einrichtungs-Assistent für Spotify.
+ *
+ * Der Wunsch war "ohne viel Tamtam". Was dem im Weg stand:
+ *
+ *  1. Man muss sich selbst eine Spotify-App anlegen. Das lässt sich nicht
+ *     umgehen - im Development Mode braucht der App-Besitzer Premium und darf
+ *     nur fünf Testnutzer haben, eine mitgelieferte Client-ID wäre also nach
+ *     fünf Leuten am Ende.
+ *  2. Man musste Client ID UND Secret abtippen. Das Secret entfällt jetzt
+ *     dank PKCE.
+ *  3. Die Rückleitungsadresse musste man von Hand eintragen und exakt
+ *     treffen. Sie steht jetzt hier zum Kopieren.
+ *
+ * Übrig bleiben: App anlegen, zwei Werte kopieren, eine ID einfügen,
+ * verbinden.
+ */
+async function initSpotifySetup() {
+  const body = document.getElementById('spotify-setup-body');
+  if (!body) return;
 
-  const startAuth = async () => {
-    try {
-      // Hole Auth-URL vom Backend
-      const response = await fetch(`/api/spotify/auth-url?instance=${currentInstance}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        alert(data.error || 'Fehler beim Starten der Authentifizierung.');
-        return;
-      }
-
-      // Öffne Auth-Fenster
-      const authWindow = window.open(
-        data.authUrl,
-        'Spotify Authentifizierung',
-        'width=600,height=800,left=100,top=100'
-      );
-
-      // Polling für Callback-Result
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(`/api/spotify/auth-status?instance=${currentInstance}`);
-          const statusData = await statusResponse.json();
-
-          if (statusData.status === 'completed') {
-            clearInterval(pollInterval);
-            if (authWindow && !authWindow.closed) {
-              authWindow.close();
-            }
-
-            // Reload Config und zeige Success
-            await loadConfig();
-            alert('✓ Spotify erfolgreich verbunden!');
-            selectModule(selectedModule); // Refresh Settings-UI
-          } else if (statusData.status === 'error') {
-            clearInterval(pollInterval);
-            if (authWindow && !authWindow.closed) {
-              authWindow.close();
-            }
-            alert('Fehler bei der Authentifizierung: ' + (statusData.error || 'Unbekannter Fehler'));
-          }
-        } catch (error) {
-          console.error('Fehler beim Polling:', error);
-        }
-      }, 2000);
-
-      // Stop Polling nach 5 Minuten
-      setTimeout(() => {
-        clearInterval(pollInterval);
-      }, 300000);
-
-    } catch (error) {
-      console.error('Fehler beim Starten der Authentifizierung:', error);
-      alert('Fehler beim Starten der Authentifizierung.');
-    }
-  };
-
-  if (authBtn) {
-    authBtn.addEventListener('click', startAuth);
+  let status;
+  try {
+    const response = await fetch(`/api/spotify/auth-status?instance=${currentInstance}`);
+    status = await response.json();
+  } catch (error) {
+    body.textContent = 'Status konnte nicht geladen werden.';
+    return;
   }
 
-  if (reauthBtn) {
-    reauthBtn.addEventListener('click', startAuth);
+  body.textContent = '';
+
+  if (status.connected) {
+    body.appendChild(buildSpotifyConnected());
+    return;
+  }
+
+  body.appendChild(buildSpotifySteps(status));
+}
+
+function buildSpotifyConnected() {
+  const box = document.createElement('div');
+  box.className = 'spotify-connected';
+
+  const line = document.createElement('div');
+  line.className = 'spotify-status-ok';
+  line.textContent = '✓ Verbunden';
+  box.appendChild(line);
+
+  const disconnect = document.createElement('button');
+  disconnect.type = 'button';
+  disconnect.className = 'btn-secondary';
+  disconnect.textContent = 'Verbindung trennen';
+  disconnect.addEventListener('click', async () => {
+    await fetch('/api/spotify/disconnect', { method: 'POST' });
+    initSpotifySetup();
+  });
+  box.appendChild(disconnect);
+
+  return box;
+}
+
+function buildSpotifySteps(status) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'spotify-steps';
+
+  const hint = document.createElement('p');
+  hint.className = 'spotify-hint';
+  // Ohne diesen Hinweis läuft man in ein 403, dessen Ursache nirgends steht.
+  hint.textContent = 'Spotify verlangt für eigene Apps ein Premium-Konto.';
+  wrapper.appendChild(hint);
+
+  wrapper.appendChild(buildSpotifyStep(1,
+    'Spotify-App anlegen',
+    'Im Dashboard auf „Create app". Name und Beschreibung sind frei wählbar.',
+    (content) => {
+      const link = document.createElement('a');
+      link.href = 'https://developer.spotify.com/dashboard';
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'btn-secondary spotify-link';
+      link.textContent = 'Dashboard öffnen';
+      content.appendChild(link);
+    }
+  ));
+
+  wrapper.appendChild(buildSpotifyStep(2,
+    'Diese Adresse als Redirect URI eintragen',
+    'Sie muss exakt übereinstimmen — deshalb kopieren statt abtippen.',
+    (content) => content.appendChild(buildCopyField(status.redirectUri))
+  ));
+
+  wrapper.appendChild(buildSpotifyStep(3,
+    'Client ID einfügen',
+    'Aus der Übersicht der eben angelegten App. Ein Client Secret wird nicht gebraucht.',
+    (content) => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'spotify-client-id';
+      input.placeholder = 'z. B. 4c2a9f18…';
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      content.appendChild(input);
+
+      const save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'btn-secondary';
+      save.textContent = 'Speichern';
+      save.addEventListener('click', async () => {
+        const value = input.value.trim();
+        if (!value) return;
+
+        const moduleConfig = currentConfig.modules.find(m => m.module === 'spotify');
+        if (!moduleConfig) return;
+
+        moduleConfig.config = { ...(moduleConfig.config || {}), clientId: value };
+        await saveConfig();
+        initSpotifySetup();
+      });
+      content.appendChild(save);
+    }
+  ));
+
+  const connectStep = buildSpotifyStep(4,
+    'Verbinden',
+    status.hasClientId
+      ? 'Es öffnet sich Spotify. Nach dem Erlauben geht es automatisch zurück.'
+      : 'Erst die Client ID speichern.',
+    (content) => {
+      const connect = document.createElement('button');
+      connect.type = 'button';
+      connect.className = 'btn-primary';
+      connect.textContent = 'Mit Spotify verbinden';
+      connect.disabled = !status.hasClientId;
+      connect.addEventListener('click', startSpotifyAuth);
+      content.appendChild(connect);
+
+      // Rückfallebene: Chromes HTTPS-First-Mode kann die Rückleitung
+      // blockieren, und im Mobilfunk ist der Spiegel gar nicht erreichbar.
+      const details = document.createElement('details');
+      details.className = 'spotify-fallback';
+      details.innerHTML = `
+        <summary>Es kam kein automatischer Rücksprung</summary>
+        <p>Dann steht auf der Spotify-Seite ein Code. Hier einfügen:</p>
+      `;
+
+      const codeInput = document.createElement('input');
+      codeInput.type = 'text';
+      codeInput.placeholder = 'Code von der Rückleitungsseite';
+      details.appendChild(codeInput);
+
+      const paste = document.createElement('button');
+      paste.type = 'button';
+      paste.className = 'btn-secondary';
+      paste.textContent = 'Code einlösen';
+      paste.addEventListener('click', async () => {
+        const state = sessionStorage.getItem('spotifyState');
+        if (!state) {
+          alert('Bitte zuerst „Mit Spotify verbinden" antippen.');
+          return;
+        }
+
+        const response = await fetch('/api/spotify/paste-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeInput.value.trim(), state })
+        });
+
+        const result = await response.json();
+        if (result.ok) initSpotifySetup();
+        else alert(result.error || 'Der Code wurde nicht angenommen.');
+      });
+      details.appendChild(paste);
+
+      content.appendChild(details);
+    }
+  );
+  wrapper.appendChild(connectStep);
+
+  return wrapper;
+}
+
+function buildSpotifyStep(number, title, description, fill) {
+  const step = document.createElement('div');
+  step.className = 'spotify-step';
+
+  const badge = document.createElement('span');
+  badge.className = 'spotify-step-number';
+  badge.textContent = String(number);
+  step.appendChild(badge);
+
+  const content = document.createElement('div');
+  content.className = 'spotify-step-content';
+
+  const heading = document.createElement('div');
+  heading.className = 'spotify-step-title';
+  heading.textContent = title;
+  content.appendChild(heading);
+
+  const text = document.createElement('div');
+  text.className = 'spotify-step-description';
+  text.textContent = description;
+  content.appendChild(text);
+
+  fill(content);
+  step.appendChild(content);
+  return step;
+}
+
+/** Ein Feld, das man antippt und dessen Inhalt in der Zwischenablage landet. */
+function buildCopyField(value) {
+  const row = document.createElement('div');
+  row.className = 'spotify-copy';
+
+  const field = document.createElement('code');
+  field.textContent = value;
+  row.appendChild(field);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-secondary';
+  button.textContent = 'Kopieren';
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      button.textContent = 'Kopiert';
+      if (window.mmPwa) window.mmPwa.tap();
+      setTimeout(() => { button.textContent = 'Kopieren'; }, 2000);
+    } catch {
+      // Ohne Zwischenablage bleibt Markieren - das Feld ist dafür ausgelegt.
+      button.textContent = 'Bitte markieren';
+    }
+  });
+  row.appendChild(button);
+
+  return row;
+}
+
+async function startSpotifyAuth() {
+  try {
+    const response = await fetch(`/api/spotify/auth-url?instance=${currentInstance}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Der Anmeldevorgang ließ sich nicht starten.');
+      return;
+    }
+
+    // Den state merken: die Rückfallebene braucht ihn beim Einlösen von Hand.
+    const state = new URL(data.authUrl).searchParams.get('state');
+    sessionStorage.setItem('spotifyState', state);
+
+    window.location.href = data.authUrl;
+  } catch (error) {
+    alert('Der Anmeldevorgang ließ sich nicht starten.');
   }
 }
 

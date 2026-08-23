@@ -64,7 +64,7 @@ class WeatherModule {
     this.container.className = 'module-weather';
 
     // Lade-Animation
-    this.container.innerHTML = `
+    this.container.innerHTML = h`
       <div class="weather-loading">
         <div class="loading-spinner"></div>
         <div class="loading-text">Wetter wird geladen...</div>
@@ -74,7 +74,7 @@ class WeatherModule {
     // Hauptbereich mit aktuellen Wetter
     const mainWeather = document.createElement('div');
     mainWeather.className = 'weather-main';
-    mainWeather.innerHTML = `
+    mainWeather.innerHTML = h`
       <div class="weather-current">
         <div class="weather-icon-large">☁️</div>
         <div class="weather-temp-container">
