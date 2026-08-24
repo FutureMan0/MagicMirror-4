@@ -23,8 +23,8 @@ class Demo extends DataModule {
   }
 }
 
-function build(envelope = null) {
-  const module = new Demo({});
+function build(envelope = null, config = {}) {
+  const module = new Demo(config);
   if (envelope) module.applyEnvelope(envelope);
   module.render();
   return module;
@@ -156,4 +156,35 @@ test('destroy() räumt auf', () => {
   assert.equal(module.root, null);
   assert.equal(module.container, null);
   assert.doesNotThrow(() => module.update());
+});
+
+// Auf dem Spiegel stand "Not set up yet" direkt ueber "Noch nicht
+// eingerichtet." - der Statuszeile war die Sprache bekannt, dem Platzhalter
+// darunter nicht. Zwei Sprachen uebereinander, im selben Modul.
+test('eine englische Anzeige enthaelt nichts Deutsches', () => {
+  const module = build(
+    { ok: false, error: { code: 'NOT_CONFIGURED', message: 'no key' } },
+    { language: 'en' }
+  );
+
+  const text = module.container.textContent;
+  assert.doesNotMatch(
+    text, /eingerichtet|Nicht erreichbar|Stand von|gerade eben|unbekannt|Vorübergehend/,
+    `deutscher Text in englischer Anzeige: "${text}"`
+  );
+  assert.match(text, /set up/i, 'der englische Text fehlt');
+
+  module.destroy();
+});
+
+test('Altersangaben folgen der Sprache', () => {
+  const vorZwoelfMinuten = Date.now() - 12 * 60000;
+
+  const de = build({ ok: true, stale: true, fetchedAt: vorZwoelfMinuten }, { language: 'de' });
+  assert.match(de.container.textContent, /vor 12 min/);
+  de.destroy();
+
+  const en = build({ ok: true, stale: true, fetchedAt: vorZwoelfMinuten }, { language: 'en' });
+  assert.match(en.container.textContent, /12 min ago/);
+  en.destroy();
 });

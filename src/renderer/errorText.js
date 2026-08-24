@@ -69,11 +69,48 @@
     return STANDARD[key];
   }
 
+  /**
+   * Die wenigen festen Texte, die der Rahmen selbst anzeigt.
+   *
+   * Sie standen vorher als deutsche Literale im Code. Auf einem Spiegel, der
+   * auf Englisch eingestellt war, stand deshalb „Not set up yet" direkt über
+   * „Noch nicht eingerichtet." - zwei Sprachen übereinander in demselben
+   * Modul.
+   */
+  const TEXTE = {
+    renderFailed:  { de: 'Anzeige fehlgeschlagen.', en: 'Display failed.' },
+    unreachable:   { de: 'Nicht erreichbar — zeigt den Stand von ',
+                     en: 'Unreachable — showing data from ' },
+    asOf:          { de: 'Stand von ', en: 'As of ' },
+    ageUnknown:    { de: 'unbekannt', en: 'unknown' },
+    ageNow:        { de: 'gerade eben', en: 'just now' },
+    ageMinutes:    { de: 'vor {n} min', en: '{n} min ago' },
+    ageHours:      { de: 'vor {n} h', en: '{n} h ago' },
+    ageDays:       { de: 'vor {n} Tagen', en: '{n} days ago' }
+  };
+
+  /**
+   * @param {string} schluessel Name aus TEXTE
+   * @param {string} sprache    'de' (Standard) oder 'en'
+   * @param {object} werte      Platzhalter, z. B. { n: 5 }
+   */
+  function uiText(schluessel, sprache = 'de', werte = {}) {
+    const eintrag = TEXTE[schluessel];
+    if (!eintrag) return '';
+
+    const key = sprache === 'en' ? 'en' : 'de';
+    return Object.entries(werte).reduce(
+      (text, [name, wert]) => text.replace(`{${name}}`, String(wert)),
+      eintrag[key]
+    );
+  }
+
   if (typeof window !== 'undefined') {
     window.mmHumanError = humanError;
+    window.mmUiText = uiText;
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { humanError };
+    module.exports = { humanError, uiText };
   }
 })();

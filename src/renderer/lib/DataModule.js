@@ -128,7 +128,7 @@
       } catch (error) {
         this.logError('Anzeige fehlgeschlagen:', error);
         this.root.textContent = '';
-        this.root.appendChild(this.buildNotice('dm-error', 'Anzeige fehlgeschlagen.'));
+        this.root.appendChild(this.buildNotice('dm-error', this.text('renderFailed')));
       }
     }
 
@@ -148,7 +148,7 @@
         this.statusElement.className = 'dm-status dm-status-error';
         this.statusElement.textContent = this.data
           // Es gibt noch Daten - der Fehler ist eine Randnotiz, kein Drama.
-          ? `Nicht erreichbar — zeigt den Stand von ${this.formatAge(envelope.fetchedAt)}`
+          ? this.text('unreachable') + this.formatAge(envelope.fetchedAt)
           : this.fehlerText(envelope.error);
         return;
       }
@@ -156,7 +156,7 @@
       if (envelope.stale && envelope.fetchedAt) {
         this.statusElement.hidden = false;
         this.statusElement.className = 'dm-status dm-status-stale';
-        this.statusElement.textContent = `Stand von ${this.formatAge(envelope.fetchedAt)}`;
+        this.statusElement.textContent = this.text('asOf') + this.formatAge(envelope.fetchedAt);
       }
     }
 
@@ -165,12 +165,23 @@
      * wird in Tests ohne geladenes SDK gebaut, und dann darf es nicht auf eine
      * Methode der Basisklasse zeigen, die es nicht gibt.
      */
+    /** Die eingestellte Sprache des Spiegels. */
+    get sprache() {
+      return this.config?.language || 'de';
+    }
+
+    /** Ein fester Rahmentext in der eingestellten Sprache. */
+    text(schluessel, werte) {
+      const uebersetzen = typeof window !== 'undefined' && window.mmUiText;
+      return uebersetzen ? uebersetzen(schluessel, this.sprache, werte) : '';
+    }
+
     fehlerText(error) {
       if (typeof this.humanError === 'function') return this.humanError(error);
 
       const uebersetzen = typeof window !== 'undefined' && window.mmHumanError;
-      if (uebersetzen) return uebersetzen(error, this.config?.language || 'de');
-      return 'Vorübergehend nicht verfügbar';
+      if (uebersetzen) return uebersetzen(error, this.sprache);
+      return this.sprache === 'en' ? 'Temporarily unavailable' : 'Vorübergehend nicht verfügbar';
     }
 
     renderPlaceholder() {
@@ -178,12 +189,7 @@
 
       const failed = this.envelope && !this.envelope.ok;
       if (failed) {
-        this.root.appendChild(this.buildNotice(
-          'dm-error',
-          this.envelope.error?.code === 'NOT_CONFIGURED'
-            ? 'Noch nicht eingerichtet.'
-            : this.fehlerText(this.envelope.error)
-        ));
+        this.root.appendChild(this.buildNotice('dm-error', this.fehlerText(this.envelope.error)));
         return;
       }
 
@@ -205,15 +211,15 @@
     }
 
     formatAge(timestamp) {
-      if (!timestamp) return 'unbekannt';
+      if (!timestamp) return this.text('ageUnknown');
 
       const minutes = Math.floor((Date.now() - timestamp) / 60000);
-      if (minutes < 1) return 'gerade eben';
-      if (minutes < 60) return `vor ${minutes} min`;
+      if (minutes < 1) return this.text('ageNow');
+      if (minutes < 60) return this.text('ageMinutes', { n: minutes });
 
       const hours = Math.floor(minutes / 60);
-      if (hours < 24) return `vor ${hours} h`;
-      return `vor ${Math.floor(hours / 24)} Tagen`;
+      if (hours < 24) return this.text('ageHours', { n: hours });
+      return this.text('ageDays', { n: Math.floor(hours / 24) });
     }
 
     destroy() {
