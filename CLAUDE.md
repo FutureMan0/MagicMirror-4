@@ -210,6 +210,15 @@ Es gibt seit dem Wegfall von mmWave **keine native Abhängigkeit mehr**:
 `serialport` ist raus, damit auch `electron-rebuild`, das `postinstall` und
 die ganze ABI-Frage auf dem Pi.
 
+### Electron steht in `dependencies`, nicht in `devDependencies`
+
+Sieht falsch aus, ist es nicht: hier wird nichts gepackt, pm2 startet die App
+mit `electron .`. Der In-App-Updater ruft `npm ci --omit=dev` — stünde
+Electron unter `devDependencies`, würde ein Update über die Web-Oberfläche die
+Laufzeit löschen und der Spiegel käme nicht wieder hoch. Auf dem Dev-Rechner
+fällt das nie auf. `tests/dependencies.test.js` wacht darüber, und zwar für
+jedes Paket, das `src/` oder `modules/` zur Laufzeit lädt.
+
 ## Privatsphäre
 
 Der Spiegel hängt in einem Bad mit Dusche. Drei Dinge, die oft verwechselt
