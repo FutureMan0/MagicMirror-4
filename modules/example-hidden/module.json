@@ -2,7 +2,7 @@
   "name": "example-hidden",
   "displayName": "Example (Hidden)",
   "version": "1.0.0",
-  "description": "This is an example module that is hidden from the Store UI.",
+  "description": "Vorlage für eigene Module. Im Store ausgeblendet.",
   "hidden": true,
   "author": "Magic Mirror",
   "config": {
