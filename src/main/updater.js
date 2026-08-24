@@ -1,4 +1,5 @@
 const { execFile } = require('node:child_process');
+const fs = require('node:fs');
 const path = require('node:path');
 
 const PROJECT_DIR = path.join(__dirname, '../..');
@@ -101,7 +102,41 @@ async function executeUpdate() {
     timeout: 900000
   });
 
+  await assertElectronUsable();
+
   return { log: `${pull.stdout}\n${install.stdout}`.trim() };
+}
+
+/**
+ * Nachsehen, ob Electron wirklich startbereit ist - **bevor** neu gestartet
+ * wird.
+ *
+ * `npm ci` meldet Erfolg, auch wenn die Electron-Binärdatei fehlt: das Paket
+ * lädt sie in einem `postinstall` nach, und schlägt der Download fehl, bleibt
+ * ein Paketordner ohne `dist/` zurück. Auf einer wackligen Verbindung ist das
+ * kein Sonderfall — auf dem Testgerät ist es genau so passiert. Der Neustart
+ * ließe den Spiegel dann tot zurück, mit einem Update, das sich als
+ * erfolgreich gemeldet hat.
+ */
+async function assertElectronUsable() {
+  let binary = null;
+  try {
+    binary = require('electron');
+  } catch {
+    // Kein Zugriff auf das Paket - dann kann auch nichts starten.
+  }
+
+  if (typeof binary === 'string' && fs.existsSync(binary)) return;
+
+  const error = new Error(
+    'Die Abhängigkeiten wurden installiert, aber die Electron-Binärdatei fehlt. '
+    + 'Das passiert, wenn der Download abbricht - meist bei schwacher Verbindung. '
+    + 'Der Neustart wurde deshalb abgebrochen: der Spiegel läuft mit der alten '
+    + 'Fassung weiter. Auf dem Gerät nachholen mit '
+    + '`node node_modules/electron/install.js`, danach erneut aktualisieren.'
+  );
+  error.code = 'ELECTRON_BINARY_MISSING';
+  throw error;
 }
 
 /**

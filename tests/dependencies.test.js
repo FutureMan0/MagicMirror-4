@@ -86,3 +86,26 @@ test('keine ungenutzte Abhaengigkeit fuer natives Uebersetzen', () => {
     + 'einen Uebersetzer und die ABI-Frage ist zurueck'
   );
 });
+
+// Der zweite Weg, auf dem ein Update den Spiegel toetet: npm ci meldet
+// Erfolg, aber die Electron-Binaerdatei fehlt, weil ihr Download abgebrochen
+// ist. Auf dem Testgeraet mit schwachem WLAN ist genau das passiert - und
+// npm ci gab dabei Exit 0 zurueck.
+test('der Updater startet nicht neu, ohne Electron nachzuweisen', () => {
+  const updater = fs.readFileSync(path.join(ROOT, 'src/main/updater.js'), 'utf8');
+
+  assert.match(
+    updater, /assertElectronUsable/,
+    'kein Nachweis, dass Electron nach dem Update wirklich da ist'
+  );
+  assert.match(
+    updater, /existsSync/,
+    'die Binaerdatei wird nicht auf dem Dateisystem geprueft'
+  );
+
+  // Der Nachweis muss VOR der Rueckgabe stehen - sonst meldet das Update
+  // Erfolg und der Neustart laeuft trotzdem in den toten Spiegel.
+  const call = updater.indexOf('await assertElectronUsable()');
+  const done = updater.indexOf('return { log:');
+  assert.ok(call > -1 && call < done, 'der Nachweis steht nicht vor dem Erfolgsfall');
+});

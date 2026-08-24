@@ -93,6 +93,20 @@ echo -e "${GREEN}[4/7] Installing MagicMirror⁴ dependencies...${NC}"
 # Derselbe Aufruf wie im In-App-Updater - was hier reicht, reicht dort auch.
 sudo -u $REAL_USER npm ci --omit=dev
 
+# npm ci meldet auch dann Erfolg, wenn die Electron-Binaerdatei fehlt: sie
+# wird in einem postinstall nachgeladen, und bricht der Download ab, bleibt
+# ein Paketordner ohne dist/ zurueck. Bei schwacher WLAN-Verbindung ist das
+# kein Sonderfall. Ohne diese Pruefung endet die Installation "erfolgreich"
+# und der Spiegel startet trotzdem nie.
+if ! sudo -u $REAL_USER node -e "const f=require('fs');const b=require('electron');process.exit(typeof b==='string'&&f.existsSync(b)?0:1)" 2>/dev/null; then
+    echo -e "${YELLOW}Electron-Binaerdatei fehlt - wird nachgeladen...${NC}"
+    sudo -u $REAL_USER node node_modules/electron/install.js || {
+        echo -e "${RED}Electron liess sich nicht laden. Meist die Netzwerkverbindung.${NC}"
+        echo -e "${RED}Nachholen mit: node node_modules/electron/install.js${NC}"
+        exit 1
+    }
+fi
+
 # 4b. Setup .env file (optional)
 if [ ! -f ".env" ] && [ -f ".env.example" ]; then
     echo -e "${GREEN}Creating .env from .env.example...${NC}"
