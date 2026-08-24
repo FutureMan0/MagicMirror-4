@@ -144,12 +144,15 @@
       if (!envelope) return;
 
       if (!envelope.ok && envelope.error) {
+        // Ohne Daten steht die Meldung bereits gross in der Flaeche. Sie in
+        // der Statuszeile zu wiederholen ergab denselben Satz zweimal
+        // untereinander - auf dem Spiegel stand "Not set up yet" doppelt.
+        if (!this.data) return;
+
         this.statusElement.hidden = false;
         this.statusElement.className = 'dm-status dm-status-error';
-        this.statusElement.textContent = this.data
-          // Es gibt noch Daten - der Fehler ist eine Randnotiz, kein Drama.
-          ? this.text('unreachable') + this.formatAge(envelope.fetchedAt)
-          : this.fehlerText(envelope.error);
+        // Es gibt noch Daten - der Fehler ist eine Randnotiz, kein Drama.
+        this.statusElement.textContent = this.text('unreachable') + this.formatAge(envelope.fetchedAt);
         return;
       }
 

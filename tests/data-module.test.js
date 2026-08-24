@@ -70,10 +70,10 @@ test('ein Fehler behält die zuletzt bekannten Daten', () => {
 test('ein Fehler wird als Satz angezeigt, nie als rohe Meldung', () => {
   const module = build({ ok: false, error: { message: 'fetch failed' } });
 
-  const status = module.container.querySelector('.dm-status').textContent;
-  assert.equal(status, 'Keine Verbindung');
-  assert.doesNotMatch(status, /fetch|failed|error/i, 'die rohe Meldung ist durchgesickert');
-  assert.ok(module.container.querySelector('.dm-error'));
+  // Ohne Daten traegt die Flaeche die Meldung, nicht die Statuszeile.
+  const notiz = module.container.querySelector('.dm-error').textContent;
+  assert.equal(notiz, 'Keine Verbindung');
+  assert.doesNotMatch(notiz, /fetch|failed|error/i, 'die rohe Meldung ist durchgesickert');
 
   module.destroy();
 });
@@ -81,9 +81,9 @@ test('ein Fehler wird als Satz angezeigt, nie als rohe Meldung', () => {
 test('auch ein unbekannter Fehler bleibt lesbar', () => {
   const module = build({ ok: false, error: { message: 'ECONNRESET xyz#42' } });
 
-  const status = module.container.querySelector('.dm-status').textContent;
-  assert.doesNotMatch(status, /ECONNRESET|#42/, 'Technisches ist durchgesickert');
-  assert.ok(status.length > 0, 'es muss trotzdem etwas dastehen');
+  const notiz = module.container.querySelector('.dm-error').textContent;
+  assert.doesNotMatch(notiz, /ECONNRESET|#42/, 'Technisches ist durchgesickert');
+  assert.ok(notiz.length > 0, 'es muss trotzdem etwas dastehen');
 
   module.destroy();
 });
@@ -173,6 +173,10 @@ test('eine englische Anzeige enthaelt nichts Deutsches', () => {
     `deutscher Text in englischer Anzeige: "${text}"`
   );
   assert.match(text, /set up/i, 'der englische Text fehlt');
+
+  // Und nur einmal: die Meldung steht in der Flaeche, die Statuszeile
+  // schweigt dann. Sonst stand derselbe Satz zweimal untereinander.
+  assert.equal(text.match(/set up/gi).length, 1, 'die Meldung steht doppelt');
 
   module.destroy();
 });
