@@ -119,8 +119,17 @@ class ModuleLoader {
       return backendModule;
     } catch (error) {
       console.error(`Fehler beim Laden des Backend-Moduls ${moduleName}:`, error);
+      // Nicht nur ins Log: ein Backend, das gar nicht laedt, faellt sonst
+      // niemandem auf - der Spiegel laeuft weiter, nur dieses Modul bleibt
+      // stumm. Ueber system:warning wird die Startprobe rot.
+      this._warn(moduleName, `Backend liess sich nicht laden: ${error.message}`);
       return null;
     }
+  }
+
+  /** Startwarnung melden, sofern ein Bus da ist. */
+  _warn(source, message) {
+    if (this.bus) this.bus.emit('system:warning', { source, message });
   }
 
   /**
@@ -129,6 +138,7 @@ class ModuleLoader {
    * @param {object} context - Context-Objekt mit instanceName, ConfigManager, etc.
    */
   registerBackendRoutes(app, context) {
+    this.bus = context && context.bus;
     const modules = this.scanModules();
     let routesRegistered = 0;
 
@@ -145,6 +155,7 @@ class ModuleLoader {
           routesRegistered++;
         } catch (error) {
           console.error(`Fehler beim Registrieren der Backend-Routen für ${module.name}:`, error);
+          this._warn(module.name, `Routen liessen sich nicht registrieren: ${error.message}`);
         }
         continue;
       }

@@ -11,6 +11,7 @@ const { createBusBridge } = require('./busBridge');
 const { createWsHub } = require('./wsHub');
 const { PrivacyManager } = require('./privacyManager');
 const { SensorPower } = require('./sensorPower');
+const { DisplayPower } = require('./displayPower');
 const { InputHub } = require('./inputHub');
 const QRCode = require('qrcode');
 const express = require('express');
@@ -22,6 +23,7 @@ let webServer = null;
 let auth = null;
 let wsHub = null;
 let privacy = null;
+let displayPower = null;
 let inputHub = null;
 
 // Ein Bus fuer den gesamten Hauptprozess. Modul-Backends bekommen ihn im
@@ -371,8 +373,11 @@ function startWebServer() {
     bus
   });
 
+  displayPower = new DisplayPower({ bus });
+
   privacy = new PrivacyManager({ bus, getConfig: readConfig });
   privacy.attachSensorControl(sensorPower);
+  privacy.attachDisplayControl(displayPower);
 
   inputHub = new InputHub({
     bus,
@@ -392,6 +397,8 @@ function startWebServer() {
     privacy.stop();
     inputHub.stop().catch(() => {});
   });
+
+  displayPower.registerRoutes(expressApp);
 
   expressApp.get('/api/privacy', (req, res) => {
     res.json(privacy.state());

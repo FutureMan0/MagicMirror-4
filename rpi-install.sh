@@ -81,9 +81,8 @@ else
     echo -e "${GREEN}Node.js v${CURRENT_NODE_MAJOR} ist aktuell genug.${NC}"
 fi
 
-# Der mmWave-Sensor benutzt serialport - ein natives Modul, das fuer Electrons
-# ABI uebersetzt werden muss. Ohne Uebersetzer bleibt der Sensor stumm.
-apt install -y build-essential python3
+# Seit der mmWave-Sensor entfallen ist, hat das Projekt keine native
+# Abhaengigkeit mehr - kein Uebersetzer, kein electron-rebuild, kein ABI.
 
 # 4. Install Project Dependencies
 echo -e "${GREEN}[4/7] Installing MagicMirror⁴ dependencies...${NC}"

@@ -88,8 +88,11 @@ Vier Zustände, umschaltbar am Handy im Tab **Privat**:
 Was ausgeblendet wird, steht im Manifest jedes Moduls. **Ohne Angabe gilt ein
 Modul als heikel** — neue Module sind privat, bis man sie freigibt.
 
-Der Dusch-Modus kann sich selbst einschalten: der vorhandene mmWave-Sensor
-meldet, wenn jemand länger in einem einstellbaren Entfernungsband steht.
+Der Dusch-Modus wird von Hand geschaltet — am Handy oder per Geste. Automatik
+gäbe es nur mit einem Sensor, der Entfernungen misst; der mmWave-Sensor, der
+das konnte, ist entfallen. Ultraleap kann diese Rolle nicht übernehmen: eine
+Kamera, die den Duschbereich beobachtet, ist genau das, was hier niemand will,
+und ihre IR-Fenster beschlagen ohnehin binnen Sekunden.
 
 > **Zum Sensor, ehrlich:** Ein Software-Aus ist Komfort, keine Garantie. Auf
 > einem Raspberry Pi lässt sich nicht einmal ein einzelner USB-Port stromlos

@@ -19,7 +19,8 @@
     'privacy.shower': () => setPrivacy('shower'),
     'privacy.normal': () => setPrivacy('normal'),
 
-    'display.wake': () => wake()
+    'display.wake': () => wake(),
+    'display.toggle': () => post('/api/display/toggle', {})
   };
 
   let currentPage = 1;
@@ -74,7 +75,7 @@
 
   function wake() {
     document.body.style.opacity = '1';
-    return post('/api/presence/trigger', {});
+    return post('/api/display/on', {});
   }
 
   window.mmBus.on('input:gesture', (event) => {

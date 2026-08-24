@@ -194,6 +194,22 @@ Jeder Modul-Eintrag bekommt beim Laden eine feste `id`. Über den Array-Index
 zu vergleichen ginge nicht: ein nach oben geschobenes Modul sähe aus wie „alle
 ausgetauscht".
 
+## Bildschirm an und aus
+
+`src/main/displayPower.js`, **nicht** in einem Modul. Das lag früher im
+mmWave-Modul, weil dort der Anlass entstand — und verschwand mit ihm, obwohl
+die Fähigkeit nichts mit dem Sensor zu tun hat. Sie wird an drei Stellen
+gebraucht: Duschmodus (`shower.display: "off"`), Gesten (`display.wake`,
+`display.toggle`) und jedem künftigen Sensor.
+
+Zwei Wege nacheinander: `vcgencmd display_power`, sonst `xset dpms force`.
+**Schlagen beide fehl, bleibt der gemeldete Zustand stehen** — zu behaupten,
+der Bildschirm sei aus, während er leuchtet, wäre schlimmer als der Fehler.
+
+Es gibt seit dem Wegfall von mmWave **keine native Abhängigkeit mehr**:
+`serialport` ist raus, damit auch `electron-rebuild`, das `postinstall` und
+die ganze ABI-Frage auf dem Pi.
+
 ## Privatsphäre
 
 Der Spiegel hängt in einem Bad mit Dusche. Drei Dinge, die oft verwechselt
@@ -262,10 +278,11 @@ gegliedert und mit `*` abonnierbar.
 | Namensraum | Bedeutung |
 | --- | --- |
 | `tick:second`, `tick:minute` | gemeinsamer Takt |
-| `presence:changed`, `presence:display` | Anwesenheitssensor |
+| `presence:display` | Bildschirm an/aus, kommt aus `src/main/displayPower.js` |
+| `presence:changed` | frei — für einen künftigen Anwesenheitssensor |
 | `system:*`, `config:*`, `theme:*` | Kern |
 | `config:changed` | Konfiguration gespeichert |
-| `system:warning` | Startwarnung, lässt die Startprobe rot werden |
+| `system:warning` | Startwarnung, lässt die Startprobe rot werden — meldet der Modul-Lader, wenn ein Backend nicht lädt |
 | `<modul>:*` | modul-eigen |
 
 Über den WebSocket (`/ws`) gilt: Begrüßung mit `hello` innerhalb von fünf

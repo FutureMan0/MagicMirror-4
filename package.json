@@ -24,7 +24,6 @@
     "fonts:build": "node scripts/build-fonts.mjs",
     "check:tokens": "node scripts/check-tokens.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "postinstall": "node scripts/rebuild-native.mjs",
     "icons:build": "node scripts/build-icons.mjs"
   },
   "keywords": [
@@ -59,9 +58,6 @@
       "config/**/*",
       "package.json"
     ]
-  },
-  "optionalDependencies": {
-    "serialport": "^13.0.0"
   },
   "allowScripts": {
     "electron@28.3.3": true

@@ -44,6 +44,14 @@ class PrivacyManager {
     this.sensorControl = control;
   }
 
+  /**
+   * Bildschirmsteuerung für `shower.display: "off"`. Optional: ohne sie
+   * bleibt der Duschmodus rein optisch, statt gar nicht zu funktionieren.
+   */
+  attachDisplayControl(control) {
+    this.displayControl = control;
+  }
+
   settings() {
     const config = this.getConfig() || {};
     const privacy = config.privacy || {};
@@ -96,6 +104,14 @@ class PrivacyManager {
     if (this.sensorControl) {
       if (needsSensorOff) await this.sensorControl.disable(`Privatsphäre: ${mode}`);
       else await this.sensorControl.enable();
+    }
+
+    // Der Bildschirm folgt erst, wenn der Sensor bereits aus ist - dieselbe
+    // Reihenfolge wie beim Sensor selbst: nie so aussehen, als wäre es
+    // privat, solange es das noch nicht ist.
+    if (this.displayControl) {
+      const wantsOff = mode === 'shower' && settings.shower.display === 'off';
+      await this.displayControl.set(!wantsOff);
     }
 
     this.mode = mode;

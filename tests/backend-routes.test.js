@@ -19,18 +19,14 @@ function collect() {
 
 const result = collect();
 
-// Regressionstest fuer den Fehler, der den Sensor komplett stilllegte:
-// backend.js suchte den Config-Eintrag ueber m.name, die Config benutzt aber
-// m.module. Die Funktion kehrte deshalb zurueck, BEVOR eine einzige Route
-// registriert wurde - das Frontend pollte dauerhaft einen 404.
-test('mmWave-Backend registriert seine Routen', () => {
-  const presence = result.routes.filter(route => route.includes('/api/presence/'));
-
+// Der Config-Lookup ueber m.module (nicht m.name) hatte frueher ein ganzes
+// Backend stillgelegt, bevor auch nur eine Route entstand. Der Waechter bleibt
+// - nur haengt er jetzt an einem Modul, das es noch gibt.
+test('aktivierte Backends registrieren ihre Routen', () => {
   assert.ok(
-    presence.length > 0,
-    'keine /api/presence/* Route registriert - Config-Lookup vermutlich wieder kaputt'
+    result.routes.length > 0,
+    'gar keine Modul-Route registriert - Config-Lookup vermutlich wieder kaputt'
   );
-  assert.ok(presence.includes('GET /api/presence/status'));
 });
 
 test('beide Backend-Konventionen werden weiterhin unterstuetzt', () => {
@@ -40,7 +36,7 @@ test('beide Backend-Konventionen werden weiterhin unterstuetzt', () => {
     'routes[]-Konvention (untis) nicht mehr unterstuetzt'
   );
 
-  // spotify und mmwave nutzen registerRoutes(app, context)
+  // spotify und die Forge-Module nutzen registerRoutes(app, context)
   assert.ok(
     result.routes.includes('GET /api/spotify/auth-url'),
     'registerRoutes-Konvention (spotify) nicht mehr unterstuetzt'

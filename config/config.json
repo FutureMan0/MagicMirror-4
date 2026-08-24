@@ -80,25 +80,6 @@
       }
     },
     {
-      "module": "mmwave-presence",
-      "position": {
-        "column": 1,
-        "row": 3,
-        "columnSpan": 1,
-        "rowSpan": 1,
-        "align": "start",
-        "justify": "start"
-      },
-      "enabled": true,
-      "config": {
-        "port": "/dev/ttyAMA0",
-        "baudRate": 256000,
-        "sensitivity": 50,
-        "offDelay": 120,
-        "hideUI": true
-      }
-    },
-    {
       "module": "github",
       "position": {
         "column": 3,

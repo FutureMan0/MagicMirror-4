@@ -88,22 +88,16 @@ test('die Bus-Datei funktioniert in beiden Welten', () => {
   assert.match(source, /module\.exports/, 'in Node nicht erreichbar');
 });
 
-// Der eigentliche Zweck der Umstellung.
-test('der Präsenzsensor sendet, statt dass das Frontend pollt', () => {
-  const backend = fs.readFileSync(path.join(ROOT, 'modules/mmwave-presence/backend.js'), 'utf8');
-  const frontend = fs.readFileSync(path.join(ROOT, 'modules/mmwave-presence/index.js'), 'utf8');
+// Der eigentliche Zweck der Umstellung: melden statt pollen. Der mmWave-
+// Sensor war dafuer das erste Beispiel; die Bildschirmsteuerung hat seine
+// Rolle als Absender von presence:display uebernommen.
+test('die Bildschirmsteuerung meldet ueber den Bus, statt Fenster anzufassen', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'src/main/displayPower.js'), 'utf8');
 
-  assert.match(backend, /publish\('presence:changed'/, 'das Backend meldet Wechsel nicht');
-  assert.match(backend, /publish\('presence:display'/, 'das Backend meldet den Displayzustand nicht');
+  assert.match(source, /emit\('presence:display'/, 'der Displayzustand wird nicht gemeldet');
   assert.doesNotMatch(
-    backend, /BrowserWindow\.getAllWindows\(\)/,
-    'das Modul greift wieder direkt auf Fenster zu, statt den Bus zu benutzen'
-  );
-
-  assert.match(frontend, /mmBus\.on\('presence:changed'/, 'das Frontend abonniert nicht');
-  assert.doesNotMatch(
-    frontend, /setInterval\([^)]*,\s*(2000|5000)\)/,
-    'das Frontend pollt wieder im Sekundentakt'
+    source, /BrowserWindow/,
+    'greift direkt auf Fenster zu, statt den Bus zu benutzen'
   );
 });
 
