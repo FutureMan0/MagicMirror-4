@@ -149,7 +149,7 @@
         this.statusElement.textContent = this.data
           // Es gibt noch Daten - der Fehler ist eine Randnotiz, kein Drama.
           ? `Nicht erreichbar — zeigt den Stand von ${this.formatAge(envelope.fetchedAt)}`
-          : envelope.error.message;
+          : this.fehlerText(envelope.error);
         return;
       }
 
@@ -158,6 +158,19 @@
         this.statusElement.className = 'dm-status dm-status-stale';
         this.statusElement.textContent = `Stand von ${this.formatAge(envelope.fetchedAt)}`;
       }
+    }
+
+    /**
+     * Der Fehler als Satz. Bewusst hier und nicht nur in MMModule: DataModule
+     * wird in Tests ohne geladenes SDK gebaut, und dann darf es nicht auf eine
+     * Methode der Basisklasse zeigen, die es nicht gibt.
+     */
+    fehlerText(error) {
+      if (typeof this.humanError === 'function') return this.humanError(error);
+
+      const uebersetzen = typeof window !== 'undefined' && window.mmHumanError;
+      if (uebersetzen) return uebersetzen(error, this.config?.language || 'de');
+      return 'Vorübergehend nicht verfügbar';
     }
 
     renderPlaceholder() {
@@ -169,7 +182,7 @@
           'dm-error',
           this.envelope.error?.code === 'NOT_CONFIGURED'
             ? 'Noch nicht eingerichtet.'
-            : 'Keine Daten verfügbar.'
+            : this.fehlerText(this.envelope.error)
         ));
         return;
       }

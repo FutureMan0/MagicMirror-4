@@ -142,6 +142,9 @@
     --mm-surface-border: none;
     --mm-surface-radius: var(--mm-radius-md);
     --mm-surface-padding: var(--mm-space-4);
+    /* Mindesthoehe fuer ein Modul ohne Daten. Ohne sie schrumpft es auf die
+       Hoehe seiner Meldung und wirkt wie ein Ueberrest. */
+    --mm-empty-min-height: 6rem;
     --mm-surface-filter: none;
     --mm-surface-shadow: var(--mm-shadow-none);
 

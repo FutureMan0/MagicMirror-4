@@ -48,7 +48,7 @@
 .untis-day-header {
   text-align: center;
   padding: 2px;
-  font-size: 0.65rem;
+  font-size: var(--mm-size-xs);
 }
 
 .untis-today {
@@ -78,7 +78,7 @@
   align-items: center;
   justify-content: center;
   padding: 2px;
-  font-size: 0.6rem;
+  font-size: var(--mm-size-xs);
   color: var(--mm-color-text-muted);
   min-height: 30px;
   position: relative;
@@ -103,11 +103,11 @@
 
 .untis-time {
   font-weight: 500;
-  font-size: 0.6rem;
+  font-size: var(--mm-size-xs);
 }
 
 .untis-period {
-  font-size: 0.5rem;
+  font-size: var(--mm-size-xs);
   color: var(--mm-color-text-muted);
 }
 
@@ -141,7 +141,7 @@
 /* Text in Stunden */
 .untis-subject {
   font-weight: 700;
-  font-size: 0.6rem;
+  font-size: var(--mm-size-xs);
   margin-bottom: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -150,7 +150,7 @@
 }
 
 .untis-room {
-  font-size: 0.5rem;
+  font-size: var(--mm-size-xs);
   opacity: 0.9;
   white-space: nowrap;
   overflow: hidden;
@@ -160,7 +160,7 @@
 }
 
 .untis-teacher {
-  font-size: 0.5rem;
+  font-size: var(--mm-size-xs);
   opacity: 0.75;
   white-space: nowrap;
   overflow: hidden;

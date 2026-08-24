@@ -6,6 +6,9 @@ const { installDom } = require('../scripts/test-support/dom');
 installDom();
 
 const ROOT = path.join(__dirname, '..');
+// Im Spiegel liegt errorText.js als <script> vor DataModule. Hier dasselbe,
+// damit der Test die echte Uebersetzung prueft und nicht die Rueckfallebene.
+require(path.join(ROOT, 'src/renderer/errorText.js'));
 const { DataModule } = require(path.join(ROOT, 'src/renderer/lib/DataModule.js'));
 
 class Demo extends DataModule {
@@ -61,11 +64,26 @@ test('ein Fehler behält die zuletzt bekannten Daten', () => {
   module.destroy();
 });
 
-test('ohne jede Daten wird der Fehler selbst angezeigt', () => {
-  const module = build({ ok: false, error: { message: 'Kein Zugriff' } });
+// Frueher stand hier die rohe Meldung. Auf dem Spiegel las sich das als
+// "FEHLER: FETCH FAILED" - englischer Jargon aus den Innereien von undici,
+// in einer deutschen Oberflaeche, im Badezimmer.
+test('ein Fehler wird als Satz angezeigt, nie als rohe Meldung', () => {
+  const module = build({ ok: false, error: { message: 'fetch failed' } });
 
-  assert.equal(module.container.querySelector('.dm-status').textContent, 'Kein Zugriff');
+  const status = module.container.querySelector('.dm-status').textContent;
+  assert.equal(status, 'Keine Verbindung');
+  assert.doesNotMatch(status, /fetch|failed|error/i, 'die rohe Meldung ist durchgesickert');
   assert.ok(module.container.querySelector('.dm-error'));
+
+  module.destroy();
+});
+
+test('auch ein unbekannter Fehler bleibt lesbar', () => {
+  const module = build({ ok: false, error: { message: 'ECONNRESET xyz#42' } });
+
+  const status = module.container.querySelector('.dm-status').textContent;
+  assert.doesNotMatch(status, /ECONNRESET|#42/, 'Technisches ist durchgesickert');
+  assert.ok(status.length > 0, 'es muss trotzdem etwas dastehen');
 
   module.destroy();
 });

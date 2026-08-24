@@ -78,12 +78,11 @@
 }
 
 .detail-label {
-  font-size: 0.55rem;
+  font-size: var(--mm-size-xs);
   color: var(--mm-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
   font-weight: 400;
-  opacity: 0.6;
 }
 
 .detail-value {
@@ -93,10 +92,9 @@
 }
 
 .detail-sublabel {
-  font-size: 0.55rem;
+  font-size: var(--mm-size-xs);
   color: var(--mm-color-text-muted);
   margin-top: 0;
-  opacity: 0.7;
 }
 
 .weather-sun-times {
@@ -130,11 +128,10 @@
 }
 
 .sun-time-label {
-  font-size: 0.55rem;
+  font-size: var(--mm-size-xs);
   color: var(--mm-color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.2px;
-  opacity: 0.6;
 }
 
 .sun-time-value {
@@ -169,7 +166,7 @@
 
 .weather-location {
   text-align: left;
-  font-size: 0.6rem;
+  font-size: var(--mm-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   margin-bottom: 10px;
@@ -179,7 +176,7 @@
 }
 
 .weather-forecast-title {
-  font-size: 0.6rem;
+  font-size: var(--mm-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   color: var(--mm-color-text-muted);

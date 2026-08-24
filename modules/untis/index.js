@@ -307,10 +307,20 @@ class UntisModule {
     return new Date(year, month, day, 0, 0, 0);
   }
 
+  /**
+   * Der Fehler als Satz. Die rohe Meldung ("fetch failed") steht in der
+   * Konsole; an der Wand hat sie nichts verloren.
+   */
+  errorText(fehler) {
+    const uebersetzen = typeof window !== 'undefined' && window.mmHumanError;
+    if (uebersetzen) return uebersetzen(fehler, this.config.language || 'de');
+    return this.t.error;
+  }
+
   renderView() {
     if (!this.timetable || this.timetable.length === 0) {
       const errorMsg = this.lastError
-        ? `<div class="untis-error">${this.t.error}: ${this.lastError}</div><div class="untis-retry">${this.t.next_attempt}</div>`
+        ? `<div class="untis-error">${this.errorText(this.lastError)}</div><div class="untis-retry">${this.t.next_attempt}</div>`
         : `<div class="untis-empty">${this.t.empty}</div>`;
       this.container.innerHTML = errorMsg;
       return;

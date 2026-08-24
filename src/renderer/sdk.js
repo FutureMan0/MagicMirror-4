@@ -126,6 +126,19 @@
       console.error(`[${this.name}]`, ...args);
     }
 
+    /**
+     * Ein Fehler in einem Satz, der an einer Wand stehen darf.
+     *
+     * Die rohe Meldung gehoert in die Konsole - `logError` daneben -, nicht
+     * auf den Spiegel. Wer im Bad steht, kann mit "fetch failed" nichts
+     * anfangen.
+     */
+    humanError(error) {
+      const uebersetzen = (typeof window !== 'undefined' && window.mmHumanError);
+      if (uebersetzen) return uebersetzen(error, this.config?.language || 'de');
+      return 'Vorübergehend nicht verfügbar';
+    }
+
     /** Bus-Abo, das beim Zerstören automatisch endet. */
     subscribe(pattern, listener) {
       if (!this.bus) return () => {};

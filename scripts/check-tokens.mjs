@@ -101,6 +101,46 @@ for (const file of targets) {
   });
 }
 
+/**
+ * Zweiter Durchgang: Schrift, die niemand mehr lesen kann.
+ *
+ * Auf dem Spiegel standen die Wetter-Beschriftungen in 0.55rem - auf 1080p
+ * sind das 8,8 Pixel, dazu gedämpfte Farbe *und* zusätzliche opacity, macht
+ * 36 % Deckkraft. Hinter Spiegelglas, aus zwei Metern, im Dampf: unsichtbar.
+ *
+ * Die Untergrenze ist bewusst großzügig: --mm-size-xs beginnt bei 0.68rem und
+ * wächst mit der Bildschirmbreite. Wer kleiner will, soll das Token ändern -
+ * dann gilt es überall und für jedes Theme.
+ */
+const MIN_REM = 0.68;
+const FONT_SIZE = /font-size:\s*(\d*\.?\d+)(rem|px)/g;
+const tooSmall = [];
+
+for (const file of targets) {
+  if (!file.includes('/modules/')) continue;
+
+  const relative = path.relative(ROOT, file);
+  (await readFile(file, 'utf8')).split('\n').forEach((line, index) => {
+    for (const match of line.matchAll(FONT_SIZE)) {
+      const value = parseFloat(match[1]);
+      const rem = match[2] === 'px' ? value / 16 : value;
+      if (rem < MIN_REM) {
+        tooSmall.push({ file: relative, line: index + 1, text: line.trim() });
+      }
+    }
+  });
+}
+
+if (tooSmall.length > 0) {
+  console.error('Zu kleine Schrift gefunden. Auf einem Spiegel an der Wand nicht lesbar:\n');
+  for (const problem of tooSmall) {
+    console.error(`  ${problem.file}:${problem.line}`);
+    console.error(`    ${problem.text}`);
+  }
+  console.error('\nStattdessen var(--mm-size-xs) oder größer benutzen.');
+  process.exit(1);
+}
+
 if (problems.length > 0) {
   console.error('Rohe Farbwerte gefunden. Ein Theme kann diese Stellen nicht umfärben:\n');
   for (const problem of problems) {
@@ -112,4 +152,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.log(`${targets.length} Stylesheets geprüft, keine rohen Farbwerte.`);
+console.log(`${targets.length} Stylesheets geprüft: keine rohen Farbwerte, keine unlesbare Schrift.`);

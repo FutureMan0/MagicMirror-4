@@ -195,3 +195,25 @@
     color: var(--mm-color-text-faint);
   }
 }
+
+/* Ein Modul ohne Daten soll seinen Platz ausfuellen, nicht als Fragment
+   darin kleben. Auf dem Spiegel sah ein Stundenplan ohne Verbindung aus wie
+   ein abgerissenes Stueck Oberflaeche - zwei Drittel der Flaeche waren ihm
+   zugewiesen, sichtbar war ein kleiner Kasten oben. */
+@layer base {
+  .module-container:has(.dm-error),
+  .module-container:has(.dm-skeleton),
+  .module-container:has(.untis-error),
+  .module-container:has(.untis-empty) {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--mm-empty-min-height);
+  }
+
+  .dm-error,
+  .untis-error,
+  .untis-empty {
+    text-align: center;
+  }
+}

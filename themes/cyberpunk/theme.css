@@ -93,6 +93,11 @@
     border-bottom: 2px solid var(--cp-cyan);
     position: relative;
     overflow: visible;
+    /* Die geschnittenen Ecken und das gelbe Eck liegen ueber dem Inhalt.
+       Ohne diese Reserve wird Text davon abgeschnitten - auf dem Spiegel
+       stand "NAECHSTER VERSUCH IN 15 MIN" halb unter dem gelben Dreieck. */
+    padding-right: max(var(--mm-surface-padding), 26px);
+    padding-bottom: max(var(--mm-surface-padding), 26px);
     clip-path: polygon(
       0 0,
       calc(100% - 20px) 0,
@@ -126,8 +131,8 @@
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 40px;
-    height: 40px;
+    width: 22px;
+    height: 22px;
     background: var(--cp-yellow);
     clip-path: polygon(100% 0, 100% 100%, 0 100%);
   }
@@ -214,6 +219,9 @@
     background: var(--mm-color-surface);
     border: 1px solid var(--mm-color-border);
     transform: skew(-15deg);
+    /* Die Schraege frisst an beiden Seiten Platz. Ohne Polster wird der
+       Inhalt gekappt; die Breite ergibt sich aus tan(15°) x Hoehe. */
+    padding-inline: var(--mm-space-4);
   }
 
   .weather-detail * {
@@ -229,6 +237,7 @@
 
   .untis-lesson {
     transform: skew(5deg);
+    padding-inline: var(--mm-space-2);
     border-left: 2px solid var(--cp-red);
     color: var(--mm-color-text);
   }
