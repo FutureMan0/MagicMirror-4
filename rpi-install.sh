@@ -86,7 +86,12 @@ fi
 
 # 4. Install Project Dependencies
 echo -e "${GREEN}[4/7] Installing MagicMirror⁴ dependencies...${NC}"
-sudo -u $REAL_USER npm ci
+# --omit=dev: eslint und electron-builder werden auf dem Pi nie gebraucht,
+# machen aber gut zwei Drittel aller Pakete aus. Auf einer schwachen
+# WLAN-Verbindung entscheidet das darueber, ob die Installation ueberhaupt
+# durchlaeuft. Electron selbst steht in dependencies und kommt mit.
+# Derselbe Aufruf wie im In-App-Updater - was hier reicht, reicht dort auch.
+sudo -u $REAL_USER npm ci --omit=dev
 
 # 4b. Setup .env file (optional)
 if [ ! -f ".env" ] && [ -f ".env.example" ]; then
