@@ -110,9 +110,15 @@
       return rahmen;
     }
 
+    /**
+     * Der Anzeigename aus dem Manifest. Ohne ihn stehen im Editor
+     * Kennungen wie "clock" und "home-assistant" - in der Modulliste
+     * daneben aber "Clock & Date". Zwei Namen fuer dieselbe Sache.
+     */
     modulName(modul) {
-      const info = window.moduleInfoCache?.[modul.module]?.info;
-      const anzeige = info?.displayName;
+      const liste = (typeof availableModules !== 'undefined' && availableModules) || [];
+      const anzeige = liste.find(m => m.name === modul.module)?.info?.displayName;
+
       if (!anzeige) return modul.module;
       if (typeof anzeige === 'string') return anzeige;
       return anzeige[this.sprache()] || anzeige.de || modul.module;
