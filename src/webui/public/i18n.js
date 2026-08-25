@@ -2,6 +2,7 @@
 
 const translations = {
   de: {
+    zoneHint: 'Modul in eine Zone ziehen — oder antippen, dann die Zone.',
     zoneFrei: 'Freie Position',
     zoneTapZone: 'Jetzt eine Zone antippen.',
     zoneTapModule: 'Ein Modul antippen, dann eine Zone.',
@@ -97,6 +98,7 @@ const translations = {
     searchPlaceholder: 'Suchen...'
   },
   en: {
+    zoneHint: 'Drag a module into a zone — or tap it, then the zone.',
     zoneFrei: 'Custom position',
     zoneTapZone: 'Now tap a zone.',
     zoneTapModule: 'Tap a module, then a zone.',

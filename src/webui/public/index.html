@@ -125,14 +125,13 @@
       </section>
 
       <!-- Tab 2: Mobile Layout (Only visible on Mobile) -->
-      <section id="tab-layout" class="tab-content">
-        <div id="layout-view-container-mobile">
-          <!-- Identical to desktop but optimized for mobile flow -->
-          <div class="preview-section" id="visual-editor-mobile">
-            <div id="visual-editor-container-mobile"></div>
-          </div>
-        </div>
-      </section>
+        <section id="tab-layout" class="tab-content">
+          <h2 data-i18n="layout">Layout</h2>
+          <!-- Zonen statt Leinwand: ein 8x10-Raster ist auf einem Telefon
+               nicht bedienbar. Die Vorschau ist zugleich die Bedienung -
+               Module lassen sich in eine Zone ziehen oder antippen. -->
+          <div id="zonen-editor"></div>
+        </section>
 
       <!-- Tab 3: Mobile App Store (Fallback for mobile) -->
       <section id="tab-appstore" class="tab-content">
