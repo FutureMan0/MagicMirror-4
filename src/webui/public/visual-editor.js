@@ -519,8 +519,12 @@ class VisualGridEditor {
         row: gridPos.row,
         columnSpan: 1,
         rowSpan: 1,
-        align: 'start',
-        justify: 'start'
+        // 'stretch', nicht 'start': der Editor zeichnet einen gefuellten
+        // Block. Mit 'start' schrumpfte das Modul am Spiegel auf seinen
+        // Inhalt und sass in der Ecke dieses Blocks - der Editor versprach
+        // etwas, das es dort nie gab.
+        align: 'stretch',
+        justify: 'stretch'
       };
     }
 
@@ -774,8 +778,12 @@ class VisualGridEditor {
         row: gridPos.row,
         columnSpan: 1,
         rowSpan: 1,
-        align: 'start',
-        justify: 'start'
+        // 'stretch', nicht 'start': der Editor zeichnet einen gefuellten
+        // Block. Mit 'start' schrumpfte das Modul am Spiegel auf seinen
+        // Inhalt und sass in der Ecke dieses Blocks - der Editor versprach
+        // etwas, das es dort nie gab.
+        align: 'stretch',
+        justify: 'stretch'
       };
     }
 
@@ -1102,8 +1110,12 @@ class VisualGridEditor {
         row: row,
         columnSpan: colSpan,
         rowSpan: rowSpan,
-        align: 'start',
-        justify: 'start'
+        // 'stretch', nicht 'start': der Editor zeichnet einen gefuellten
+        // Block. Mit 'start' schrumpfte das Modul am Spiegel auf seinen
+        // Inhalt und sass in der Ecke dieses Blocks - der Editor versprach
+        // etwas, das es dort nie gab.
+        align: 'stretch',
+        justify: 'stretch'
       };
     } else {
       position.column = col;

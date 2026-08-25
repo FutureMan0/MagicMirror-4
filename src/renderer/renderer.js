@@ -131,9 +131,10 @@ function parsePosition(position, gridSettings) {
         // Spiegel nie gab. Was man anordnet, soll man auch sehen.
         justifySelf: 'stretch',
         alignSelf: 'stretch',
-        // Wo der Inhalt INNERHALB der Flaeche sitzt.
-        contentJustify: position.justify || 'start',
-        contentAlign: position.align || 'start'
+        // Wo der Inhalt INNERHALB der Flaeche sitzt. Vorgabe 'stretch': ein
+        // Modul soll den Platz nutzen, den man ihm im Editor gegeben hat.
+        contentJustify: position.justify || 'stretch',
+        contentAlign: position.align || 'stretch'
       };
     }
 
@@ -214,6 +215,7 @@ function placeModuleContainer(element, moduleConfig) {
   function flexWert(wert) {
     if (wert === 'center') return 'center';
     if (wert === 'end') return 'flex-end';
+    if (wert === 'stretch') return 'stretch';
     return 'flex-start';
   }
 
