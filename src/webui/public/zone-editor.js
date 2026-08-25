@@ -35,6 +35,10 @@
       this.live = localStorage.getItem('zonenLive') === '1';
 
       if (this.wurzel) this.zeichne();
+
+      // Sprachwechsel: die Zonennamen und Modulnamen stehen nicht in
+      // data-i18n-Elementen, also erneuern wir selbst.
+      document.addEventListener('mm:language', () => this.zeichne());
     }
 
     updateConfig(config) {

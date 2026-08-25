@@ -147,6 +147,7 @@
       if (e.key === 'Escape' && detailOffen) zurueck();
     });
     zeichneKarten();
+    document.addEventListener('mm:language', zeichneKarten);
   }
 
   if (typeof window !== 'undefined') {

@@ -2435,7 +2435,10 @@ body {
 
 .modul-karten {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  /* auto-fit statt auto-fill: sonst bleiben leere Spalten stehen und die
+     Karten kleben links, statt in der Mitte zu stehen. */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 220px));
+  justify-content: center;
   gap: 12px;
   margin-top: 16px;
 }

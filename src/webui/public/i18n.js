@@ -251,6 +251,12 @@ function getPositionName(position) {
 
 // Alle Elemente mit data-i18n Attribut übersetzen
 function updatePageTranslations() {
+  // Wer eigene Inhalte zeichnet, muss davon erfahren: data-i18n deckt nur
+  // festes Markup ab. Die Modulkarten trugen sonst weiter deutsche Namen in
+  // einer englischen Oberflaeche - sie waren vor dem Sprachwechsel gezeichnet
+  // worden und wurden nie erneuert.
+  document.dispatchEvent(new CustomEvent('mm:language'));
+
   document.querySelectorAll('[data-i18n]').forEach(element => {
     const key = element.getAttribute('data-i18n');
     const translation = t(key);
