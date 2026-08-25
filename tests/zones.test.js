@@ -89,8 +89,10 @@ test('eine Zone ergibt eine vollstaendige Platzierung', () => {
 
   assert.ok(p, 'keine Platzierung');
   assert.equal(p.type, 'grid');
-  assert.equal(p.gridColumn, '3');
-  assert.equal(p.gridRow, '1');
+  // Mit Spannweite: eine Zone kann seit der Groessenwahl mehrere Felder
+  // belegen, deshalb steht dort '3 / span 1' und nicht mehr nur '3'.
+  assert.equal(p.gridColumn, '3 / span 1');
+  assert.equal(p.gridRow, '1 / span 1');
   assert.equal(p.justifySelf, 'stretch', 'der Container muss seine Zone ausfüllen');
   assert.equal(p.zone, 'oben-rechts');
 });
@@ -135,4 +137,19 @@ test('bei 90 und 270 Grad tauschen Breite und Hoehe', () => {
   const block = css.slice(css.indexOf('data-rotate="90"'));
   assert.match(block, /width:\s*100vh/, 'die Breite folgt nicht der Bildschirmhoehe');
   assert.match(block, /height:\s*100vw/, 'die Hoehe folgt nicht der Bildschirmbreite');
+});
+
+// Größe: sie darf nie über den Rand hinauswachsen, sonst ist das Modul
+// teilweise oder ganz unsichtbar.
+test('eine Groesse waechst nie ueber das Raster hinaus', () => {
+  const p = zonen.platzierung({ zone: 'rechts', colSpan: 9, rowSpan: 9 });
+
+  assert.equal(p.gridColumn, '3 / span 1', 'die rechte Spalte kann nicht breiter werden');
+  assert.equal(p.gridRow, '2 / span 2', 'nach unten bleiben zwei Zeilen');
+});
+
+test('unsinnige Groessen werden zurechtgebogen statt uebernommen', () => {
+  assert.deepEqual(zonen.groesse({ colSpan: 0, rowSpan: -3 }), { colSpan: 1, rowSpan: 1 });
+  assert.deepEqual(zonen.groesse({ colSpan: 'zwei' }), { colSpan: 1, rowSpan: 1 });
+  assert.deepEqual(zonen.groesse(undefined), { colSpan: 1, rowSpan: 1 });
 });

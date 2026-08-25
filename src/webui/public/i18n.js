@@ -2,6 +2,12 @@
 
 const translations = {
   de: {
+    size: 'Größe',
+    sizeSingle: 'Einfach',
+    sizeWide: 'Breit',
+    sizeTall: 'Hoch',
+    sizeBig: 'Groß',
+    sizeFull: 'Volle Breite',
     screen: 'Bildschirm',
     rotation: 'Drehung',
     rotationHint: 'Gilt für diese Anzeige.',
@@ -109,6 +115,12 @@ const translations = {
     searchPlaceholder: 'Suchen...'
   },
   en: {
+    size: 'Size',
+    sizeSingle: 'Single',
+    sizeWide: 'Wide',
+    sizeTall: 'Tall',
+    sizeBig: 'Large',
+    sizeFull: 'Full width',
     screen: 'Screen',
     rotation: 'Rotation',
     rotationHint: 'Applies to this display.',

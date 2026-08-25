@@ -145,13 +145,20 @@ test('das Abbild wird in jedem Fall wieder entfernt', () => {
   assert.match(block.slice(0, 400), /geist\?\.remove\(\)/);
 });
 
-test('Zonenwechsel landet im Entwurf, nicht sofort auf dem Spiegel', () => {
-  // Sonst zuckt die Wand bei jedem Fingertipp.
-  const block = ZONEN_EDITOR.slice(
-    ZONEN_EDITOR.indexOf('zoneGewaehlt(id) {'),
-    ZONEN_EDITOR.indexOf('async speichere()')
-  );
+// Umgekehrte Entscheidung, aus einem Grund: der Entwurf war der Fehler.
+// Wer ein Modul zog und auf den Spiegel sah, sah nichts - weil die Aenderung
+// auf den Speichern-Knopf wartete - und hielt das Ziehen fuer kaputt.
+// Ein Ablegen ist eine Absicht, kein Wackler; es darf durchschlagen.
+test('ein Zonenwechsel wirkt sofort', () => {
+  assert.match(ZONEN_EDITOR, /async zoneGewaehlt\(id\)/,
+    'zoneGewaehlt speichert nicht mehr - dann wirkt der Wechsel nicht sofort');
+  assert.match(ZONEN_EDITOR, /await this\.uebernimm\(/,
+    'die Position wird nicht uebernommen');
+  assert.doesNotMatch(ZONEN_EDITOR, /this\.entwurf/,
+    'die Entwurfs-Mechanik ist zurueck - dann passiert beim Ziehen wieder nichts');
+});
 
-  assert.match(block, /this\.entwurf = /, 'die Zone wird nicht im Entwurf gesammelt');
-  assert.doesNotMatch(block, /beimSpeichern|fetch\(/, 'es wird sofort gespeichert');
+test('Groesse laesst sich einstellen und wirkt ebenfalls sofort', () => {
+  assert.match(ZONEN_EDITOR, /async setzeGroesse\(name, colSpan, rowSpan\)/);
+  assert.match(ZONEN_EDITOR, /static GROESSEN/, 'es gibt keine Groessen zur Auswahl');
 });

@@ -23,11 +23,19 @@
   ];
 
   class ZonenEditor {
+    /** Die Groessen, die im 3x3-Raster ueberhaupt Sinn ergeben. */
+    static GROESSEN = [
+      [1, 1, 'sizeSingle', 'Einfach'],
+      [2, 1, 'sizeWide',   'Breit'],
+      [1, 2, 'sizeTall',   'Hoch'],
+      [2, 2, 'sizeBig',    'Groß'],
+      [3, 1, 'sizeFull',   'Volle Breite']
+    ];
+
     constructor(selektor, config, beimSpeichern) {
       this.wurzel = document.querySelector(selektor);
       this.config = config;
       this.beimSpeichern = beimSpeichern;
-      this.entwurf = null;
       this.markiert = null;
       // Der echte Spiegel als Hintergrund. Bewusst abschaltbar: die Vorschau
       // ist ein zweiter Renderer samt aller Netzabfragen, und auf einem Pi
@@ -45,7 +53,7 @@
       this.config = config;
       // Ein laufender Entwurf hat Vorrang: sonst verwirft ein Ereignis von
       // aussen die gerade begonnene Aenderung.
-      if (!this.entwurf && !this.entwurfAn) this.zeichne();
+      this.zeichne();
     }
 
     /** Module, die auf dem Spiegel erscheinen können. */
@@ -55,14 +63,12 @@
 
     /** Ist das Modul sichtbar - mit noch nicht gespeicherten Änderungen? */
     istAn(modul) {
-      return this.entwurfAn?.[modul.module] ?? (modul.enabled !== false);
+      return modul.enabled !== false;
     }
 
     /** Die aktuell gewählte Zone eines Moduls. */
     zoneVon(modul) {
-      const zonen = window.MMZonen;
-      const id = zonen.alsZone(this.entwurf?.[modul.module] ?? modul.position);
-      return id || null;
+      return window.MMZonen.alsZone(modul.position) || null;
     }
 
     sprache() {
@@ -167,7 +173,10 @@
             const chip = document.createElement('span');
             chip.className = 'zonen-chip';
             if (this.markiert === modul.module) chip.classList.add('markiert');
-            chip.textContent = this.modulName(modul);
+            const g = window.MMZonen.groesse(modul.position);
+            chip.textContent = g.colSpan > 1 || g.rowSpan > 1
+              ? `${this.modulName(modul)} ${g.colSpan}×${g.rowSpan}`
+              : this.modulName(modul);
             this.macheZiehbar(chip, modul.module);
             feld.appendChild(chip);
           }
@@ -224,6 +233,29 @@
         zeile.append(name, wo);
         this.macheZiehbar(zeile, modul.module);
 
+        // Groesse: statt Griffe an den Kanten, die man auf einem Telefon
+        // nicht trifft, ein Wahlfeld mit den Groessen, die im Zonenraster
+        // ueberhaupt Sinn ergeben.
+        const groesse = document.createElement('select');
+        groesse.className = 'zonen-groesse';
+        groesse.setAttribute('aria-label', this.text('size', 'Größe'));
+
+        const aktuell = window.MMZonen.groesse(modul.position);
+        for (const [c, r, schluessel, rueckfall] of ZonenEditor.GROESSEN) {
+          const option = document.createElement('option');
+          option.value = `${c}x${r}`;
+          option.textContent = this.text(schluessel, rueckfall);
+          option.selected = aktuell.colSpan === c && aktuell.rowSpan === r;
+          groesse.appendChild(option);
+        }
+
+        groesse.addEventListener('click', (e) => e.stopPropagation());
+        groesse.addEventListener('pointerdown', (e) => e.stopPropagation());
+        groesse.addEventListener('change', (e) => {
+          const [c, r] = e.target.value.split('x').map(Number);
+          this.setzeGroesse(modul.module, c, r);
+        });
+
         // An/Aus gehoert hierher: wer das Layout ordnet, will ein Modul
         // wegnehmen koennen, ohne den Reiter zu wechseln.
         const schalter = document.createElement('button');
@@ -240,7 +272,7 @@
         const reihe = document.createElement('div');
         reihe.className = 'zonen-listenreihe';
         if (!this.istAn(modul)) reihe.classList.add('aus');
-        reihe.append(zeile, schalter);
+        reihe.append(zeile, groesse, schalter);
         liste.appendChild(reihe);
       }
       return liste;
@@ -256,13 +288,6 @@
         ? this.text('zoneTapZone', 'Jetzt eine Zone antippen.')
         : this.text('zoneHint', 'Modul in eine Zone ziehen — oder antippen, dann die Zone.');
       fuss.appendChild(hinweis);
-
-      const speichern = document.createElement('button');
-      speichern.className = 'btn-primary zonen-speichern';
-      speichern.textContent = this.text('save', 'Speichern');
-      speichern.disabled = !this.entwurf && !this.entwurfAn;
-      speichern.addEventListener('click', () => this.speichere());
-      fuss.appendChild(speichern);
 
       return fuss;
     }
@@ -426,42 +451,63 @@
     }
 
     /** Modul ein- oder ausblenden. Sammelt sich im Entwurf wie eine Zone. */
-    schalteModul(name) {
-      this.entwurfAn = this.entwurfAn || {};
-      const modul = this.alleModule().find(m => m.module === name);
-      const jetzt = this.entwurfAn[name] ?? (modul?.enabled !== false);
-      this.entwurfAn[name] = !jetzt;
-      this.zeichne();
-    }
-
-    zoneGewaehlt(id) {
-      if (!this.markiert) return;
-      this.entwurf = { ...(this.entwurf || {}), [this.markiert]: id };
-      this.markiert = null;
-      this.zeichne();
-    }
-
-    async speichere() {
-      if (!this.entwurf && !this.entwurfAn) return;
-
+    async schalteModul(name) {
       const neu = {
         ...this.config,
-        modules: this.config.modules.map(m => {
-          const geaendert = { ...m };
-          if (this.entwurf?.[m.module]) geaendert.position = this.entwurf[m.module];
-          if (this.entwurfAn && m.module in this.entwurfAn) {
-            geaendert.enabled = this.entwurfAn[m.module];
-          }
-          return geaendert;
-        })
+        modules: this.config.modules.map(m =>
+          m.module === name ? { ...m, enabled: m.enabled === false } : m
+        )
       };
 
-      this.entwurf = null;
-      this.entwurfAn = null;
-      await this.beimSpeichern(neu);
       this.config = neu;
       this.zeichne();
+      await this.beimSpeichern(neu);
     }
+
+    /**
+     * Eine Zone wurde gewaehlt - und das wirkt sofort.
+     *
+     * Vorher sammelte sich das in einem Entwurf und wurde erst auf Knopfdruck
+     * uebernommen. Wer ein Modul zog und auf den Spiegel sah, sah nichts, und
+     * hielt das Ziehen fuer kaputt. Ein Ablegen ist eine Absicht, kein
+     * Wackler - es darf durchschlagen.
+     */
+    async zoneGewaehlt(id) {
+      if (!this.markiert) return;
+
+      const name = this.markiert;
+      this.markiert = null;
+
+      const modul = this.alleModule().find(m => m.module === name);
+      if (!modul) return;
+
+      const alt = window.MMZonen.groesse(modul.position);
+      await this.uebernimm(name, { zone: id, colSpan: alt.colSpan, rowSpan: alt.rowSpan });
+    }
+
+    /** Position eines Moduls setzen und sofort speichern. */
+    async uebernimm(name, position) {
+      const neu = {
+        ...this.config,
+        modules: this.config.modules.map(m =>
+          m.module === name ? { ...m, position } : m
+        )
+      };
+
+      this.config = neu;
+      this.zeichne();
+      await this.beimSpeichern(neu);
+    }
+
+    /** Groesse aendern - ebenfalls sofort. */
+    async setzeGroesse(name, colSpan, rowSpan) {
+      const modul = this.alleModule().find(m => m.module === name);
+      const zone = window.MMZonen.alsZone(modul?.position);
+      if (!zone) return;
+
+      await this.uebernimm(name, { zone, colSpan, rowSpan });
+    }
+
   }
 
   if (typeof window !== 'undefined') window.ZonenEditor = ZonenEditor;

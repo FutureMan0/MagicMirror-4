@@ -116,7 +116,19 @@
   function alsZone(position) {
     if (istZone(position)) return position;
     if (typeof position === 'string' && ALTE_NAMEN[position]) return ALTE_NAMEN[position];
+    // Mit Groesse: { zone: 'oben-links', colSpan: 2, rowSpan: 1 }
+    if (position && typeof position === 'object' && istZone(position.zone)) return position.zone;
     return null;
+  }
+
+  /** Die Groesse einer Platzierung in Zonen-Feldern. */
+  function groesse(position) {
+    const p = position && typeof position === 'object' ? position : {};
+    const begrenzt = (wert, max) => Math.min(Math.max(Number(wert) || 1, 1), max);
+    return {
+      colSpan: begrenzt(p.colSpan, ZONEN_RASTER.columns),
+      rowSpan: begrenzt(p.rowSpan, ZONEN_RASTER.rows)
+    };
   }
 
   /** Beschriftung in der gewünschten Sprache. */
@@ -140,10 +152,19 @@
     if (!id) return null;
 
     const z = zone(id);
+    const { colSpan, rowSpan } = groesse(position);
+
+    // Eine Zone mit Groesse: sie waechst nach rechts und nach unten, aber
+    // nie ueber den Rand hinaus - sonst waere sie gar nicht mehr sichtbar.
+    const spalte = z.gridColumn.includes('/')
+      ? z.gridColumn
+      : `${z.gridColumn} / span ${Math.min(colSpan, ZONEN_RASTER.columns - Number(z.gridColumn) + 1)}`;
+    const zeile = `${z.gridRow} / span ${Math.min(rowSpan, ZONEN_RASTER.rows - Number(z.gridRow) + 1)}`;
+
     return {
       type: 'grid',
-      gridColumn: z.gridColumn,
-      gridRow: z.gridRow,
+      gridColumn: spalte,
+      gridRow: zeile,
       justifySelf: 'stretch',
       alignSelf: 'stretch',
       contentJustify: z.justify,
@@ -152,7 +173,7 @@
     };
   }
 
-  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, zonenLabel, platzierung, ALTE_NAMEN };
+  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, groesse, zonenLabel, platzierung, ALTE_NAMEN };
 
   if (typeof window !== 'undefined') window.MMZonen = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
