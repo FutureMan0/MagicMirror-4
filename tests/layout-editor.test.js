@@ -109,3 +109,49 @@ test('der Editor speichert stretch, nicht start', () => {
   );
   assert.match(QUELLE, /align:\s*'stretch'/);
 });
+
+const ZONEN_EDITOR = fs.readFileSync(
+  path.join(ROOT, 'src/webui/public/zone-editor.js'), 'utf8'
+);
+
+/**
+ * Der Fehler, den erst das Gerät zeigte: Ziehen tat nichts.
+ *
+ * setPointerCapture lief erst, nachdem acht Pixel Bewegung erkannt waren.
+ * Bewegungsereignisse kommen aber nur, solange der Finger über dem Element
+ * bleibt — bei einem Chip von 60 Pixeln ist man nach zwei Zentimetern
+ * darüber hinaus. Das Ziehen begann deshalb nie.
+ */
+test('der Zeiger wird beim Druecken eingefangen, nicht erst bei Bewegung', () => {
+  const block = ZONEN_EDITOR.slice(
+    ZONEN_EDITOR.indexOf("addEventListener('pointerdown'"),
+    ZONEN_EDITOR.indexOf('const bewegen =')
+  );
+
+  assert.match(
+    block, /setPointerCapture/,
+    'der Zeiger wird nicht schon beim Druecken eingefangen - dann bricht das '
+    + 'Ziehen ab, sobald der Finger das Element verlaesst'
+  );
+});
+
+test('die Acht-Pixel-Schwelle bleibt, sonst wird jeder Wackler zum Verschieben', () => {
+  assert.match(ZONEN_EDITOR, /weit < 8/);
+});
+
+test('das Abbild wird in jedem Fall wieder entfernt', () => {
+  // Bleibt es haengen, klebt ein Chip fuer immer auf dem Bildschirm.
+  const block = ZONEN_EDITOR.slice(ZONEN_EDITOR.indexOf('const loslassen ='));
+  assert.match(block.slice(0, 400), /geist\?\.remove\(\)/);
+});
+
+test('Zonenwechsel landet im Entwurf, nicht sofort auf dem Spiegel', () => {
+  // Sonst zuckt die Wand bei jedem Fingertipp.
+  const block = ZONEN_EDITOR.slice(
+    ZONEN_EDITOR.indexOf('zoneGewaehlt(id) {'),
+    ZONEN_EDITOR.indexOf('async speichere()')
+  );
+
+  assert.match(block, /this\.entwurf = /, 'die Zone wird nicht im Entwurf gesammelt');
+  assert.doesNotMatch(block, /beimSpeichern|fetch\(/, 'es wird sofort gespeichert');
+});
