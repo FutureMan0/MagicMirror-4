@@ -103,3 +103,13 @@ test('spotify: der Tonarm folgt dem Fortschritt', () => {
   assert.ok(start < ende, 'der Arm wandert in die falsche Richtung');
   assert.ok(Math.abs(start) < 90 && Math.abs(ende) < 90, 'der Arm dreht ueber die Platte hinaus');
 });
+
+// Ein Modul soll genauer sagen koennen, was "leer" bedeutet.
+test('spotify sagt, dass gerade nichts laeuft', () => {
+  const quelle = fs.readFileSync(path.join(MODULES_DIR, 'spotify/index.js'), 'utf8');
+
+  assert.match(quelle, /^\s*emptyText\(\)\s*\{/m,
+    'emptyText ist keine Methode der Klasse - dann greift die Ueberschreibung nicht');
+  assert.match(quelle, /Gerade läuft nichts/);
+  assert.match(quelle, /Nothing playing/);
+});

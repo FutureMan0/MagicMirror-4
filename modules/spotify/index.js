@@ -54,6 +54,12 @@ class SpotifyModule extends SpotifyBase {
     return container;
   }
 
+  /** „Nichts läuft" sagt mehr als „nichts zu zeigen". */
+  emptyText() {
+    const englisch = (this.config.language || 'de') === 'en';
+    return englisch ? 'Nothing playing.' : 'Gerade läuft nichts.';
+  }
+
   renderData(data, root) {
     if (!data || !data.track) {
       root.textContent = '';
