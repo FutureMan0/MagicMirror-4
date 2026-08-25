@@ -2532,6 +2532,22 @@ body {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
+
+  /* Die Einstellungen scrollen fuer sich, die Vorschau bleibt stehen.
+     Sonst schiebt eine lange Formularliste das Bild aus dem Blick - und
+     man stellt etwas ein, ohne zu sehen, was es bewirkt. */
+  .modul-detail-einstellungen {
+    max-height: calc(100dvh - var(--modul-detail-abzug, 260px));
+    overflow-y: auto;
+    /* Das Scrollen soll nicht auf die Seite dahinter durchschlagen. */
+    overscroll-behavior: contain;
+    padding-right: 6px;
+  }
+
+  .modul-detail-vorschau {
+    position: sticky;
+    top: 0;
+  }
 }
 
 .modul-vorschau-buehne {
