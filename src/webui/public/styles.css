@@ -2583,3 +2583,10 @@ body {
 }
 
 .screen-output.leer { opacity: 0.5; }
+
+.modul-detail-aktionen {
+  display: none;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}

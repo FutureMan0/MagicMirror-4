@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupDragAndDrop();
 
   // Event Listeners
-  document.getElementById('instance-select').addEventListener('change', (e) => {
+  document.getElementById('instance-select')?.addEventListener('change', (e) => {
     currentInstance = e.target.value;
     window.currentInstance = currentInstance;
     loadConfig();
@@ -93,11 +93,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.getElementById('save-settings-btn').addEventListener('click', () => {
+  // Optional: die Schaltflaeche liegt in der Detailansicht. Fehlt sie,
+  // darf das nicht den Rest der Verdrahtung abbrechen - genau daran ist
+  // einmal die ganze Seite haengengeblieben.
+  document.getElementById('save-settings-btn')?.addEventListener('click', () => {
     saveModuleSettings();
   });
 
-  document.getElementById('cancel-settings-btn').addEventListener('click', () => {
+  document.getElementById('cancel-settings-btn')?.addEventListener('click', () => {
     hideSettings();
   });
 
@@ -710,8 +713,9 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   const settingsSection = document.getElementById('settings-section');
   const moduleSettings = document.getElementById('module-settings');
 
-  settingsSection.style.display = 'block';
-  document.getElementById('settings-actions').style.display = 'flex';
+  if (settingsSection) settingsSection.style.display = 'block';
+  const aktionen = document.getElementById('settings-actions');
+  if (aktionen) aktionen.style.display = 'flex';
 
   const displayName = modulName(moduleInfo?.info?.displayName, moduleConfig.module);
   let html = `<h3>${displayName}</h3>`;
@@ -1148,7 +1152,8 @@ async function startSpotifyAuth() {
 }
 
 function hideSettings() {
-  document.getElementById('settings-actions').style.display = 'none';
+  const versteckAktionen = document.getElementById('settings-actions');
+  if (versteckAktionen) versteckAktionen.style.display = 'none';
   document.getElementById('module-settings').innerHTML = `<p style="color: var(--text-secondary);">${t('pickModuleHint')}</p>`;
   selectedModule = null;
   renderModuleList();

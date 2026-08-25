@@ -150,3 +150,29 @@ test('kein Anzeigename wird ungefiltert in die Anzeige geschrieben', () => {
     + 'steht dort „[object Object]". Über modulName(...) führen:\n' + offen.join('\n')
   );
 });
+
+/**
+ * Der Fehler, der die halbe Oberfläche lahmlegte: nach einem Umbau des
+ * Markups fehlte `save-settings-btn`. Der Aufruf
+ * `getElementById(...).addEventListener(...)` warf, und alles danach im
+ * Startpfad wurde nie verdrahtet — die Detailansicht ging deshalb nicht auf.
+ */
+test('keine Verdrahtung bricht an einem fehlenden Element ab', () => {
+  const dateien = ['app.js', 'control.js', 'privacy.js', 'screen.js', 'module-browser.js'];
+  const offen = [];
+
+  for (const name of dateien) {
+    const quelle = fs.readFileSync(path.join(WEBUI, name), 'utf8');
+    quelle.split('\n').forEach((zeile, index) => {
+      if (/getElementById\([^)]*\)\s*\.(addEventListener|style|value|classList)/.test(zeile)) {
+        offen.push(`  ${name}:${index + 1}  ${zeile.trim().slice(0, 70)}`);
+      }
+    });
+  }
+
+  assert.deepEqual(
+    offen, [],
+    'Hier wird ohne Absicherung auf ein Element zugegriffen. Fehlt es nach\n'
+    + 'einem Umbau, bricht der ganze Startpfad ab. ?. benutzen:\n' + offen.join('\n')
+  );
+});
