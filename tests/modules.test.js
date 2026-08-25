@@ -87,3 +87,19 @@ test('spotify: die Schallplatte ist eine Einstellung, kein Zwang', () => {
   assert.equal(stil.default, 'square', 'die Platte darf nicht die Vorgabe sein');
   assert.deepEqual(stil.options, ['square', 'vinyl']);
 });
+
+test('spotify: der Tonarm folgt dem Fortschritt', () => {
+  const quelle = fs.readFileSync(path.join(MODULES_DIR, 'spotify/index.js'), 'utf8');
+
+  assert.match(quelle, /--tonarm-winkel/, 'der Winkel wird nicht gesetzt');
+  // Der Fortschritt darf den Arm nicht ueber die Platte hinausdrehen.
+  const zeile = quelle.split('\n').find(z => z.includes('const winkel'));
+  assert.ok(zeile, 'der Winkel wird nicht gerechnet');
+
+  const rechnen = new Function('percent', zeile.replace('const winkel', 'let winkel') + '; return winkel;');
+  const start = rechnen(0);
+  const ende = rechnen(100);
+
+  assert.ok(start < ende, 'der Arm wandert in die falsche Richtung');
+  assert.ok(Math.abs(start) < 90 && Math.abs(ende) < 90, 'der Arm dreht ueber die Platte hinaus');
+});

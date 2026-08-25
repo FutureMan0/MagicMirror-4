@@ -148,15 +148,25 @@ class SpotifyModule extends SpotifyBase {
     this.updateProgress(this.data.progressMs, this.data.track.durationMs);
   }
 
-  updateProgress(progressMs, durationMs) {
-    if (!this.elements.fill || !durationMs) return;
+    updateProgress(progressMs, durationMs) {
+      // Nur die Dauer ist Pflicht: der Tonarm haengt nicht am
+      // Fortschrittsbalken, der abgeschaltet sein kann.
+      if (!durationMs) return;
 
-    const percent = Math.min(100, (progressMs / durationMs) * 100);
-    this.elements.fill.style.width = `${percent}%`;
+      const percent = Math.min(100, (progressMs / durationMs) * 100);
 
-    if (this.elements.elapsed) this.elements.elapsed.textContent = this.formatTime(progressMs);
-    if (this.elements.total) this.elements.total.textContent = this.formatTime(durationMs);
-  }
+      // Der Tonarm wandert von aussen nach innen: am Anfang steht er am
+      // Rand, am Ende ueber dem Etikett. Die Winkel sind so gewaehlt, dass
+      // die Nadel dabei innerhalb der Rillen bleibt.
+      if (this.elements.tonarm) {
+        const winkel = -22 + (percent / 100) * 16;
+        this.elements.tonarm.style.setProperty('--tonarm-winkel', `${winkel}deg`);
+      }
+
+      if (this.elements.fill) this.elements.fill.style.width = `${percent}%`;
+      if (this.elements.elapsed) this.elements.elapsed.textContent = this.formatTime(progressMs);
+      if (this.elements.total) this.elements.total.textContent = this.formatTime(durationMs);
+    }
 
   formatTime(ms) {
     const total = Math.floor((ms || 0) / 1000);

@@ -109,3 +109,47 @@
 @keyframes spotify-platte-dreht {
   to { transform: rotate(360deg); }
 }
+
+/* Der Tonarm. Ein Strich mit einem Punkt an der Spitze - mehr braucht es
+   nicht, und alles andere wäre auf zwei Metern Entfernung ohnehin nicht zu
+   erkennen. Er wandert mit dem Fortschritt des Stücks nach innen. */
+.spotify-tonarm {
+  position: absolute;
+  top: 8%;
+  right: 6%;
+  width: 2px;
+  height: 46%;
+  border-radius: 2px;
+  background: var(--mm-color-text-muted);
+  transform-origin: top center;
+  transform: rotate(var(--tonarm-winkel, -22deg));
+  transition: transform var(--mm-dur-slow, 400ms) var(--mm-ease-standard, ease);
+  pointer-events: none;
+}
+
+/* Die Nadel. */
+.spotify-tonarm::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--mm-color-text);
+}
+
+/* Das Lager, an dem der Arm sitzt. */
+.spotify-tonarm::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--mm-color-surface-2);
+  border: 1px solid var(--mm-color-border);
+}
