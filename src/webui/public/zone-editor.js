@@ -41,12 +41,17 @@
       this.config = config;
       // Ein laufender Entwurf hat Vorrang: sonst verwirft ein Ereignis von
       // aussen die gerade begonnene Aenderung.
-      if (!this.entwurf) this.zeichne();
+      if (!this.entwurf && !this.entwurfAn) this.zeichne();
     }
 
     /** Module, die auf dem Spiegel erscheinen können. */
     module() {
-      return (this.config?.modules || []).filter(m => m.enabled !== false);
+      return this.alleModule().filter(m => this.istAn(m));
+    }
+
+    /** Ist das Modul sichtbar - mit noch nicht gespeicherten Änderungen? */
+    istAn(modul) {
+      return this.entwurfAn?.[modul.module] ?? (modul.enabled !== false);
     }
 
     /** Die aktuell gewählte Zone eines Moduls. */
@@ -80,19 +85,25 @@
       const kopf = document.createElement('div');
       kopf.className = 'zonen-kopf';
 
-      const schalter = document.createElement('button');
-      schalter.type = 'button';
-      schalter.className = 'zonen-liveschalter';
-      schalter.classList.toggle('an', this.live);
-      schalter.textContent = this.text('livePreview', 'Live-Vorschau');
-      schalter.setAttribute('aria-pressed', String(this.live));
-      schalter.addEventListener('click', () => {
+      const hintergrund = document.createElement('button');
+      hintergrund.type = 'button';
+      hintergrund.className = 'zonen-liveschalter';
+      hintergrund.classList.toggle('an', this.live);
+      hintergrund.textContent = this.text('livePreviewBackdrop', 'Spiegel im Hintergrund');
+      hintergrund.setAttribute('aria-pressed', String(this.live));
+      hintergrund.addEventListener('click', () => {
         this.live = !this.live;
         localStorage.setItem('zonenLive', this.live ? '1' : '0');
         this.zeichne();
       });
 
-      kopf.appendChild(schalter);
+      const vollbild = document.createElement('button');
+      vollbild.type = 'button';
+      vollbild.className = 'btn-primary zonen-vollbild';
+      vollbild.textContent = this.text('livePreview', 'Live-Vorschau');
+      vollbild.addEventListener('click', () => this.zeigeVollbild());
+
+      kopf.append(hintergrund, vollbild);
       return kopf;
     }
 
@@ -118,6 +129,17 @@
 
         rahmenLive.appendChild(spiegel);
         rahmen.appendChild(rahmenLive);
+
+        // Der Faktor haengt von der Rahmenbreite ab und muss gerechnet
+        // werden; in CSS gaebe es dafuer nur ungueltige Ausdruecke.
+        const skaliere = () => {
+          const breite = rahmen.clientWidth;
+          if (breite) spiegel.style.transform = `scale(${breite / 1920})`;
+        };
+        requestAnimationFrame(skaliere);
+        this.skalierer?.disconnect();
+        this.skalierer = new ResizeObserver(skaliere);
+        this.skalierer.observe(rahmen);
       }
 
       for (const reihe of ZONEN_LAYOUT) {
@@ -168,12 +190,17 @@
       return anzeige[this.sprache()] || anzeige.de || modul.module;
     }
 
-    /** Ein Modul markieren, dann eine Zone antippen. */
+    /** Alle Module - auch die abgeschalteten, sonst kann man sie nicht zurückholen. */
+    alleModule() {
+      return this.config?.modules || [];
+    }
+
+    /** Ein Modul markieren, dann eine Zone antippen. Plus An/Aus je Zeile. */
     baueListe() {
       const liste = document.createElement('div');
       liste.className = 'zonen-liste';
 
-      for (const modul of this.module()) {
+      for (const modul of this.alleModule()) {
         const zeile = document.createElement('button');
         zeile.type = 'button';
         zeile.className = 'zonen-listenzeile';
@@ -192,7 +219,25 @@
 
         zeile.append(name, wo);
         this.macheZiehbar(zeile, modul.module);
-        liste.appendChild(zeile);
+
+        // An/Aus gehoert hierher: wer das Layout ordnet, will ein Modul
+        // wegnehmen koennen, ohne den Reiter zu wechseln.
+        const schalter = document.createElement('button');
+        schalter.type = 'button';
+        schalter.className = 'zonen-schalter';
+        schalter.classList.toggle('an', this.istAn(modul));
+        schalter.setAttribute('aria-pressed', String(this.istAn(modul)));
+        schalter.setAttribute('aria-label', this.modulName(modul));
+        schalter.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.schalteModul(modul.module);
+        });
+
+        const reihe = document.createElement('div');
+        reihe.className = 'zonen-listenreihe';
+        if (!this.istAn(modul)) reihe.classList.add('aus');
+        reihe.append(zeile, schalter);
+        liste.appendChild(reihe);
       }
       return liste;
     }
@@ -211,7 +256,7 @@
       const speichern = document.createElement('button');
       speichern.className = 'btn-primary zonen-speichern';
       speichern.textContent = this.text('save', 'Speichern');
-      speichern.disabled = !this.entwurf;
+      speichern.disabled = !this.entwurf && !this.entwurfAn;
       speichern.addEventListener('click', () => this.speichere());
       fuss.appendChild(speichern);
 
@@ -313,6 +358,70 @@
       }
     }
 
+    /**
+     * Der Spiegel in gross - genau das, was an der Wand haengt.
+     *
+     * Als Overlay ueber allem, mit schwarzem Grund: ein Spiegel im
+     * Briefmarkenformat sagt wenig ueber Schriftgroessen aus. Zu schliessen
+     * ueber den Knopf oder Esc - wer eine Vollbildansicht oeffnet, erwartet,
+     * dass Esc sie wieder schliesst.
+     */
+    zeigeVollbild() {
+      const instanz = window.currentInstance || 'display1';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'live-vollbild';
+
+      const buehne = document.createElement('div');
+      buehne.className = 'live-vollbild-buehne';
+
+      const spiegel = document.createElement('iframe');
+      spiegel.className = 'live-vollbild-bild';
+      spiegel.title = this.text('livePreview', 'Live-Vorschau');
+      spiegel.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      spiegel.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
+      buehne.appendChild(spiegel);
+
+      const zurueck = document.createElement('button');
+      zurueck.className = 'live-vollbild-zurueck';
+      zurueck.textContent = this.text('back', 'Zurück');
+
+      const schliessen = () => {
+        document.removeEventListener('keydown', beiTaste);
+        window.removeEventListener('resize', skaliere);
+        overlay.classList.add('geht');
+        // Erst nach der Blende entfernen, sonst verschwindet sie hart.
+        setTimeout(() => overlay.remove(), 200);
+      };
+
+      const beiTaste = (e) => { if (e.key === 'Escape') schliessen(); };
+
+      const skaliere = () => {
+        const faktor = Math.min(overlay.clientWidth / 1920, overlay.clientHeight / 1080);
+        spiegel.style.transform = `scale(${faktor})`;
+        buehne.style.width = `${1920 * faktor}px`;
+        buehne.style.height = `${1080 * faktor}px`;
+      };
+
+      zurueck.addEventListener('click', schliessen);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) schliessen(); });
+      document.addEventListener('keydown', beiTaste);
+      window.addEventListener('resize', skaliere);
+
+      overlay.append(buehne, zurueck);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => { skaliere(); overlay.classList.add('da'); });
+    }
+
+    /** Modul ein- oder ausblenden. Sammelt sich im Entwurf wie eine Zone. */
+    schalteModul(name) {
+      this.entwurfAn = this.entwurfAn || {};
+      const modul = this.alleModule().find(m => m.module === name);
+      const jetzt = this.entwurfAn[name] ?? (modul?.enabled !== false);
+      this.entwurfAn[name] = !jetzt;
+      this.zeichne();
+    }
+
     zoneGewaehlt(id) {
       if (!this.markiert) return;
       this.entwurf = { ...(this.entwurf || {}), [this.markiert]: id };
@@ -321,16 +430,22 @@
     }
 
     async speichere() {
-      if (!this.entwurf) return;
+      if (!this.entwurf && !this.entwurfAn) return;
 
       const neu = {
         ...this.config,
-        modules: this.config.modules.map(m =>
-          this.entwurf[m.module] ? { ...m, position: this.entwurf[m.module] } : m
-        )
+        modules: this.config.modules.map(m => {
+          const geaendert = { ...m };
+          if (this.entwurf?.[m.module]) geaendert.position = this.entwurf[m.module];
+          if (this.entwurfAn && m.module in this.entwurfAn) {
+            geaendert.enabled = this.entwurfAn[m.module];
+          }
+          return geaendert;
+        })
       };
 
       this.entwurf = null;
+      this.entwurfAn = null;
       await this.beimSpeichern(neu);
       this.config = neu;
       this.zeichne();

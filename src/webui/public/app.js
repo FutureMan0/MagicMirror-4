@@ -293,6 +293,9 @@ async function loadConfig() {
   try {
     const response = await fetch(`/api/config?instance=${currentInstance}`);
     currentConfig = await response.json();
+    window.currentConfig = currentConfig;
+    // Die Modulkarten haengen an der Konfiguration.
+    window.ModulBrowser?.zeichneKarten();
     console.log('Config geladen:', currentConfig); // Debug
 
     // UI-Sprache an Config anpassen
@@ -684,6 +687,7 @@ function renderModuleList() {
 }
 
 function selectModule(index) {
+  // Auch am window: der Modul-Browser liegt in einer eigenen Datei.
   selectedModule = index;
   renderModuleList();
 
@@ -1974,3 +1978,5 @@ async function saveConfigAndRefresh() {
     alert('Fehler beim Speichern des Layouts.');
   }
 }
+
+window.selectModule = selectModule;

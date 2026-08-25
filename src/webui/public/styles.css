@@ -2267,7 +2267,7 @@ body {
   height: 1080px;
   border: 0;
   transform-origin: top left;
-  transform: scale(calc(100cqw / 1920));
+  /* Der Faktor kommt aus JavaScript: er haengt von der Rahmenbreite ab. */
 }
 
 .zonen-vorschau { container-type: inline-size; }
@@ -2292,4 +2292,258 @@ body {
   color: var(--text-secondary);
   font-size: 0.82rem;
   line-height: 1.4;
+}
+
+/* ---------- Vollbild-Vorschau ----------
+   Der Spiegel in gross. Ein Briefmarkenbild sagt nichts über Schriftgrößen. */
+
+.live-vollbild {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  background: #000;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.live-vollbild.da   { opacity: 1; }
+.live-vollbild.geht { opacity: 0; }
+
+.live-vollbild-buehne {
+  position: relative;
+  overflow: hidden;
+}
+
+.live-vollbild-bild {
+  width: 1920px;
+  height: 1080px;
+  border: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.live-vollbild-zurueck {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  min-height: var(--touch-target-min, 44px);
+  padding: 10px 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.8);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+/* ---------- An/Aus in der Layout-Liste ---------- */
+
+.zonen-listenreihe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zonen-listenreihe > .zonen-listenzeile { flex: 1; }
+
+.zonen-listenreihe.aus .zonen-listenzeile {
+  opacity: 0.4;
+}
+
+.zonen-schalter {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-dark);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.zonen-schalter::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.zonen-schalter.an {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.zonen-schalter.an::after {
+  transform: translateX(18px);
+  background: var(--bg-darker);
+}
+
+.zonen-vollbild {
+  min-height: var(--touch-target-min, 44px);
+  padding: 8px 18px;
+  border-radius: 999px;
+}
+
+/* ---------- Module: Übersicht und Detail ----------
+   Übersicht und Detail liegen übereinander. Der Wechsel wird animiert, weil
+   die Karte, die man antippt, und die Ansicht, die aufgeht, sonst nichts
+   miteinander zu tun zu haben scheinen. */
+
+.modul-browser {
+  position: relative;
+  min-height: 60vh;
+}
+
+.modul-uebersicht,
+.modul-detail {
+  transition: opacity 0.26s ease, transform 0.26s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.modul-uebersicht.weg {
+  opacity: 0;
+  transform: scale(0.97);
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.modul-detail {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+
+.modul-detail.da {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  position: relative;
+}
+
+.modul-karten {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.modul-karte {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 104px;
+  padding: 14px;
+  text-align: left;
+  background: var(--bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+
+.modul-karte:active { transform: scale(0.98); }
+
+.modul-karte:hover,
+.modul-karte:focus-visible { border-color: var(--accent-cyan); }
+
+.modul-karte.aus { opacity: 0.45; }
+
+.modul-karte-titel {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modul-karte-text {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.modul-karte-zustand {
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--bg-dark);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.modul-detail-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modul-zurueck {
+  min-height: var(--touch-target-min, 44px);
+  padding: 8px 16px 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-darker);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.modul-zurueck::before {
+  content: "←";
+  margin-right: 6px;
+}
+
+.modul-detail-titel {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.modul-detail-inhalt {
+  display: grid;
+  gap: 16px;
+}
+
+/* Nebeneinander erst, wenn wirklich Platz ist. Auf einem Telefon steht die
+   Vorschau oben und die Einstellungen darunter. */
+@media (min-width: 900px) {
+  .modul-detail-inhalt {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.modul-vorschau-buehne {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: #000;
+}
+
+#modul-vorschau {
+  width: 1920px;
+  height: 1080px;
+  border: 0;
+  transform-origin: top left;
+  pointer-events: none;
 }

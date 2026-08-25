@@ -140,8 +140,14 @@ test('jede zwischengespeicherte Datei existiert auch', () => {
     const asset = match[1];
     if (asset === '/') continue;
 
+    // /shared/... liegt ausserhalb von public: der Server haengt src/shared
+    // unter /shared ein, damit Spiegel und Oberflaeche dieselbe Datei lesen.
+    const datei = asset.startsWith('/shared/')
+      ? path.join(PUBLIC, '..', '..', asset.replace(/^\//, ''))
+      : path.join(PUBLIC, asset.replace(/^\//, ''));
+
     assert.ok(
-      fs.existsSync(path.join(PUBLIC, asset.replace(/^\//, ''))),
+      fs.existsSync(datei),
       `${asset} steht in SHELL_ASSETS, existiert aber nicht - der Zwischenspeicher bliebe lückenhaft`
     );
   }
@@ -178,4 +184,33 @@ test('die sicheren Bereiche werden tatsächlich benutzt', () => {
   assert.match(css, /env\(safe-area-inset-top\)/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
   assert.match(css, /100dvh/, 'ohne dvh liegt der untere Rand auf iOS ausserhalb');
+});
+
+/**
+ * Der Fehler, der sonst erst offline auffaellt: eine neue Skriptdatei wird
+ * eingebunden, aber nicht in SHELL_ASSETS aufgenommen. Online merkt das
+ * niemand - offline fehlt sie, und die Oberflaeche startet halb.
+ */
+test('jedes eingebundene Skript liegt auch im Offline-Vorrat', () => {
+  const fsMod = require('node:fs');
+  const pathMod = require('node:path');
+  const WEBUI = pathMod.join(__dirname, '..', 'src/webui/public');
+
+  const html = fsMod.readFileSync(pathMod.join(WEBUI, 'index.html'), 'utf8');
+  const sw = fsMod.readFileSync(pathMod.join(WEBUI, 'sw.js'), 'utf8');
+
+  const fehlend = [];
+  for (const treffer of html.matchAll(/<script src="([^"]+)"/g)) {
+    const quelle = treffer[1];
+    if (quelle.startsWith('http')) continue;
+
+    const pfad = quelle.startsWith('/') ? quelle : '/' + quelle;
+    if (!sw.includes(`'${pfad}'`)) fehlend.push(pfad);
+  }
+
+  assert.deepEqual(
+    fehlend, [],
+    'Diese Skripte werden geladen, fehlen aber in SHELL_ASSETS in sw.js:\n  '
+    + fehlend.join('\n  ')
+  );
 });

@@ -45,84 +45,35 @@
     <!-- Tab-basierte Inhalte -->
     <main class="app-content">
       <!-- Tab 1: Module & Layout (Main View) -->
-      <section id="tab-modules" class="tab-content active">
-        <div class="desktop-layout-container">
-          <!-- Sidebar: Modules & App Store (Desktop only or prominent on tablets) -->
-          <aside class="desktop-sidebar">
-            <div class="sidebar-header">
+        <section id="tab-modules" class="tab-content active">
+          <!-- Uebersicht und Detail liegen uebereinander; der Wechsel wird
+               animiert. Der Layout-Editor ist hier raus - er hat einen
+               eigenen Reiter. -->
+          <div class="modul-browser" id="modul-browser">
+
+            <div class="modul-uebersicht" id="modul-uebersicht">
               <h2 data-i18n="modules">Module</h2>
+              <div class="modul-karten" id="modul-karten"></div>
             </div>
 
-            <div class="sidebar-content">
-              <!-- Installed Modules List -->
-              <div id="sidebar-installed" class="sidebar-pane active">
-                <div id="module-list"></div>
+            <div class="modul-detail" id="modul-detail" hidden>
+              <div class="modul-detail-kopf">
+                <button class="modul-zurueck" id="modul-zurueck" data-i18n="back">Zurück</button>
+                <h2 class="modul-detail-titel" id="modul-detail-titel"></h2>
               </div>
-            </div>
-          </aside>
-
-          <!-- Main Content Area -->
-          <div class="config-main">
-            <!-- Layout Editor / Preview Header -->
-            <div class="view-header">
-              <h2 id="view-title" data-i18n="layoutEditor">Layout Editor</h2>
-              <div class="view-actions">
-                <!-- Toggle between Classic and Visual (moved from settings for better UX) -->
-                <div class="mode-switch-inline">
-                  <button class="mode-btn active" id="mode-btn-visual" data-i18n="layoutVisual">Visuell</button>
-                  <button class="mode-btn" id="mode-btn-classic" data-i18n="layoutClassic">Klassisch</button>
+              <div class="modul-detail-inhalt">
+                <div class="modul-detail-vorschau">
+                  <div class="modul-vorschau-buehne">
+                    <iframe id="modul-vorschau" title="Vorschau"
+                            sandbox="allow-scripts allow-same-origin"></iframe>
+                  </div>
                 </div>
-                <button class="btn-secondary" id="toggle-live-view" data-i18n="liveView">Live-Ansicht</button>
+                <div class="modul-detail-einstellungen" id="module-settings"></div>
               </div>
             </div>
 
-            <!-- Zeigt den Spiegel wirklich, nicht nur Kästchen: derselbe
-                 Renderer, über HTTP geladen. -->
-            <section class="live-view" id="live-view" hidden>
-              <div class="live-view-header">
-                <span class="live-view-title" data-i18n="liveView">Live-Ansicht</span>
-                <span class="live-view-hint" id="live-view-hint"></span>
-                <button class="btn-secondary" id="live-view-reload" data-i18n="reload">Neu laden</button>
-              </div>
-              <div class="live-view-frame">
-                <iframe id="live-view-iframe" title="Live-Ansicht des Spiegels"
-                        sandbox="allow-scripts allow-same-origin" loading="lazy"></iframe>
-              </div>
-            </section>
-
-            <!-- Visueller Layout Editor -->
-            <div class="preview-section" id="visual-editor-desktop">
-              <div id="visual-editor-container-desktop">
-                <!-- Visual Editor wird hier initialisiert -->
-              </div>
-            </div>
-
-            <!-- Klassisches Preview (Fallback/Alternativ) -->
-            <div class="preview-section" id="classic-preview-desktop" style="display: none;">
-              <div id="preview-container-desktop" class="preview-container">
-                <div class="preview-grid" id="preview-grid-desktop">
-                  <!-- Preview wird hier gerendert -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Module Settings (Contextual) -->
-            <div class="settings-section" id="settings-section">
-              <div class="settings-header">
-                <h2 data-i18n="moduleSettings">Modul-Einstellungen</h2>
-                <button class="close-settings-btn" id="close-settings-btn">&times;</button>
-              </div>
-              <div id="module-settings">
-                <p class="empty-state" data-i18n="selectModuleHint">Wähle ein Modul links, um es zu konfigurieren.</p>
-              </div>
-              <div class="settings-actions" id="settings-actions" style="display: none;">
-                <button class="btn-secondary" id="cancel-settings-btn" data-i18n="cancel">Abbrechen</button>
-                <button class="btn-primary" id="save-settings-btn" data-i18n="save">Speichern</button>
-              </div>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       <!-- Tab 2: Mobile Layout (Only visible on Mobile) -->
         <section id="tab-layout" class="tab-content">
@@ -293,6 +244,7 @@
   <script src="/shared/zones.js"></script>
   <script src="i18n.js"></script>
   <script src="zone-editor.js"></script>
+  <script src="module-browser.js"></script>
   <script src="visual-editor.js"></script>
   <script src="app.js"></script>
   <script src="control.js"></script>
