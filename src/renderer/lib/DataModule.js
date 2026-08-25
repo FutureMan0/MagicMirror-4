@@ -187,8 +187,25 @@
       return this.sprache === 'en' ? 'Temporarily unavailable' : 'Vorübergehend nicht verfügbar';
     }
 
+    /**
+     * Was dasteht, wenn es geantwortet hat, aber nichts zu zeigen gibt.
+     * Module ueberschreiben das - "Nichts laeuft" sagt mehr als "keine Daten".
+     */
+    emptyText() {
+      return this.text('empty') || 'Nichts zu zeigen.';
+    }
+
     renderPlaceholder() {
       this.root.textContent = '';
+
+      // Geantwortet, aber nichts zu zeigen - das ist etwas anderes als
+      // "noch nichts geladen". Spotify liefert genau das, wenn gerade keine
+      // Musik laeuft: ok, keine Daten, kein Fehler. Ohne diese Unterscheidung
+      // dreht sich die Ladeanzeige fuer immer.
+      if (this.envelope && this.envelope.ok && !this.data) {
+        this.root.appendChild(this.buildNotice('dm-empty', this.emptyText()));
+        return;
+      }
 
       const failed = this.envelope && !this.envelope.ok;
       if (failed) {

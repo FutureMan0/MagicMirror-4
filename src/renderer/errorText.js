@@ -79,6 +79,7 @@
    */
   const TEXTE = {
     renderFailed:  { de: 'Anzeige fehlgeschlagen.', en: 'Display failed.' },
+    empty:         { de: 'Nichts zu zeigen.', en: 'Nothing to show.' },
     unreachable:   { de: 'Nicht erreichbar — zeigt den Stand von ',
                      en: 'Unreachable — showing data from ' },
     asOf:          { de: 'Stand von ', en: 'As of ' },

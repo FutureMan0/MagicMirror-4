@@ -52,7 +52,11 @@
         "square",
         "vinyl"
       ],
-      "description": "Darstellung des Covers: quadratisch oder als Schallplatte"
+      "description": "Darstellung des Covers: quadratisch oder als Schallplatte",
+      "optionLabels": {
+        "square": "Quadratisch",
+        "vinyl": "Schallplatte"
+      }
     }
   },
   "apiVersion": 2,

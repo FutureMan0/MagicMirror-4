@@ -759,7 +759,18 @@ function showModuleSettings(moduleConfig, moduleInfo) {
       html += '<div class="form-group">';
       html += `<label>${schema.description || key}</label>`;
 
-      if (schema.type === 'boolean') {
+      if (Array.isArray(schema.options) && schema.options.length) {
+        // Eine Auswahl gehoert in ein Auswahlfeld. Vorher landete sie in
+        // einem Textfeld - man konnte den Wert nur abtippen und jeden
+        // beliebigen Unsinn eintragen.
+        const gewaehlt = moduleConfig.config?.[key] ?? schema.default;
+        html += `<select name="${key}">`;
+        for (const option of schema.options) {
+          const beschriftung = schema.optionLabels?.[option] || option;
+          html += `<option value="${option}" ${option === gewaehlt ? 'selected' : ''}>${beschriftung}</option>`;
+        }
+        html += '</select>';
+      } else if (schema.type === 'boolean') {
         html += `<div class="form-group-checkbox">`;
         html += `<input type="checkbox" name="${key}" ${(moduleConfig.config && moduleConfig.config[key]) !== false ? 'checked' : ''}>`;
         html += `<span>${schema.description || key}</span>`;

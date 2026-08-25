@@ -192,3 +192,32 @@ test('Altersangaben folgen der Sprache', () => {
   assert.match(en.container.textContent, /12 min ago/);
   en.destroy();
 });
+
+/**
+ * Der Fehler vom Gerät: Spotify zeigte nur die Ladeanzeige — für immer.
+ *
+ * Läuft gerade keine Musik, antwortet das Backend mit `ok: true`, ohne Daten
+ * und ohne Fehler. Das ist etwas anderes als „noch nichts geladen", wurde
+ * aber gleich behandelt: die Ladeanzeige drehte sich weiter, obwohl die
+ * Antwort längst da war.
+ */
+test('geantwortet, aber leer ist kein Ladezustand', () => {
+  const module = build({ ok: true, data: null, fetchedAt: Date.now() });
+
+  assert.equal(module.container.querySelector('.dm-skeleton'), null,
+    'die Ladeanzeige laeuft weiter, obwohl die Antwort da ist');
+  assert.ok(module.container.querySelector('.dm-empty'),
+    'es steht nicht da, dass es nichts zu zeigen gibt');
+
+  module.destroy();
+});
+
+test('ohne jede Antwort bleibt es beim Skelett', () => {
+  // Der Unterschied muss in beide Richtungen halten.
+  const module = build();
+
+  assert.ok(module.container.querySelector('.dm-skeleton'));
+  assert.equal(module.container.querySelector('.dm-empty'), null);
+
+  module.destroy();
+});

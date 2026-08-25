@@ -146,3 +146,10 @@
     color: var(--mm-color-danger);
   }
 }
+
+  /* Geantwortet, aber nichts zu zeigen. Ruhiger als ein Fehler: es ist
+     keiner. */
+  .dm-empty {
+    color: var(--mm-color-text-muted);
+    text-align: center;
+  }
