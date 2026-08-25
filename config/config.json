@@ -5,30 +5,23 @@
   "gridSettings": {
     "columns": 3,
     "rows": 3,
-    "gap": 12,
-    "padding": 12,
     "columnSizes": [
-      "minmax(320px, 1fr)",
+      "1fr",
       "1fr",
       "1fr"
     ],
     "rowSizes": [
       "auto",
       "1fr",
-      "1fr"
-    ]
+      "auto"
+    ],
+    "gap": 24,
+    "padding": 32
   },
   "modules": [
     {
       "module": "clock",
-      "position": {
-        "column": 1,
-        "row": 1,
-        "columnSpan": 1,
-        "rowSpan": 1,
-        "align": "start",
-        "justify": "start"
-      },
+      "position": "oben-links",
       "enabled": true,
       "config": {
         "timeFormat": "HH:mm:ss",
@@ -38,14 +31,7 @@
     },
     {
       "module": "weather",
-      "position": {
-        "column": 1,
-        "row": 2,
-        "columnSpan": 1,
-        "rowSpan": 2,
-        "align": "start",
-        "justify": "start"
-      },
+      "position": "oben-rechts",
       "enabled": true,
       "config": {
         "city": "St. Veit an der Glan,AT",
@@ -56,14 +42,7 @@
     },
     {
       "module": "untis",
-      "position": {
-        "column": 2,
-        "row": 1,
-        "columnSpan": 2,
-        "rowSpan": 3,
-        "align": "start",
-        "justify": "start"
-      },
+      "position": "mitte",
       "enabled": true,
       "config": {
         "viewMode": "week"
@@ -71,7 +50,7 @@
     },
     {
       "module": "spotify",
-      "position": "bottom_left",
+      "position": "links",
       "enabled": false,
       "config": {
         "showCover": true,
@@ -81,14 +60,7 @@
     },
     {
       "module": "github",
-      "position": {
-        "column": 3,
-        "row": 3,
-        "columnSpan": 1,
-        "rowSpan": 1,
-        "align": "start",
-        "justify": "start"
-      },
+      "position": "rechts",
       "enabled": false,
       "config": {
         "repos": "",
@@ -99,14 +71,7 @@
     },
     {
       "module": "gitea",
-      "position": {
-        "column": 3,
-        "row": 2,
-        "columnSpan": 1,
-        "rowSpan": 1,
-        "align": "start",
-        "justify": "start"
-      },
+      "position": "rechts",
       "enabled": false,
       "config": {
         "instanceUrl": "",
@@ -119,14 +84,7 @@
     },
     {
       "module": "unraid",
-      "position": {
-        "column": 2,
-        "row": 3,
-        "columnSpan": 1,
-        "rowSpan": 1,
-        "align": "start",
-        "justify": "start"
-      },
+      "position": "mitte",
       "enabled": false,
       "config": {
         "serverUrl": "",
@@ -141,15 +99,8 @@
     },
     {
       "module": "home-assistant",
-      "position": {
-        "column": 2,
-        "row": 2,
-        "columnSpan": 1,
-        "rowSpan": 1,
-        "align": "start",
-        "justify": "start"
-      },
-      "enabled": false,
+      "position": "unten",
+      "enabled": true,
       "config": {
         "baseUrl": "http://homeassistant.local:8123",
         "entities": "",

@@ -1931,6 +1931,7 @@ function initGridSettings() {
 
 let visualEditorDesktop = null;
 let visualEditorMobile = null;
+let zonenEditor = null;
 
 function initVisualEditor() {
   console.log('Initializing visual editor...');
@@ -1952,6 +1953,18 @@ function initVisualEditor() {
         await saveConfigAndRefresh();
       }
     );
+  }
+
+  // Zonen-Editor: der Layout-Reiter laeuft nicht mehr ueber die Leinwand.
+  const zonenBehaelter = document.getElementById('zonen-editor');
+  if (zonenBehaelter && !zonenEditor && window.ZonenEditor) {
+    zonenEditor = new window.ZonenEditor('#zonen-editor', currentConfig,
+      async (updatedConfig) => {
+        currentConfig = updatedConfig;
+        await saveConfigAndRefresh();
+      });
+  } else if (zonenEditor) {
+    zonenEditor.updateConfig(currentConfig);
   }
 
   // Mobile-Editor initialisieren

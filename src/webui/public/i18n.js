@@ -2,6 +2,9 @@
 
 const translations = {
   de: {
+    zoneFrei: 'Freie Position',
+    zoneTapZone: 'Jetzt eine Zone antippen.',
+    zoneTapModule: 'Ein Modul antippen, dann eine Zone.',
     offlineBanner: 'Keine Verbindung zum Spiegel — Änderungen sind vorübergehend gesperrt.',
     offlineShort: 'Keine Verbindung zum Spiegel',
     pickModuleHint: 'Links ein Modul antippen, um es einzustellen.',
@@ -94,6 +97,9 @@ const translations = {
     searchPlaceholder: 'Suchen...'
   },
   en: {
+    zoneFrei: 'Custom position',
+    zoneTapZone: 'Now tap a zone.',
+    zoneTapModule: 'Tap a module, then a zone.',
     offlineBanner: 'No connection to the mirror — changes are locked for now.',
     offlineShort: 'No connection to the mirror',
     pickModuleHint: 'Tap a module on the left to configure it.',

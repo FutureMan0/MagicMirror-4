@@ -61,7 +61,17 @@ function getLegacyGridPosition(positionName, gridSettings) {
 }
 
 // Generiert dynamisches CSS für das Grid basierend auf gridSettings
-function buildGridCSS(gridSettings) {
+function buildGridCSS(gridSettings, config) {
+  // Ein Layout aus Zonen braucht das grobe Zonen-Raster, nicht das feine
+  // 8x10 aus der Konfiguration - sonst landen die Zonen in Zelle 1 bis 3 von
+  // acht und der Rest bleibt leer.
+  const zonen = (typeof window !== 'undefined' && window.MMZonen) || null;
+  if (zonen && config && Array.isArray(config.modules)) {
+    const platzierte = config.modules.filter(m => m.enabled !== false && m.position);
+    const alleZonen = platzierte.length > 0 && platzierte.every(m => zonen.alsZone(m.position));
+    if (alleZonen) gridSettings = zonen.ZONEN_RASTER;
+  }
+
   if (!gridSettings) {
     gridSettings = {
       columns: 3,
@@ -302,7 +312,7 @@ async function renderModules() {
     rendered = new Map();
 
     // Grid-CSS dynamisch anwenden
-    buildGridCSS(config.gridSettings);
+    buildGridCSS(config.gridSettings, config);
 
     if (!moduleLoader) {
       moduleLoader = new window.RendererModuleLoader();

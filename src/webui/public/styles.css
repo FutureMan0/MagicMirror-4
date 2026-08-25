@@ -2070,3 +2070,129 @@ body {
   outline: 2px solid var(--accent-cyan);
   outline-offset: 2px;
 }
+
+/* ---------- Layout über Zonen ----------
+   Die Vorschau ist die Bedienung: eine Zone antippen setzt das markierte
+   Modul dorthin. Kein Ziehen, keine 35-Pixel-Zellen. */
+
+.zonen-vorschau {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  aspect-ratio: 16 / 9;
+  padding: 8px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.zonen-reihe {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.zonen-reihe:first-child { flex: 0 0 26%; }
+.zonen-reihe-breit      { flex: 0 0 18%; }
+
+.zonen-feld {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 4px;
+  background: var(--bg-dark);
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+}
+
+.zonen-feld:hover,
+.zonen-feld:focus-visible {
+  border-color: var(--accent-cyan);
+  border-style: solid;
+}
+
+.zonen-feld-name {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+}
+
+.zonen-chip {
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-cyan);
+  color: var(--bg-darker);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zonen-chip.markiert {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 1px;
+}
+
+.zonen-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zonen-listenzeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--touch-target-min, 44px);
+  padding: 10px 14px;
+  background: var(--bg-darker);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.zonen-listenzeile.markiert {
+  border-color: var(--accent-cyan);
+  background: var(--bg-dark);
+}
+
+.zonen-listenzone {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.zonen-fusszeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.zonen-hinweis {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.zonen-speichern:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
