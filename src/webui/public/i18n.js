@@ -2,6 +2,8 @@
 
 const translations = {
   de: {
+    positionHint: 'Feiner einstellen im Reiter Layout.',
+    positionCustom: 'Dieses Modul hat eine von Hand gesetzte Position. Sie bleibt erhalten; im Reiter Layout lässt sie sich auf eine Zone umstellen.',
     zoneHint: 'Modul in eine Zone ziehen — oder antippen, dann die Zone.',
     zoneFrei: 'Freie Position',
     zoneTapZone: 'Jetzt eine Zone antippen.',
@@ -98,6 +100,8 @@ const translations = {
     searchPlaceholder: 'Suchen...'
   },
   en: {
+    positionHint: 'Fine-tune it in the Layout tab.',
+    positionCustom: 'This module uses a custom position. It stays as it is; the Layout tab can switch it to a zone.',
     zoneHint: 'Drag a module into a zone — or tap it, then the zone.',
     zoneFrei: 'Custom position',
     zoneTapZone: 'Now tap a zone.',

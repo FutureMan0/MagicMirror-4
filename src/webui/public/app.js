@@ -28,6 +28,8 @@ function escapeHtml(value) {
 let currentConfig = null;
 let availableModules = [];
 let currentInstance = 'display1';
+// Auch am window: der Zonen-Editor liegt in einer eigenen Datei.
+window.currentInstance = currentInstance;
 let selectedModule = null;
 let moduleListSortable = null;
 let previewGridSortable = null;
@@ -79,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Event Listeners
   document.getElementById('instance-select').addEventListener('change', (e) => {
     currentInstance = e.target.value;
+    window.currentInstance = currentInstance;
     loadConfig();
   });
 
@@ -705,68 +708,40 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   settingsSection.style.display = 'block';
   document.getElementById('settings-actions').style.display = 'flex';
 
-  const displayName = moduleInfo?.info?.displayName || moduleConfig.module;
+  const displayName = modulName(moduleInfo?.info?.displayName, moduleConfig.module);
   let html = `<h3>${displayName}</h3>`;
   html += '<form class="settings-form" id="module-settings-form">';
 
-  // Position Type Selector
-  const posType = typeof moduleConfig.position === 'string' ? 'legacy' :
-    (moduleConfig.position?.column !== undefined ? 'grid' : 'absolute');
+  // Position: eine Zone, sonst nichts.
+  //
+  // Hier standen frueher drei Auswahlfelder - "Legacy (top_left, etc.)",
+  // "Grid (Spalten/Zeilen)", "Absolut (Pixel/Prozent)" - samt Spalten-Span
+  // und Z-Index. Das war Entwicklersprache in einem Einstellungsdialog, und
+  // schlimmer: ein Modul mit Zone galt dort als "Legacy", die Auswahl kannte
+  // seine Zone nicht, und Speichern haette sie mit middle_center ueberschrieben.
+  const zonen = window.MMZonen;
+  const aktuelleZone = zonen ? zonen.alsZone(moduleConfig.position) : null;
+  const eigenePosition = !aktuelleZone && moduleConfig.position;
 
-  html += '<div class="form-group">';
-  html += `<label data-i18n="positionType">${t('positionType') || 'Positions-Typ'}</label>`;
-  html += '<select name="positionType" id="position-type-select">';
-  html += `<option value="legacy" ${posType === 'legacy' ? 'selected' : ''}>Legacy (top_left, etc.)</option>`;
-  html += `<option value="grid" ${posType === 'grid' ? 'selected' : ''}>Grid (Spalten/Zeilen)</option>`;
-  html += `<option value="absolute" ${posType === 'absolute' ? 'selected' : ''}>Absolut (Pixel/Prozent)</option>`;
-  html += '</select>';
-  html += '</div>';
-
-  // Legacy Position
-  html += `<div id="position-legacy" class="position-config" style="display: ${posType === 'legacy' ? 'block' : 'none'}">`;
   html += '<div class="form-group">';
   html += `<label data-i18n="position">${t('position')}</label>`;
-  html += '<select name="position" id="module-position-legacy">';
-  const positions = ['top_left', 'top_center', 'top_right', 'middle_left', 'middle_center', 'middle_right', 'bottom_left', 'bottom_center', 'bottom_right'];
-  const currentLegacyPos = typeof moduleConfig.position === 'string' ? moduleConfig.position : 'middle_center';
-  positions.forEach(pos => {
-    const selected = currentLegacyPos === pos ? 'selected' : '';
-    html += `<option value="${pos}" ${selected}>${getPositionName(pos)}</option>`;
-  });
-  html += '</select>';
-  html += '</div>';
+
+  if (eigenePosition) {
+    // Wer Spalte/Zeile von Hand gesetzt hat, soll das nicht durch einen
+    // unbedachten Klick verlieren.
+    html += `<p class="form-hint">${t('positionCustom')}</p>`;
+    html += '<input type="hidden" name="positionZone" value="">';
+  } else {
+    html += '<select name="positionZone" id="module-position-zone">';
+    for (const z of (zonen ? zonen.ZONEN : [])) {
+      const gewaehlt = aktuelleZone === z.id ? 'selected' : '';
+      html += `<option value="${z.id}" ${gewaehlt}>${zonen.zonenLabel(z.id, getCurrentLanguage())}</option>`;
+    }
+    html += '</select>';
+    html += `<p class="form-hint">${t('positionHint')}</p>`;
+  }
   html += '</div>';
 
-  // Grid Position
-  const gridPos = typeof moduleConfig.position === 'object' && moduleConfig.position.column !== undefined ? moduleConfig.position : {
-    column: 2, row: 2, columnSpan: 1, rowSpan: 1, align: 'start', justify: 'start'
-  };
-  html += `<div id="position-grid" class="position-config" style="display: ${posType === 'grid' ? 'block' : 'none'}">`;
-  html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
-  html += '<label>Spalte: <input type="number" name="posColumn" value="' + gridPos.column + '" min="1" max="10"></label>';
-  html += '<label>Zeile: <input type="number" name="posRow" value="' + gridPos.row + '" min="1" max="10"></label>';
-  html += '<label>Spalten-Span: <input type="number" name="posColumnSpan" value="' + gridPos.columnSpan + '" min="1" max="10"></label>';
-  html += '<label>Zeilen-Span: <input type="number" name="posRowSpan" value="' + gridPos.rowSpan + '" min="1" max="10"></label>';
-  html += '</div>';
-  html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
-  html += '<label>Horizontal: <select name="posJustify"><option value="start" ' + (gridPos.justify === 'start' ? 'selected' : '') + '>Start</option><option value="center" ' + (gridPos.justify === 'center' ? 'selected' : '') + '>Center</option><option value="end" ' + (gridPos.justify === 'end' ? 'selected' : '') + '>End</option></select></label>';
-  html += '<label>Vertikal: <select name="posAlign"><option value="start" ' + (gridPos.align === 'start' ? 'selected' : '') + '>Start</option><option value="center" ' + (gridPos.align === 'center' ? 'selected' : '') + '>Center</option><option value="end" ' + (gridPos.align === 'end' ? 'selected' : '') + '>End</option></select></label>';
-  html += '</div>';
-  html += '</div>';
-
-  // Absolute Position
-  const absPos = typeof moduleConfig.position === 'object' && moduleConfig.position.x !== undefined ? moduleConfig.position : {
-    x: '10%', y: '10%', width: 'auto', height: 'auto', zIndex: 1
-  };
-  html += `<div id="position-absolute" class="position-config" style="display: ${posType === 'absolute' ? 'block' : 'none'}">`;
-  html += '<div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">';
-  html += '<label>X: <input type="text" name="posX" value="' + absPos.x + '" placeholder="10%, 50px"></label>';
-  html += '<label>Y: <input type="text" name="posY" value="' + absPos.y + '" placeholder="10%, 50px"></label>';
-  html += '<label>Breite: <input type="text" name="posWidth" value="' + absPos.width + '" placeholder="auto, 300px"></label>';
-  html += '<label>Höhe: <input type="text" name="posHeight" value="' + absPos.height + '" placeholder="auto, 200px"></label>';
-  html += '<label>Z-Index: <input type="number" name="posZIndex" value="' + absPos.zIndex + '" min="1" max="1000"></label>';
-  html += '</div>';
-  html += '</div>';
 
   // Modul-spezifische Einstellungen
   const secretFields = moduleInfo?.secretFields || [];
@@ -1182,27 +1157,12 @@ async function saveModuleSettings() {
 
   const moduleConfig = currentConfig.modules[selectedModule];
 
-  // Position basierend auf Typ setzen
-  const posType = formData.get('positionType');
-  if (posType === 'legacy') {
-    moduleConfig.position = formData.get('position');
-  } else if (posType === 'grid') {
-    moduleConfig.position = {
-      column: parseInt(formData.get('posColumn')) || 1,
-      row: parseInt(formData.get('posRow')) || 1,
-      columnSpan: parseInt(formData.get('posColumnSpan')) || 1,
-      rowSpan: parseInt(formData.get('posRowSpan')) || 1,
-      justify: formData.get('posJustify') || 'start',
-      align: formData.get('posAlign') || 'start'
-    };
-  } else if (posType === 'absolute') {
-    moduleConfig.position = {
-      x: formData.get('posX') || '0',
-      y: formData.get('posY') || '0',
-      width: formData.get('posWidth') || 'auto',
-      height: formData.get('posHeight') || 'auto',
-      zIndex: parseInt(formData.get('posZIndex')) || 1
-    };
+  // Position: nur noch eine Zone. Ein leeres Feld heisst "eigene Position",
+  // die dann unangetastet bleibt - sonst verliert man beim Speichern der
+  // Spracheinstellung sein von Hand gesetztes Raster.
+  const gewaehlteZone = formData.get('positionZone');
+  if (gewaehlteZone) {
+    moduleConfig.position = gewaehlteZone;
   }
 
   if (!moduleConfig.config) {
@@ -1322,7 +1282,7 @@ function renderPreview() {
       if (module) {
         const moduleIndex = currentConfig.modules.indexOf(module);
         const moduleInfo = availableModules.find(m => m.name === module.module);
-        cell.textContent = moduleInfo?.info?.displayName || module.module;
+        cell.textContent = modulName(moduleInfo?.info?.displayName, module.module);
         cell.style.border = '1px solid var(--accent-cyan)';
         cell.classList.add('has-module');
         cell.dataset.index = moduleIndex;
@@ -1405,7 +1365,7 @@ function renderAppStore() {
 
     card.innerHTML = `
       <div class="appstore-card-header">
-        <h3 class="appstore-card-title">${moduleInfo.displayName || module.name}</h3>
+        <h3 class="appstore-card-title">${modulName(moduleInfo.displayName, module.name)}</h3>
         ${isInstalled ? '<span class="appstore-card-badge">Installiert</span>' : ''}
       </div>
       
@@ -1529,7 +1489,7 @@ async function addModule(moduleName) {
       }
 
       // Zeige Success-Nachricht
-      const displayName = moduleInfo?.info?.displayName || moduleName;
+      const displayName = modulName(moduleInfo?.info?.displayName, moduleName);
       showNotification(`✓ ${displayName} wurde hinzugefügt!`, 'success');
     }
   } catch (error) {
@@ -1542,7 +1502,7 @@ async function removeModule(moduleName) {
   if (!currentConfig) return;
 
   const moduleInfo = availableModules.find(m => m.name === moduleName);
-  const displayName = moduleInfo?.info?.displayName || moduleName;
+  const displayName = modulName(moduleInfo?.info?.displayName, moduleName);
 
   if (!confirm(`Möchtest du ${displayName} wirklich entfernen?`)) {
     return;

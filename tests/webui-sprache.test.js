@@ -113,3 +113,40 @@ test('kein sichtbarer Text wird fest aus JavaScript geschrieben', () => {
     + 'eingestellten Sprache nicht. Über t(...) führen:\n' + offen.join('\n')
   );
 });
+
+/**
+ * Der Fehler, den das Gerät zeigte: im Einstellungsdialog stand
+ * „[object Object]" statt des Modulnamens.
+ *
+ * Ursache war die Zweisprachigkeit selbst — `displayName` darf seither
+ * { de, en } sein, und sechs Stellen setzten das Objekt weiter direkt in
+ * einen Text ein. JavaScript macht daraus wortwörtlich „[object Object]".
+ */
+test('kein Anzeigename wird ungefiltert in die Anzeige geschrieben', () => {
+  const quelle = fs.readFileSync(path.join(WEBUI, 'app.js'), 'utf8');
+  const offen = [];
+
+  quelle.split('\n').forEach((zeile, index) => {
+    if (/^\s*(\/\/|\*)/.test(zeile)) return;
+    if (/function modulName/.test(zeile)) return;
+
+    // Gemeint ist der Zugriff auf das Manifest (`.displayName`), nicht eine
+    // Variable, die modulName() vorher schon aufgeloest hat.
+    if (!/\.displayName\b/.test(zeile)) return;
+    if (/modulName\(/.test(zeile)) return;
+
+    const rendert = /(?:textContent|innerHTML)\s*=/.test(zeile)
+      || /\$\{[^}]*\.displayName/.test(zeile)
+      || /\.displayName\s*\|\|/.test(zeile);
+
+    if (rendert) {
+      offen.push(`  app.js:${index + 1}  ${zeile.trim().slice(0, 70)}`);
+    }
+  });
+
+  assert.deepEqual(
+    offen, [],
+    'Hier landet displayName ungefiltert in der Anzeige. Ist es { de, en },\n'
+    + 'steht dort „[object Object]". Über modulName(...) führen:\n' + offen.join('\n')
+  );
+});

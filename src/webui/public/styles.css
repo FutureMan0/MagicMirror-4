@@ -2221,3 +2221,75 @@ body {
   background: var(--bg-dark);
   box-shadow: inset 0 0 0 1px var(--accent-cyan);
 }
+
+/* ---------- Live-Vorschau im Layout ----------
+   Der echte Spiegel als Hintergrund, die Zonen darüber. So zieht man auf ein
+   Bild statt auf Namensschilder. */
+
+.zonen-kopf {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.zonen-liveschalter {
+  padding: 6px 14px;
+  min-height: var(--touch-target-min, 44px);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-dark);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.zonen-liveschalter.an {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: var(--bg-darker);
+}
+
+.zonen-vorschau { position: relative; }
+
+.zonen-live {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  /* Der Spiegel darf keine Fingertipps abfangen - die gehören den Zonen. */
+  pointer-events: none;
+}
+
+.zonen-live-bild {
+  /* 1920x1080 auf die Breite des Rahmens verkleinert. */
+  width: 1920px;
+  height: 1080px;
+  border: 0;
+  transform-origin: top left;
+  transform: scale(calc(100cqw / 1920));
+}
+
+.zonen-vorschau { container-type: inline-size; }
+
+/* Über dem Bild müssen die Zonen zurücktreten, sonst sieht man den Spiegel
+   nicht mehr. */
+.zonen-vorschau-live .zonen-feld {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+}
+
+.zonen-vorschau-live .zonen-feld-name {
+  opacity: 0.35;
+}
+
+.zonen-vorschau-live .zonen-feld.zonen-ziel {
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
+}
+
+.form-hint {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}

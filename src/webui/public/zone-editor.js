@@ -29,6 +29,10 @@
       this.beimSpeichern = beimSpeichern;
       this.entwurf = null;
       this.markiert = null;
+      // Der echte Spiegel als Hintergrund. Bewusst abschaltbar: die Vorschau
+      // ist ein zweiter Renderer samt aller Netzabfragen, und auf einem Pi
+      // ist das nicht gratis.
+      this.live = localStorage.getItem('zonenLive') === '1';
 
       if (this.wurzel) this.zeichne();
     }
@@ -65,9 +69,31 @@
       if (!this.wurzel || !zonen) return;
 
       this.wurzel.textContent = '';
+      this.wurzel.appendChild(this.baueKopf());
       this.wurzel.appendChild(this.baueVorschau());
       this.wurzel.appendChild(this.baueListe());
       this.wurzel.appendChild(this.baueFusszeile());
+    }
+
+    /** Umschalter zwischen Zonen-Skizze und echtem Spiegelbild. */
+    baueKopf() {
+      const kopf = document.createElement('div');
+      kopf.className = 'zonen-kopf';
+
+      const schalter = document.createElement('button');
+      schalter.type = 'button';
+      schalter.className = 'zonen-liveschalter';
+      schalter.classList.toggle('an', this.live);
+      schalter.textContent = this.text('livePreview', 'Live-Vorschau');
+      schalter.setAttribute('aria-pressed', String(this.live));
+      schalter.addEventListener('click', () => {
+        this.live = !this.live;
+        localStorage.setItem('zonenLive', this.live ? '1' : '0');
+        this.zeichne();
+      });
+
+      kopf.appendChild(schalter);
+      return kopf;
     }
 
     /** Der Spiegel im Kleinen. Zonen sind antippbar. */
@@ -75,6 +101,24 @@
       const zonen = window.MMZonen;
       const rahmen = document.createElement('div');
       rahmen.className = 'zonen-vorschau';
+      if (this.live) rahmen.classList.add('zonen-vorschau-live');
+
+      if (this.live) {
+        // preview=1 schaltet das Praesenz-Dimmen ab - sonst sieht man ein
+        // fast schwarzes Bild und haelt die Vorschau fuer kaputt.
+        const instanz = window.currentInstance || 'display1';
+        const rahmenLive = document.createElement('div');
+        rahmenLive.className = 'zonen-live';
+
+        const spiegel = document.createElement('iframe');
+        spiegel.className = 'zonen-live-bild';
+        spiegel.title = this.text('livePreview', 'Live-Vorschau');
+        spiegel.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+        spiegel.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
+
+        rahmenLive.appendChild(spiegel);
+        rahmen.appendChild(rahmenLive);
+      }
 
       for (const reihe of ZONEN_LAYOUT) {
         const zeile = document.createElement('div');
