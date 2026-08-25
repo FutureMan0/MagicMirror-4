@@ -49,7 +49,6 @@ const webuiSharedGlobals = {
   getPositionName: 'readonly',
   getCurrentLanguage: 'readonly',
   ZonenEditor: 'readonly',
-  availableModules: 'readonly',
   translations: 'readonly'
 };
 

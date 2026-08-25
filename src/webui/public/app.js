@@ -512,6 +512,9 @@ async function loadModules() {
   try {
     const response = await fetch('/api/modules');
     availableModules = await response.json();
+    // Auch am window: der Zonen-Editor liegt in einer eigenen Datei und
+    // soll den Namen nicht ein zweites Mal deklarieren.
+    window.availableModules = availableModules;
     console.log('Module geladen:', availableModules); // Debug
   } catch (error) {
     console.error('Fehler beim Laden der Module:', error);

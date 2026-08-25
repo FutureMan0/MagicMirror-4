@@ -116,7 +116,7 @@
      * daneben aber "Clock & Date". Zwei Namen fuer dieselbe Sache.
      */
     modulName(modul) {
-      const liste = (typeof availableModules !== 'undefined' && availableModules) || [];
+      const liste = window.availableModules || [];
       const anzeige = liste.find(m => m.name === modul.module)?.info?.displayName;
 
       if (!anzeige) return modul.module;
