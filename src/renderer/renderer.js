@@ -125,8 +125,15 @@ function parsePosition(position, gridSettings) {
         type: 'grid',
         gridColumn: calculateGridArea(position.column, position.columnSpan),
         gridRow: calculateGridArea(position.row, position.rowSpan),
-        justifySelf: position.justify || 'start',
-        alignSelf: position.align || 'start'
+        // Der Container fuellt seine Rasterflaeche immer aus. Frueher stand
+        // hier justifySelf/alignSelf 'start' - dann schrumpfte das Modul auf
+        // seinen Inhalt, und der Layout-Editor zeigte einen Block, den es am
+        // Spiegel nie gab. Was man anordnet, soll man auch sehen.
+        justifySelf: 'stretch',
+        alignSelf: 'stretch',
+        // Wo der Inhalt INNERHALB der Flaeche sitzt.
+        contentJustify: position.justify || 'start',
+        contentAlign: position.align || 'start'
       };
     }
 
@@ -203,12 +210,21 @@ function createModuleContainer(moduleConfig) {
 function placeModuleContainer(element, moduleConfig) {
   const parsed = parsePosition(moduleConfig.position, config.gridSettings);
 
+  /** 'start'/'center'/'end' auf die Flexbox-Schreibweise bringen. */
+  function flexWert(wert) {
+    if (wert === 'center') return 'center';
+    if (wert === 'end') return 'flex-end';
+    return 'flex-start';
+  }
+
   // Alte Platzierung zurücksetzen, sonst bleiben Reste stehen, wenn ein Modul
   // von absolut auf Raster wechselt.
   element.style.gridColumn = '';
   element.style.gridRow = '';
   element.style.justifySelf = '';
   element.style.alignSelf = '';
+  element.style.justifyContent = '';
+  element.style.alignItems = '';
   element.style.position = '';
   element.style.left = '';
   element.style.top = '';
@@ -221,6 +237,11 @@ function placeModuleContainer(element, moduleConfig) {
     element.style.gridRow = parsed.gridRow;
     element.style.justifySelf = parsed.justifySelf;
     element.style.alignSelf = parsed.alignSelf;
+    if (parsed.contentAlign || parsed.contentJustify) {
+      // Spalte: senkrecht = justify-content, waagerecht = align-items.
+      element.style.justifyContent = flexWert(parsed.contentAlign);
+      element.style.alignItems = flexWert(parsed.contentJustify);
+    }
     gridEl.appendChild(element);
     return;
   }

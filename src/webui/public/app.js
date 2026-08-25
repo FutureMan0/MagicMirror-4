@@ -340,7 +340,7 @@ function setupLiveView() {
       // zweiter Spiegel samt aller Netzabfragen mit.
       if (frame.getAttribute('src') !== url()) frame.setAttribute('src', url());
       rescale();
-      if (hint) hint.textContent = 'zeigt den Spiegel, wie er gerade aussieht';
+      if (hint) hint.textContent = t('livePreviewHint');
     } else {
       frame.removeAttribute('src');
     }
@@ -428,7 +428,7 @@ async function setupMirrorThemePicker() {
     availableThemes = await response.json();
   } catch (error) {
     console.error('Themes konnten nicht geladen werden:', error);
-    picker.textContent = 'Themes konnten nicht geladen werden.';
+    picker.textContent = t('themesFailed');
     return;
   }
 
@@ -844,7 +844,7 @@ async function initUntisClassPicker(moduleConfig) {
 
   const classIdInput = document.querySelector('input[name="classId"]');
   const classNameInput = document.querySelector('input[name="className"]');
-  select.innerHTML = '<option value="">Klassen laden...</option>';
+  select.innerHTML = `<option value="">${t('classesLoading')}</option>`;
 
   loadBtn.addEventListener('click', async () => {
     try {
@@ -860,11 +860,11 @@ async function initUntisClassPicker(moduleConfig) {
 
       const classes = data.result || [];
       if (classes.length === 0) {
-        select.innerHTML = '<option value="">Keine Klassen gefunden</option>';
+        select.innerHTML = `<option value="">${t('classesNone')}</option>`;
         return;
       }
 
-      select.innerHTML = '<option value="">Klasse wählen…</option>' + classes.map(c => {
+      select.innerHTML = `<option value="">${t('classPick')}</option>` + classes.map(c => {
         const label = c.longName || c.name || `Klasse ${c.id}`;
         // Name und Id stammen aus der WebUntis-Antwort.
         return `<option value="${escapeHtml(c.id)}">${escapeHtml(label)}</option>`;
@@ -874,7 +874,7 @@ async function initUntisClassPicker(moduleConfig) {
       alert('Klassen konnten nicht geladen werden.');
     } finally {
       loadBtn.disabled = false;
-      loadBtn.textContent = 'Klassen laden';
+      loadBtn.textContent = t('classesLoad');
     }
   });
 
@@ -918,7 +918,7 @@ async function initSpotifySetup() {
     const response = await fetch(`/api/spotify/auth-status?instance=${currentInstance}`);
     status = await response.json();
   } catch (error) {
-    body.textContent = 'Status konnte nicht geladen werden.';
+    body.textContent = t('statusFailed');
     return;
   }
 
@@ -944,7 +944,7 @@ function buildSpotifyConnected() {
   const disconnect = document.createElement('button');
   disconnect.type = 'button';
   disconnect.className = 'btn-secondary';
-  disconnect.textContent = 'Verbindung trennen';
+  disconnect.textContent = t('disconnect');
   disconnect.addEventListener('click', async () => {
     await fetch('/api/spotify/disconnect', { method: 'POST' });
     initSpotifySetup();
@@ -961,7 +961,7 @@ function buildSpotifySteps(status) {
   const hint = document.createElement('p');
   hint.className = 'spotify-hint';
   // Ohne diesen Hinweis läuft man in ein 403, dessen Ursache nirgends steht.
-  hint.textContent = 'Spotify verlangt für eigene Apps ein Premium-Konto.';
+  hint.textContent = t('spotifyPremium') + '.';
   wrapper.appendChild(hint);
 
   wrapper.appendChild(buildSpotifyStep(1,
@@ -973,7 +973,7 @@ function buildSpotifySteps(status) {
       link.target = '_blank';
       link.rel = 'noopener';
       link.className = 'btn-secondary spotify-link';
-      link.textContent = 'Dashboard öffnen';
+      link.textContent = t('openDashboard');
       content.appendChild(link);
     }
   ));
@@ -1024,7 +1024,7 @@ function buildSpotifySteps(status) {
       const connect = document.createElement('button');
       connect.type = 'button';
       connect.className = 'btn-primary';
-      connect.textContent = 'Mit Spotify verbinden';
+      connect.textContent = t('connectSpotify');
       connect.disabled = !status.hasClientId;
       connect.addEventListener('click', startSpotifyAuth);
       content.appendChild(connect);
@@ -1046,7 +1046,7 @@ function buildSpotifySteps(status) {
       const paste = document.createElement('button');
       paste.type = 'button';
       paste.className = 'btn-secondary';
-      paste.textContent = 'Code einlösen';
+      paste.textContent = t('redeemCode');
       paste.addEventListener('click', async () => {
         const state = sessionStorage.getItem('spotifyState');
         if (!state) {
@@ -1122,7 +1122,7 @@ function buildCopyField(value) {
       setTimeout(() => { button.textContent = 'Kopieren'; }, 2000);
     } catch {
       // Ohne Zwischenablage bleibt Markieren - das Feld ist dafür ausgelegt.
-      button.textContent = 'Bitte markieren';
+      button.textContent = t('pleaseSelect');
     }
   });
   row.appendChild(button);
@@ -1152,7 +1152,7 @@ async function startSpotifyAuth() {
 
 function hideSettings() {
   document.getElementById('settings-actions').style.display = 'none';
-  document.getElementById('module-settings').innerHTML = '<p style="color: var(--text-secondary);">Klicke auf ein Modul links, um es zu konfigurieren.</p>';
+  document.getElementById('module-settings').innerHTML = `<p style="color: var(--text-secondary);">${t('pickModuleHint')}</p>`;
   selectedModule = null;
   renderModuleList();
 }
@@ -1358,7 +1358,7 @@ function renderAppStore() {
   appstoreGrid.innerHTML = '';
 
   if (!currentConfig || !availableModules) {
-    appstoreGrid.innerHTML = '<p>Lade Module...</p>';
+    appstoreGrid.innerHTML = `<p>${t('modulesLoading')}</p>`;
     return;
   }
 

@@ -23,7 +23,7 @@
       state = await response.json();
       render();
     } catch (error) {
-      body.textContent = 'Der Zustand ließ sich nicht laden.';
+      body.textContent = t('privacyStateFailed');
     }
   }
 
@@ -104,7 +104,7 @@
 
     const sensor = state.sensor;
     if (!sensor) {
-      box.textContent = 'Kein Sensor eingerichtet.';
+      box.textContent = t('noSensor');
       return box;
     }
 

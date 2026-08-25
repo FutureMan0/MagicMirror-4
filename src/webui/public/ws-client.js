@@ -66,7 +66,7 @@
     for (const selector of selectors) {
       for (const element of document.querySelectorAll(selector)) {
         element.disabled = locked;
-        element.title = locked ? 'Keine Verbindung zum Spiegel' : '';
+        element.title = locked && typeof t === 'function' ? t('offlineShort') : '';
       }
     }
   }

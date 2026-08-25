@@ -434,8 +434,14 @@ body {
   min-height: var(--touch-target-min);
 }
 
+/* Vektorsymbole statt Emoji: Emoji rendern auf Android und iOS
+   unterschiedlich, nehmen die Textfarbe nicht an und wirken wie Spielzeug.
+   currentColor sorgt dafuer, dass der aktive Reiter das Symbol mitfaerbt. */
 .bottom-nav button .icon {
-  font-size: 1.5rem;
+  width: 24px;
+  height: 24px;
+  display: block;
+  margin: 0 auto 2px;
 }
 
 .bottom-nav button.active {
@@ -517,6 +523,63 @@ body {
   min-height: var(--touch-target-min);
 }
 
+/* Bauteile, die auf jeder Bildschirmgroesse vorkommen.
+   Sie standen frueher in @media (min-width: 768px) und blieben am
+   Handy deshalb voellig ungestaltet - der Umschalter Visuell/Klassisch
+   war dort ein Paar roher weisser Browser-Knoepfe. */
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.view-header h2 {
+  margin-bottom: 0;
+}
+
+.mode-switch-inline {
+  display: flex;
+  background: var(--bg-dark);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.mode-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: var(--accent-cyan);
+  color: var(--bg-darker);
+}
+
+.btn-add-module-link {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-module-link:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
 @media (min-width: 768px) {
 
   /* Desktop Layout: Permanent Sidebar */
@@ -592,58 +655,12 @@ body {
   }
 
   /* View Header & Actions */
-  .view-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-  }
 
-  .view-header h2 {
-    margin-bottom: 0;
-  }
 
-  .mode-switch-inline {
-    display: flex;
-    background: var(--bg-dark);
-    padding: 4px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-  }
 
-  .mode-btn {
-    padding: 8px 16px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
 
-  .mode-btn.active {
-    background: var(--accent-cyan);
-    color: var(--bg-darker);
-  }
 
-  .btn-add-module-link {
-    width: 100%;
-    margin-top: 15px;
-    padding: 12px;
-    background: transparent;
-    border: 1px dashed var(--border-color);
-    color: var(--text-secondary);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
 
-  .btn-add-module-link:hover {
-    border-color: var(--accent-cyan);
-    color: var(--accent-cyan);
-  }
 
   /* Settings Section Overlay Style */
   .settings-section {

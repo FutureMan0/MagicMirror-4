@@ -58,15 +58,15 @@ class VisualGridEditor {
     toolbar.className = 'editor-toolbar';
     toolbar.innerHTML = `
       <div class="editor-toolbar-left">
-        <span class="editor-grid-info">Grid: ${this.getGridSettings().columns}x${this.getGridSettings().rows}</span>
+        <span class="editor-grid-info">${t('editorGrid')} ${this.getGridSettings().columns}×${this.getGridSettings().rows}</span>
         <button class="editor-toggle-btn active" id="editor-toggle-mode">
         <span class="mode-icon">🔓</span>
-        <span class="mode-text">Edit Mode: ON</span>
+        <span class="mode-text">${t('editorEditOn')}</span>
       </button>
     </div>
     <div class="editor-toolbar-right">
-        <button class="btn-secondary" id="editor-reset-layout">Reset</button>
-        <button class="btn-primary" id="editor-save-layout">Speichern</button>
+        <button class="btn-secondary" id="editor-reset-layout">${t('editorReset')}</button>
+        <button class="btn-primary" id="editor-save-layout">${t('save')}</button>
       </div>
     `;
 
@@ -208,7 +208,7 @@ class VisualGridEditor {
     // Grid-Info aktualisieren
     const gridInfo = this.toolbar?.querySelector('.editor-grid-info');
     if (gridInfo) {
-      gridInfo.textContent = `Grid: ${gridSettings.columns}x${gridSettings.rows}`;
+      gridInfo.textContent = `${t('editorGrid')} ${gridSettings.columns}×${gridSettings.rows}`;
     }
   }
 
@@ -1126,11 +1126,11 @@ class VisualGridEditor {
     const modeIcon = toggleBtn?.querySelector('.mode-icon');
 
     if (this.state.editMode) {
-      if (modeText) modeText.textContent = 'Edit Mode: ON';
+      if (modeText) modeText.textContent = t('editorEditOn');
       if (modeIcon) modeIcon.textContent = '🔓';
       toggleBtn?.classList.add('active');
     } else {
-      if (modeText) modeText.textContent = 'Edit Mode: OFF';
+      if (modeText) modeText.textContent = t('editorEditOff');
       if (modeIcon) modeIcon.textContent = '🔒';
       toggleBtn?.classList.remove('active');
       this.deselectModule();

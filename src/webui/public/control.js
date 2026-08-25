@@ -40,7 +40,7 @@
       render(envelope);
     } catch (error) {
       available = false;
-      body.textContent = 'Home Assistant ist nicht eingerichtet.';
+      body.textContent = t('haNotConfigured');
     }
 
     updateNavVisibility();
@@ -68,14 +68,13 @@
       notice.className = 'control-notice';
       // Wichtig, dass das hier steht: sonst tippt man auf Kacheln, die sich
       // nicht rühren, und sucht den Fehler woanders.
-      notice.textContent = 'Schalten ist ausgeschaltet. In den Einstellungen des '
-        + 'Home-Assistant-Moduls unter „Schalten erlauben" aktivieren.';
+      notice.textContent = t('haControlOff');
       body.appendChild(notice);
     }
 
     if (entities.length === 0) {
       const empty = document.createElement('p');
-      empty.textContent = 'Keine Entitäten eingetragen.';
+      empty.textContent = t('haNoEntities');
       body.appendChild(empty);
       return;
     }

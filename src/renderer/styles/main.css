@@ -66,6 +66,11 @@
    */
   .module-container {
     pointer-events: auto;
+    /* Der Container fuellt seine Rasterflaeche; wo der Inhalt darin sitzt,
+       setzt der Renderer ueber justify-content/align-items. Ohne Flexbox
+       haetten diese Angaben keine Wirkung. */
+    display: flex;
+    flex-direction: column;
     padding: var(--mm-surface-padding);
     border-radius: var(--mm-surface-radius);
     background: var(--mm-surface-bg);
@@ -205,9 +210,6 @@
   .module-container:has(.dm-skeleton),
   .module-container:has(.untis-error),
   .module-container:has(.untis-empty) {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     min-height: var(--mm-empty-min-height);
   }
 
