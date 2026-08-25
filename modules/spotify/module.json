@@ -44,6 +44,15 @@
       "type": "string",
       "default": "",
       "description": "Nur bei eigenem Fork nötig — sonst leer lassen."
+    },
+    "coverStyle": {
+      "type": "string",
+      "default": "square",
+      "options": [
+        "square",
+        "vinyl"
+      ],
+      "description": "Darstellung des Covers: quadratisch oder als Schallplatte"
     }
   },
   "apiVersion": 2,

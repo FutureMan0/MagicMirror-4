@@ -55,3 +55,57 @@
 .spotify-state {
   color: var(--mm-color-text-muted);
 }
+
+/* ---------- Schallplatte ----------
+   Das Cover als Etikett in der Mitte, Rillen aus einem Verlauf. Kein Bild,
+   keine zusätzliche Datei — und damit auch nichts, was ein Theme nicht
+   umfärben könnte. */
+
+.spotify-platte {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at center,
+      var(--mm-color-surface) 0,
+      var(--mm-color-surface) 1px,
+      var(--mm-color-surface-2) 1px,
+      var(--mm-color-surface-2) 3px
+    );
+  box-shadow: var(--mm-shadow-md);
+  display: grid;
+  place-items: center;
+  animation: spotify-platte-dreht 3.6s linear infinite;
+  /* Steht still, bis wirklich etwas spielt - und der Perf-Schalter kann sie
+     ganz anhalten. */
+  animation-play-state: paused;
+}
+
+.spotify-platte.laeuft {
+  animation-play-state: var(--mm-anim-ambient, running);
+}
+
+.spotify-platte-etikett {
+  width: 46%;
+  height: 46%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--mm-color-border);
+}
+
+/* Das Loch in der Mitte. */
+.spotify-platte::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mm-color-bg);
+}
+
+@keyframes spotify-platte-dreht {
+  to { transform: rotate(360deg); }
+}

@@ -9,13 +9,14 @@ var SpotifyBase = (typeof window !== 'undefined' && window.DataModule)
 
 class SpotifyModule extends SpotifyBase {
   static moduleName = 'spotify';
-  static patchable = ['showCover', 'showProgress', 'showSpotifyCode'];
+  static patchable = ['showCover', 'showProgress', 'showSpotifyCode', 'coverStyle'];
 
   constructor(config = {}) {
     super(config);
 
     this.config = {
       showCover: config.showCover !== false,
+      coverStyle: config.coverStyle || 'square',
       showProgress: config.showProgress !== false,
       showSpotifyCode: config.showSpotifyCode !== false,
       updateInterval: config.updateInterval || 5000,
@@ -73,6 +74,13 @@ class SpotifyModule extends SpotifyBase {
     if (this.elements.state) {
       this.elements.state.textContent = data.isPlaying ? '▶' : '❚❚';
     }
+
+      // Die Platte dreht sich nur, solange wirklich etwas laeuft. Eine
+      // Platte, die bei pausierter Musik weiterdreht, ist schlimmer als
+      // gar keine Animation.
+      if (this.elements.platte) {
+        this.elements.platte.classList.toggle('laeuft', Boolean(data.isPlaying));
+      }
   }
 
   buildTrack(root, data) {

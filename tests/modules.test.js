@@ -62,3 +62,28 @@ test('config.json verweist nur auf vorhandene Module', () => {
     .filter(moduleName => !moduleNames.includes(moduleName));
   assert.deepEqual(missing, [], `config.json nennt Module ohne Ordner: ${missing.join(', ')}`);
 });
+
+// Die Schallplatte darf sich nicht drehen, wenn nichts spielt - eine Platte,
+// die bei pausierter Musik weiterlaeuft, ist schlimmer als keine Animation.
+test('spotify: die Platte dreht sich nur bei laufender Wiedergabe', () => {
+  const quelle = fs.readFileSync(path.join(MODULES_DIR, 'spotify/index.js'), 'utf8');
+  const css = fs.readFileSync(path.join(MODULES_DIR, 'spotify/styles.css'), 'utf8');
+
+  assert.match(quelle, /classList\.toggle\('laeuft', Boolean\(data\.isPlaying\)\)/,
+    'der Zustand der Wiedergabe steuert die Drehung nicht');
+
+  const block = css.slice(css.indexOf('.spotify-platte {'), css.indexOf('.spotify-platte.laeuft'));
+  assert.match(block, /animation-play-state:\s*paused/,
+    'die Platte dreht sich von Anfang an, statt zu warten');
+});
+
+test('spotify: die Schallplatte ist eine Einstellung, kein Zwang', () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(MODULES_DIR, 'spotify/module.json'), 'utf8')
+  );
+
+  const stil = manifest.config.coverStyle;
+  assert.ok(stil, 'coverStyle fehlt im Manifest');
+  assert.equal(stil.default, 'square', 'die Platte darf nicht die Vorgabe sein');
+  assert.deepEqual(stil.options, ['square', 'vinyl']);
+});
