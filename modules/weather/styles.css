@@ -413,3 +413,15 @@
     grid-template-columns: minmax(5rem, 8rem) 2.5rem 1fr minmax(0, 6rem);
   }
 }
+
+
+/* Temperaturen an den Anfang ihrer Spalte, nicht an deren Ende - sonst
+   klafft zwischen Wettersymbol und Wert eine Luecke, sobald das Modul breit
+   ist. */
+.forecast-temps {
+  justify-self: start;
+}
+
+.forecast-icon {
+  justify-self: center;
+}
