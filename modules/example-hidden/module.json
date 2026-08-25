@@ -1,6 +1,9 @@
 {
   "name": "example-hidden",
-  "displayName": "Example (Hidden)",
+  "displayName": {
+    "de": "Beispiel (versteckt)",
+    "en": "Example (hidden)"
+  },
   "version": "1.0.0",
   "description": "Vorlage für eigene Module. Im Store ausgeblendet.",
   "hidden": true,

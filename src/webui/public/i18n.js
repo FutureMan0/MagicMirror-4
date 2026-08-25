@@ -214,6 +214,11 @@ const positionNames = {
 // Aktuelle Sprache (wird aus LocalStorage geladen)
 let currentLanguage = localStorage.getItem('language') || 'de';
 
+/** Die eingestellte Sprache - fuer alles, was nicht ueber t() laeuft. */
+function getCurrentLanguage() {
+  return currentLanguage;
+}
+
 // Übersetzungsfunktion
 function t(key) {
   return translations[currentLanguage]?.[key] || translations.de[key] || key;

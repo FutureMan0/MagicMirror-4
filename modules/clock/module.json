@@ -1,6 +1,9 @@
 {
   "name": "clock",
-  "displayName": "Uhr & Datum",
+  "displayName": {
+    "de": "Uhr & Datum",
+    "en": "Clock & Date"
+  },
   "version": "1.0.0",
   "description": "Zeigt aktuelle Uhrzeit und Datum",
   "author": "Magic Mirror",

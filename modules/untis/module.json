@@ -1,6 +1,9 @@
 {
   "name": "untis",
-  "displayName": "WebUntis Stundenplan",
+  "displayName": {
+    "de": "WebUntis Stundenplan",
+    "en": "WebUntis timetable"
+  },
   "version": "1.0.0",
   "description": "Zeigt Stundenplan von WebUntis",
   "author": "Magic Mirror",

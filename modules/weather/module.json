@@ -1,6 +1,9 @@
 {
   "name": "weather",
-  "displayName": "Wetter",
+  "displayName": {
+    "de": "Wetter",
+    "en": "Weather"
+  },
   "version": "1.0.0",
   "description": "Wetter-Anzeige mit OpenWeatherMap",
   "author": "Magic Mirror",

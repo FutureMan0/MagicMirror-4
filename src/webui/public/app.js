@@ -1,3 +1,17 @@
+/**
+ * Der Anzeigename eines Moduls in der eingestellten Sprache.
+ *
+ * `displayName` im Manifest darf ein einfacher Text sein oder { de, en }.
+ * Vorher stand in einer englischen Oberflaeche „Uhr & Datum".
+ */
+function modulName(displayName, fallback) {
+  if (!displayName) return fallback;
+  if (typeof displayName === 'string') return displayName;
+
+  const sprache = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'de';
+  return displayName[sprache] || displayName.de || displayName.en || fallback;
+}
+
 // Muss zu SECRET_PLACEHOLDER in src/main/configManager.js passen.
 const SECRET_PLACEHOLDER = '__SET__';
 
@@ -602,7 +616,7 @@ function renderModuleList() {
 
   configModules.forEach((moduleConfig, index) => {
     const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
-    const displayName = moduleInfo?.info?.displayName || moduleConfig.module;
+    const displayName = modulName(moduleInfo?.info?.displayName, moduleConfig.module);
 
     const item = document.createElement('div');
     item.className = `module-item ${selectedModule === index ? 'active' : ''}`;

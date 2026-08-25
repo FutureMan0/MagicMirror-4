@@ -80,6 +80,9 @@ function normalizeManifest(raw, moduleName, { warn = () => {} } = {}) {
   return {
     apiVersion: manifest.apiVersion === 2 ? 2 : 1,
     name: manifest.name || moduleName,
+    // displayName darf ein String oder { de, en } sein. Die Auswahl trifft
+    // die Anzeige, nicht das Manifest - der Hauptprozess kennt die Sprache
+    // des Betrachters nicht.
     displayName: manifest.displayName || manifest.name || moduleName,
     version: manifest.version || '0.0.0',
     description: manifest.description || '',

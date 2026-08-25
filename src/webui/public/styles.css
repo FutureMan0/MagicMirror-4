@@ -531,7 +531,24 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  gap: 12px;
+  margin-bottom: 20px;
+  /* Am Handy passen Ueberschrift und Umschalter nicht nebeneinander: die
+     Ueberschrift brach auf zwei Zeilen und lief in die Knoepfe. Dann lieber
+     untereinander. */
+  flex-wrap: wrap;
+}
+
+@media (max-width: 520px) {
+  .view-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .view-header h2 {
+    /* Kein Umbruch mitten im Wort, und keine Kollision mehr. */
+    white-space: nowrap;
+  }
 }
 
 .view-header h2 {
@@ -2009,4 +2026,45 @@ body {
 .privacy-sensor-dot[data-active="true"] {
   background: #ff3b30;
   box-shadow: 0 0 8px rgba(255, 59, 48, 0.6);
+}
+
+
+/* Eigene Kontrollkaestchen statt der Systemvariante. Die sieht auf jedem
+   Betriebssystem anders aus, nimmt die Akzentfarbe nicht zuverlaessig an und
+   ist auf Android ein blaues Rechteck mitten in einer dunklen Oberflaeche. */
+.module-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-dark);
+  display: grid;
+  place-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.module-item input[type="checkbox"]::after {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--bg-darker);
+  border-bottom: 2px solid var(--bg-darker);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+}
+
+.module-item input[type="checkbox"]:checked {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.module-item input[type="checkbox"]:checked::after {
+  opacity: 1;
+}
+
+.module-item input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
 }
