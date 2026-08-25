@@ -307,8 +307,53 @@ class VisualGridEditor {
     this.canvas.appendChild(moduleEl);
   }
 
+  /**
+   * Der erste freie Platz im Raster - fuer Module, die noch keine Position
+   * haben. Ist alles belegt, landet es oben links; sichtbar und verschiebbar
+   * ist besser als unsichtbar.
+   */
+  freiePosition() {
+    const raster = this.getGridSettings();
+    const belegt = new Set();
+
+    for (const modul of (this.config?.modules || [])) {
+      const p = modul.position;
+      if (!p || typeof p === 'string' || p.column === undefined) continue;
+
+      for (let c = 0; c < (p.columnSpan || 1); c++) {
+        for (let r = 0; r < (p.rowSpan || 1); r++) {
+          belegt.add(`${p.column + c}:${p.row + r}`);
+        }
+      }
+    }
+
+    for (let row = 1; row <= raster.rows; row++) {
+      for (let col = 1; col <= raster.columns; col++) {
+        if (!belegt.has(`${col}:${row}`)) {
+          return {
+            col, row, colSpan: 1, rowSpan: 1,
+            gridColumn: `${col} / span 1`,
+            gridRow: `${row} / span 1`
+          };
+        }
+      }
+    }
+
+    return { col: 1, row: 1, colSpan: 1, rowSpan: 1,
+             gridColumn: '1 / span 1', gridRow: '1 / span 1' };
+  }
+
   calculateModulePosition(position) {
     const gridSettings = this.getGridSettings();
+
+    // Ein Modul ohne Position ist kein Sonderfall, sondern der Normalfall:
+    // frisch aktivierte Module haben noch keine. Frueher warf der Editor
+    // dabei "Cannot read properties of undefined (reading 'column')" - und
+    // ein einziges solches Modul legte den gesamten Layout-Editor lahm. Am
+    // Handy blieb der Reiter deshalb dauerhaft leer.
+    if (!position) {
+      return this.freiePosition();
+    }
 
     // Legacy String-Position
     if (typeof position === 'string') {
