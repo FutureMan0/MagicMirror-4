@@ -147,3 +147,50 @@ test('getSecretFields nennt die maskierten Felder', () => {
   assert.ok(manager.getSecretFields('spotify').includes('refreshToken'));
   assert.deepEqual(manager.getSecretFields('clock'), []);
 });
+
+/**
+ * Auf dem Gerät gefunden: `GET /api/config` lieferte ein Spotify Client
+ * Secret im Klartext. Es stammte aus dem alten OAuth-Weg, wird seit der
+ * Umstellung auf PKCE von keinem Codepfad mehr gelesen — und weil es in
+ * keinem Manifest als Geheimnis deklariert ist, wurde es auch nicht maskiert.
+ *
+ * Ein ungenutztes Geheimnis, das trotzdem ausgeliefert wird, ist der
+ * schlechteste aller Fälle.
+ */
+test('ungenutzte Zugangsdaten werden beim Laden entfernt', () => {
+  const fsMod = require('node:fs');
+  const pathMod = require('node:path');
+  const quelle = fsMod.readFileSync(
+    pathMod.join(__dirname, '..', 'src/main/configManager.js'), 'utf8'
+  );
+
+  assert.match(quelle, /_entferneAltlasten/, 'es gibt keine Bereinigung');
+  assert.match(quelle, /clientSecret/, 'das alte Spotify-Secret wird nicht entfernt');
+});
+
+test('kein Modul deklariert clientSecret noch als Einstellung', () => {
+  const fsMod = require('node:fs');
+  const pathMod = require('node:path');
+  const MODULE = pathMod.join(__dirname, '..', 'modules');
+
+  const gefunden = [];
+  for (const name of fsMod.readdirSync(MODULE)) {
+    const datei = pathMod.join(MODULE, name, 'module.json');
+    if (!fsMod.existsSync(datei)) continue;
+
+    const manifest = JSON.parse(fsMod.readFileSync(datei, 'utf8'));
+    for (const schluessel of Object.keys(manifest.config || {})) {
+      // Was nach Zugangsdaten aussieht, muss als Geheimnis deklariert sein -
+      // sonst wird es nicht maskiert.
+      if (!/secret|password|token|apikey/i.test(schluessel)) continue;
+      const istGeheimnis = (manifest.secrets || []).some(s => s.key === schluessel);
+      if (!istGeheimnis) gefunden.push(`  ${name}: ${schluessel}`);
+    }
+  }
+
+  assert.deepEqual(
+    gefunden, [],
+    'Diese Einstellungen sehen nach Zugangsdaten aus, sind aber nicht als\n'
+    + 'Geheimnis deklariert - sie werden im Klartext ausgeliefert:\n' + gefunden.join('\n')
+  );
+});

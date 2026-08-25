@@ -65,6 +65,21 @@ test('config.json verweist nur auf vorhandene Module', () => {
 
 // Die Schallplatte darf sich nicht drehen, wenn nichts spielt - eine Platte,
 // die bei pausierter Musik weiterlaeuft, ist schlimmer als keine Animation.
+/**
+ * Mein Test prüfte anfangs nur CSS und Manifest — der Zweig, der die Platte
+ * tatsächlich baut, fehlte im Code, und niemand merkte es. Erst der Blick auf
+ * den Spiegel zeigte es: umgestellt, gespeichert, weiter ein Quadrat.
+ */
+test('spotify baut die Platte wirklich', () => {
+  const quelle = fs.readFileSync(path.join(MODULES_DIR, 'spotify/index.js'), 'utf8');
+
+  assert.match(quelle, /coverStyle === 'vinyl'/,
+    'es gibt keinen Zweig fuer die Schallplatte - die Einstellung waere wirkungslos');
+  assert.match(quelle, /className = 'spotify-platte'/, 'die Platte wird nicht gebaut');
+  assert.match(quelle, /className = 'spotify-tonarm'/, 'der Tonarm wird nicht gebaut');
+  assert.match(quelle, /className = 'spotify-cover'/, 'das Quadrat ist verschwunden');
+});
+
 test('spotify: die Platte dreht sich nur bei laufender Wiedergabe', () => {
   const quelle = fs.readFileSync(path.join(MODULES_DIR, 'spotify/index.js'), 'utf8');
   const css = fs.readFileSync(path.join(MODULES_DIR, 'spotify/styles.css'), 'utf8');

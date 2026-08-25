@@ -1195,7 +1195,10 @@ async function saveModuleSettings() {
   const secretFields = moduleInfo?.secretFields || [];
 
   for (const [key, value] of formData.entries()) {
-    if (key !== 'position') {
+    // positionZone gehoert zur Platzierung, nicht in die Einstellungen des
+      // Moduls. Ohne diese Ausnahme landete es als Konfigurationswert im
+      // Modul und wurde bei jedem Speichern mitgeschleppt.
+      if (key !== 'position' && key !== 'positionZone') {
       const schema = moduleInfo?.info.config?.[key];
 
       if (schema?.type === 'boolean') {

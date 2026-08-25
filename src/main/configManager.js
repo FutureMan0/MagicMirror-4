@@ -135,6 +135,38 @@ class ConfigManager {
     fs.writeFileSync(this.envPath, lines.join('\n'));
   }
 
+  /**
+   * Zugangsdaten entfernen, die der Code nicht mehr benutzt.
+   *
+   * Beim Wechsel auf PKCE ist `clientSecret` überflüssig geworden — kein
+   * Codepfad liest es mehr. Alte Konfigurationen tragen es aber weiter mit,
+   * im Klartext, und `GET /api/config` lieferte es aus: es steht in keinem
+   * Manifest als Geheimnis, wurde also nicht maskiert.
+   *
+   * Ein ungenutztes Geheimnis, das trotzdem ausgeliefert wird, ist der
+   * schlechteste aller Fälle. Es fliegt hier raus, mit einem Hinweis — wer
+   * es einmal so gespeichert hatte, sollte es bei Spotify widerrufen.
+   */
+  _entferneAltlasten(config) {
+    const ALTLASTEN = { spotify: ['clientSecret'] };
+
+    for (const eintrag of config.modules || []) {
+      const wegzuwerfen = ALTLASTEN[eintrag.module] || [];
+
+      for (const schluessel of wegzuwerfen) {
+        if (eintrag.config && schluessel in eintrag.config) {
+          delete eintrag.config[schluessel];
+          console.warn(
+            `${eintrag.module}: "${schluessel}" aus der Konfiguration entfernt - ` +
+            'wird seit der Umstellung auf PKCE nicht mehr gebraucht. Lag im ' +
+            'Klartext; am besten bei der Gegenstelle widerrufen.'
+          );
+        }
+      }
+    }
+  }
+
+
   loadConfig({ redact = false } = {}) {
     let config = {};
 
@@ -148,6 +180,9 @@ class ConfigManager {
       const instanceConfig = JSON.parse(fs.readFileSync(this.instanceConfigPath, 'utf8'));
       config = { ...config, ...instanceConfig };
     }
+
+    this._entferneAltlasten(config);
+
 
     // Die .env-Werte, die Module über ihr Manifest deklariert haben.
     const envVars = {};

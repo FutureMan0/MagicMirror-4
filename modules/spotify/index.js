@@ -105,11 +105,34 @@ class SpotifyModule extends SpotifyBase {
     layout.className = 'spotify-layout';
 
     if (this.config.showCover && data.track.coverUrl) {
-      const cover = document.createElement('img');
-      cover.className = 'spotify-cover';
-      cover.alt = '';
-      cover.src = data.track.coverUrl;
-      layout.appendChild(cover);
+      if (this.config.coverStyle === 'vinyl') {
+        // Schallplatte: das Cover sitzt als Etikett in der Mitte, die
+        // Rillen kommen aus einem Verlauf. Kein Bild, keine zusaetzliche
+        // Datei - und nichts, was ein Theme nicht umfaerben koennte.
+        const platte = document.createElement('div');
+        platte.className = 'spotify-platte';
+
+        const etikett = document.createElement('img');
+        etikett.className = 'spotify-platte-etikett';
+        etikett.alt = '';
+        etikett.src = data.track.coverUrl;
+        platte.appendChild(etikett);
+
+        // Der Tonarm wandert mit dem Fortschritt nach innen.
+        const arm = document.createElement('div');
+        arm.className = 'spotify-tonarm';
+        platte.appendChild(arm);
+
+        layout.appendChild(platte);
+        this.elements.platte = platte;
+        this.elements.tonarm = arm;
+      } else {
+        const cover = document.createElement('img');
+        cover.className = 'spotify-cover';
+        cover.alt = '';
+        cover.src = data.track.coverUrl;
+        layout.appendChild(cover);
+      }
     }
 
     const info = document.createElement('div');
