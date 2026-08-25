@@ -281,6 +281,14 @@
       element.addEventListener('pointerdown', (start) => {
         if (start.button !== undefined && start.button !== 0) return;
 
+        // Sofort einfangen, nicht erst wenn Bewegung erkannt ist.
+        //
+        // Ohne das kommen Bewegungsereignisse nur, solange der Finger ueber
+        // dem Element bleibt - bei einem Chip von 60 Pixeln ist man nach
+        // zwei Zentimetern darueber hinaus, und das Ziehen begann nie.
+        try { element.setPointerCapture(start.pointerId); } catch { /* alte Browser */ }
+        start.preventDefault();
+
         let gezogen = false;
         let geist = null;
         let letzteZone = null;
@@ -291,7 +299,6 @@
 
           if (!gezogen) {
             gezogen = true;
-            element.setPointerCapture?.(e.pointerId);
             geist = this.baueGeist(element, e);
           }
 
@@ -306,6 +313,7 @@
         };
 
         const loslassen = (e) => {
+          try { element.releasePointerCapture(start.pointerId); } catch { /* egal */ }
           element.removeEventListener('pointermove', bewegen);
           element.removeEventListener('pointerup', loslassen);
           element.removeEventListener('pointercancel', loslassen);
