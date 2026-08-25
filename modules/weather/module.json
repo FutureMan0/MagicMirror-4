@@ -50,7 +50,7 @@
       "key": "apiKey",
       "env": "OPENWEATHERMAP_API_KEY",
       "label": "OpenWeatherMap API Key",
-      "exposeToRenderer": true
+      "exposeToRenderer": false
     }
   ],
   "privacyLevel": "public"

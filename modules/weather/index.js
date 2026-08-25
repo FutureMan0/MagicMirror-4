@@ -165,67 +165,55 @@ class WeatherModule {
     return this.container;
   }
 
-  async fetchWeather() {
-    if (!this.config.apiKey) {
-      console.error('OpenWeatherMap API Key fehlt');
-      return;
+    async fetchWeather() {
+      try {
+        // Über das eigene Backend, nicht direkt zu OpenWeatherMap: der
+        // Schlüssel bleibt auf dem Gerät, und in der Live-Ansicht am Handy
+        // funktioniert es dadurch überhaupt erst - dort wird das Geheimnis
+        // bewusst maskiert, und die direkte Anfrage schlug fehl.
+        const basis = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        const antwort = await fetch(`${basis}/api/weather/data`, { credentials: 'same-origin' });
+        const umschlag = await antwort.json();
+
+        if (!umschlag.ok || !umschlag.data) {
+          console.error('Wetter nicht verfügbar:', umschlag.error?.message || 'keine Daten');
+          return;
+        }
+
+        this.weatherData = umschlag.data;
+
+        if (this.config.showAlerts) {
+          await this.fetchWeatherAlerts();
+        }
+
+        this.updateDisplay();
+
+        // Die Effekte hängen an der Wetterlage. Ohne gültige Kennung bleiben
+        // sie aus, statt eine falsche Stimmung zu malen.
+        const lage = umschlag.data.current?.weather?.[0]?.id;
+        if (this.config.showEffects && window.weatherEffects && lage) {
+          window.weatherEffects.setEffect(lage);
+        } else if (window.weatherEffects) {
+          window.weatherEffects.stop();
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden der Wetter-Daten:', error);
+      }
     }
 
-    try {
-      // Aktuelles Wetter
-      const currentUrl = `https://api.openweathermap.org/data/2.5/weather?q=${this.config.city}&units=${this.config.units}&appid=${this.config.apiKey}&lang=${this.config.language}`;
-      const currentResponse = await fetch(currentUrl);
-      const currentData = await currentResponse.json();
 
-      // Vorhersage
-      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${this.config.city}&units=${this.config.units}&appid=${this.config.apiKey}&lang=${this.config.language}`;
-      const forecastResponse = await fetch(forecastUrl);
-      const forecastData = await forecastResponse.json();
-
-      this.weatherData = {
-        current: currentData,
-        forecast: forecastData
-      };
-
-      // Wetter-Warnungen laden (falls aktiviert)
-      if (this.config.showAlerts) {
-        await this.fetchWeatherAlerts();
-      }
-
-      this.updateDisplay();
-
-      // Trigger Wetter-Effekte
-      if (this.config.showEffects && window.weatherEffects) {
-        window.weatherEffects.setEffect(currentData.weather[0].id);
-      } else if (window.weatherEffects) {
-        window.weatherEffects.stop();
-      }
-    } catch (error) {
-      console.error('Fehler beim Laden der Wetter-Daten:', error);
+    async fetchWeatherAlerts() {
+      // Wetterwarnungen holt das Backend mit, sofern der Schlüssel sie
+      // hergibt.
+      //
+      // Direkt aus dem Renderer ging es zweifach nicht: der Schlüssel liegt
+      // dort nicht mehr, und der Endpunkt `data/2.5/onecall` wurde von
+      // OpenWeatherMap eingestellt - für neue Schlüssel antwortet er mit 401,
+      // unabhängig davon, wie richtig alles andere ist. Wer Warnungen will,
+      // braucht One Call 3.0 und ein zahlendes Konto.
+      this.weatherData.alerts = this.weatherData.alerts || [];
     }
-  }
 
-  async fetchWeatherAlerts() {
-    if (!this.config.apiKey) return;
-
-    try {
-      // Versuche, Wetter-Warnungen zu laden
-      const alertsUrl = `https://api.openweathermap.org/data/2.5/onecall?q=${this.config.city}&appid=${this.config.apiKey}&lang=${this.config.language}`;
-      const response = await fetch(alertsUrl);
-
-      if (response.ok) {
-        const data = await response.json();
-        this.weatherData.alerts = data.alerts || [];
-        console.log('Wetter-Warnungen geladen:', this.weatherData.alerts);
-      } else {
-        // Fallback: keine Warnungen verfügbar
-        this.weatherData.alerts = [];
-      }
-    } catch (error) {
-      console.error('Fehler beim Laden der Wetter-Warnungen:', error);
-      this.weatherData.alerts = [];
-    }
-  }
 
   updateDisplay() {
     if (!this.weatherData || !this.container) return;

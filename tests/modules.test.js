@@ -113,3 +113,54 @@ test('spotify sagt, dass gerade nichts laeuft', () => {
   assert.match(quelle, /Gerade läuft nichts/);
   assert.match(quelle, /Nothing playing/);
 });
+
+/**
+ * Der Fehler, den die Live-Ansicht zeigte: „Cannot read properties of
+ * undefined (reading 'temp')".
+ *
+ * Das Wetter-Modul holte seine Daten selbst aus dem Renderer, mit dem
+ * API-Schlüssel in der URL. Über HTTP liefert der Server für Geheimnisse nur
+ * „__SET__" — die Anfrage schlug fehl, und das Modul stolperte über die
+ * Fehlerantwort. Deshalb blieb dort auch der Wetter-Effekt aus.
+ */
+test('weather fragt sein eigenes Backend, nicht OpenWeatherMap', () => {
+  const frontend = fs.readFileSync(path.join(MODULES_DIR, 'weather/index.js'), 'utf8');
+
+  assert.doesNotMatch(frontend, /api\.openweathermap\.org/,
+    'der Renderer ruft wieder direkt bei OpenWeatherMap an - dann braucht er '
+    + 'den Schluessel, und in der Live-Ansicht bleibt das Wetter leer');
+  assert.match(frontend, /\/api\/weather\/data/, 'es fragt kein eigenes Backend');
+});
+
+test('weather: der Schluessel erreicht den Browser nicht', () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(MODULES_DIR, 'weather/module.json'), 'utf8')
+  );
+  const schluessel = manifest.secrets.find(s => s.key === 'apiKey');
+
+  assert.equal(schluessel.exposeToRenderer, false,
+    'der API-Schluessel wird wieder an den Browser ausgeliefert');
+});
+
+test('kein Modul im Renderer ruft mehr fremde Hosts direkt an', () => {
+  const offen = [];
+
+  for (const name of fs.readdirSync(MODULES_DIR)) {
+    const datei = path.join(MODULES_DIR, name, 'index.js');
+    if (!fs.existsSync(datei)) continue;
+
+    const quelle = fs.readFileSync(datei, 'utf8');
+    for (const treffer of quelle.matchAll(/https:\/\/([a-z0-9.-]+)/gi)) {
+      // Verweise in Kommentaren sind in Ordnung - gemeint sind Abrufe.
+      const zeile = quelle.slice(0, treffer.index).split('\n').pop();
+      if (/^\s*(\/\/|\*)/.test(zeile)) continue;
+      offen.push(`  ${name}: ${treffer[1]}`);
+    }
+  }
+
+  assert.deepEqual(
+    offen, [],
+    'Diese Module rufen fremde Hosts direkt aus dem Browser an. Das braucht\n'
+    + 'Geheimnisse im Renderer und scheitert in der Live-Ansicht:\n' + offen.join('\n')
+  );
+});
