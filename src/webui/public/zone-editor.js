@@ -125,31 +125,32 @@
       if (this.live) rahmen.classList.add('zonen-vorschau-live');
 
       if (this.live) {
-        // preview=1 schaltet das Praesenz-Dimmen ab - sonst sieht man ein
-        // fast schwarzes Bild und haelt die Vorschau fuer kaputt.
-        const instanz = window.currentInstance || 'display1';
-        const rahmenLive = document.createElement('div');
-        rahmenLive.className = 'zonen-live';
+        // Wiederverwenden statt neu bauen: ein neues iframe laedt den
+        // gesamten Spiegel neu - bei jedem Ablegen, jedem Schalter, jeder
+        // Groessenaenderung. Genau das machte die Bedienung schwerfaellig.
+        if (!this.liveRahmen) {
+          const instanz = window.currentInstance || 'display1';
 
-        const spiegel = document.createElement('iframe');
-        spiegel.className = 'zonen-live-bild';
-        spiegel.title = this.text('livePreview', 'Live-Vorschau');
-        spiegel.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-        spiegel.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
+          this.liveRahmen = document.createElement('div');
+          this.liveRahmen.className = 'zonen-live';
 
-        rahmenLive.appendChild(spiegel);
-        rahmen.appendChild(rahmenLive);
+          this.liveBild = document.createElement('iframe');
+          this.liveBild.className = 'zonen-live-bild';
+          this.liveBild.title = this.text('livePreview', 'Live-Vorschau');
+          this.liveBild.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+          // preview=1 schaltet das Praesenz-Dimmen ab - sonst sieht man ein
+          // fast schwarzes Bild und haelt die Vorschau fuer kaputt.
+          this.liveBild.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
 
-        // Der Faktor haengt von der Rahmenbreite ab und muss gerechnet
-        // werden; in CSS gaebe es dafuer nur ungueltige Ausdruecke.
-        const skaliere = () => {
-          const breite = rahmen.clientWidth;
-          if (breite) spiegel.style.transform = `scale(${breite / 1920})`;
-        };
-        requestAnimationFrame(skaliere);
+          this.liveRahmen.appendChild(this.liveBild);
+        }
+
+        rahmen.appendChild(this.liveRahmen);
+
         this.skalierer?.disconnect();
-        this.skalierer = new ResizeObserver(skaliere);
+        this.skalierer = new ResizeObserver(() => this.skaliereLive(rahmen));
         this.skalierer.observe(rahmen);
+        requestAnimationFrame(() => this.skaliereLive(rahmen));
       }
 
       for (const reihe of ZONEN_LAYOUT) {
@@ -204,6 +205,13 @@
      * Kennungen wie "clock" und "home-assistant" - in der Modulliste
      * daneben aber "Clock & Date". Zwei Namen fuer dieselbe Sache.
      */
+    /** Den Spiegel auf die Rahmenbreite verkleinern. */
+    skaliereLive(rahmen) {
+      if (!this.liveBild) return;
+      const breite = rahmen.clientWidth;
+      if (breite) this.liveBild.style.transform = `scale(${breite / 1920})`;
+    }
+
     modulName(modul) {
       const liste = window.availableModules || [];
       const anzeige = liste.find(m => m.name === modul.module)?.info?.displayName;

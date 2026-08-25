@@ -153,3 +153,19 @@ test('unsinnige Groessen werden zurechtgebogen statt uebernommen', () => {
   assert.deepEqual(zonen.groesse({ colSpan: 'zwei' }), { colSpan: 1, rowSpan: 1 });
   assert.deepEqual(zonen.groesse(undefined), { colSpan: 1, rowSpan: 1 });
 });
+
+/**
+ * Der Fehler vom Gerät: die Drehung war gespeichert, über HTTP wirkte sie —
+ * an der Wand nicht. Sie wurde nur im Komplettaufbau angewandt, nicht im
+ * Pfad für laufende Änderungen. Wer sie umstellte, sah nichts, bis der
+ * Spiegel neu startete.
+ */
+test('die Drehung wirkt auch bei laufendem Spiegel', () => {
+  const fs = require('node:fs');
+  const quelle = fs.readFileSync(path.join(ROOT, 'src/renderer/renderer.js'), 'utf8');
+
+  const applyConfig = quelle.slice(quelle.indexOf('async function applyConfig('));
+  assert.match(applyConfig.slice(0, 1200), /wendeDrehungAn\(nextConfig\)/,
+    'applyConfig wendet die Drehung nicht an - dann greift sie erst nach '
+    + 'einem Neustart');
+});

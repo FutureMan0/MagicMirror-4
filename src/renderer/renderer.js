@@ -429,11 +429,17 @@ async function applyConfig(nextConfig) {
 
   document.documentElement.lang = nextConfig.language || 'en';
 
+  // Die Drehung gehoert hierher, nicht nur in den Komplettaufbau.
+  // Sonst wirkt eine Aenderung erst nach einem Neustart des
+  // Spiegels - genau das war zu sehen: gespeichert, ueber HTTP
+  // wirksam, an der Wand nicht.
+  wendeDrehungAn(nextConfig);
+
   // Sprache betrifft jedes Modul - da lohnt der Abgleich nicht.
   if (changes.language) return renderModules();
 
   if (changes.theme) await applyTheme();
-  if (changes.grid) buildGridCSS(nextConfig.gridSettings);
+  if (changes.grid) buildGridCSS(nextConfig.gridSettings, nextConfig);
 
   for (const { key } of changes.removed) {
     const current = rendered.get(key);

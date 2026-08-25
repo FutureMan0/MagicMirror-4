@@ -164,3 +164,21 @@ test('kein Modul im Renderer ruft mehr fremde Hosts direkt an', () => {
     + 'Geheimnisse im Renderer und scheitert in der Live-Ansicht:\n' + offen.join('\n')
   );
 });
+
+/**
+ * Der Fehler, an dem die Schallplatte scheiterte: `coverStyle` stand in
+ * `patchable`. Das heißt „lässt sich ohne Neuaufbau übernehmen" — das Modul
+ * baut seinen Inhalt aber nur bei einem Titelwechsel auf. Umgestellt,
+ * gespeichert, keine Wirkung.
+ */
+test('spotify erklaert keine Schluessel als patchable, die es nicht anwenden kann', () => {
+  const quelle = fs.readFileSync(path.join(MODULES_DIR, 'spotify/index.js'), 'utf8');
+  const treffer = quelle.match(/static patchable = \[([^\]]*)\]/);
+
+  assert.ok(treffer, 'patchable fehlt');
+  const schluessel = treffer[1].trim();
+
+  assert.equal(schluessel, '',
+    'Diese Schluessel aendern die Struktur der Anzeige. Ohne Neuaufbau '
+    + 'passiert beim Umstellen nichts: ' + schluessel);
+});

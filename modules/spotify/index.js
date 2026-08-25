@@ -9,7 +9,15 @@ var SpotifyBase = (typeof window !== 'undefined' && window.DataModule)
 
 class SpotifyModule extends SpotifyBase {
   static moduleName = 'spotify';
-  static patchable = ['showCover', 'showProgress', 'showSpotifyCode', 'coverStyle'];
+  // Bewusst leer.
+  //
+  // `patchable` heisst: diese Schluessel lassen sich ohne Neuaufbau
+  // uebernehmen. Das Modul baut seinen Inhalt aber nur bei einem Titelwechsel
+  // auf - eine Aenderung an showCover, coverStyle oder showProgress aendert
+  // die Struktur, und ohne Neuaufbau passiert schlicht nichts. Genau daran
+  // ist die Schallplatte gescheitert: umgestellt, gespeichert, keine
+  // Wirkung.
+  static patchable = [];
 
   constructor(config = {}) {
     super(config);
