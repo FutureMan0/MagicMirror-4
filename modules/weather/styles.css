@@ -1,6 +1,11 @@
 .module-weather {
   color: var(--mm-color-text);
   min-width: 260px;
+  /* Damit die Regeln weiter unten auf die BREITE DES MODULS reagieren
+     koennen und nicht auf die des Bildschirms: ein Modul kann eine Spalte
+     schmal oder sechs Spalten breit sein. */
+  container-type: inline-size;
+  container-name: wetter;
 }
 
 .weather-main {
@@ -192,9 +197,13 @@
 }
 
 .forecast-day {
-  display: flex;
+  /* Raster statt space-between: sonst zieht sich eine Zeile ueber die ganze
+     verfuegbare Breite auseinander, sobald das Modul breit ist - Tagesname
+     ganz links, Regenwahrscheinlichkeit ganz rechts, dazwischen Leere. */
+  display: grid;
+  grid-template-columns: minmax(4rem, 7rem) 2rem 1fr minmax(0, 5rem);
   align-items: center;
-  justify-content: space-between;
+  gap: var(--mm-space-3);
   padding: 6px 0;
   border-bottom: 1px solid var(--mm-color-surface);
 }
@@ -391,4 +400,16 @@
   color: var(--mm-color-text-muted);
   font-size: var(--mm-size-xs);
   font-family: var(--mm-font-mono);
+}
+
+
+/* Ein breites Modul bekommt mehr Spalten statt mehr Leerraum. */
+@container wetter (min-width: 520px) {
+  .weather-details-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .forecast-day {
+    grid-template-columns: minmax(5rem, 8rem) 2.5rem 1fr minmax(0, 6rem);
+  }
 }
