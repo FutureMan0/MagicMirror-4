@@ -141,7 +141,9 @@ test('die Acht-Pixel-Schwelle bleibt, sonst wird jeder Wackler zum Verschieben',
 
 test('das Abbild wird in jedem Fall wieder entfernt', () => {
   // Bleibt es haengen, klebt ein Chip fuer immer auf dem Bildschirm.
-  const block = ZONEN_EDITOR.slice(ZONEN_EDITOR.indexOf('const loslassen ='));
+  // Gezielt im Ziehen, nicht im Groessengriff - der hat kein Abbild.
+  const ziehen = ZONEN_EDITOR.slice(ZONEN_EDITOR.indexOf('macheZiehbar(element, modulName)'));
+  const block = ziehen.slice(ziehen.indexOf('const loslassen ='));
   assert.match(block.slice(0, 400), /geist\?\.remove\(\)/);
 });
 
@@ -161,4 +163,22 @@ test('ein Zonenwechsel wirkt sofort', () => {
 test('Groesse laesst sich einstellen und wirkt ebenfalls sofort', () => {
   assert.match(ZONEN_EDITOR, /async setzeGroesse\(name, colSpan, rowSpan\)/);
   assert.match(ZONEN_EDITOR, /static GROESSEN/, 'es gibt keine Groessen zur Auswahl');
+});
+
+// Größe per Griff: die Spanne ergibt sich aus der Zone unter dem Finger.
+test('der Groessengriff rechnet die Spanne aus der Zielzone', () => {
+  const block = ZONEN_EDITOR.slice(
+    ZONEN_EDITOR.indexOf('macheGroessenGriff(griff, modulName)'),
+    ZONEN_EDITOR.indexOf('zeigeSpanne(ursprung, spanne)')
+  );
+
+  assert.match(block, /ziel\.col - ursprung\.col \+ 1/, 'die Breite wird nicht gerechnet');
+  assert.match(block, /ziel\.row - ursprung\.row \+ 1/, 'die Hoehe wird nicht gerechnet');
+  // Nach links oder oben ziehen darf nicht in eine Groesse von null laufen.
+  assert.match(block, /Math\.max\(1,/, 'die Spanne kann kleiner als eins werden');
+});
+
+test('waehrend des Ziehens ist zu sehen, was belegt wuerde', () => {
+  assert.match(ZONEN_EDITOR, /zeigeSpanne\(ursprung, s\)/,
+    'die betroffenen Zonen werden nicht hervorgehoben - dann zieht man blind');
 });

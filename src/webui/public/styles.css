@@ -2617,3 +2617,33 @@ body {
   color: var(--text-primary);
   font-size: 0.82rem;
 }
+
+/* Der Griff zum Vergrößern. Klein genug, um den Chip nicht zu dominieren,
+   groß genug für einen Daumen. */
+.zonen-chip {
+  position: relative;
+  padding-right: 18px;
+}
+
+.zonen-griff {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+/* Zwei Striche als Ecke - das übliche Zeichen für „hier ziehen". */
+.zonen-griff::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--bg-darker);
+  border-bottom: 2px solid var(--bg-darker);
+  opacity: 0.75;
+}

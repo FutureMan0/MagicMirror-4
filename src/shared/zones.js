@@ -121,6 +121,17 @@
     return null;
   }
 
+  /** Spalte und Zeile einer Zone als Zahlen - fuer Rechnungen im Editor. */
+  function gitter(id) {
+    const z = zone(id);
+    if (!z) return null;
+    return {
+      col: z.gridColumn.includes('/') ? 1 : Number(z.gridColumn),
+      row: Number(z.gridRow),
+      volleBreite: z.gridColumn.includes('/')
+    };
+  }
+
   /** Die Groesse einer Platzierung in Zonen-Feldern. */
   function groesse(position) {
     const p = position && typeof position === 'object' ? position : {};
@@ -173,7 +184,7 @@
     };
   }
 
-  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, groesse, zonenLabel, platzierung, ALTE_NAMEN };
+  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, groesse, gitter, zonenLabel, platzierung, ALTE_NAMEN };
 
   if (typeof window !== 'undefined') window.MMZonen = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

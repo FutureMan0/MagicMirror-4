@@ -178,6 +178,16 @@
               ? `${this.modulName(modul)} ${g.colSpan}×${g.rowSpan}`
               : this.modulName(modul);
             this.macheZiehbar(chip, modul.module);
+
+            // Ein Griff an der unteren rechten Ecke: darueber ziehen
+            // vergroessert das Modul ueber weitere Zonen. Anfassen statt
+            // aus einer Liste waehlen - das ist es, was sich nach Anpassen
+            // anfuehlt.
+            const griff = document.createElement('span');
+            griff.className = 'zonen-griff';
+            griff.setAttribute('aria-hidden', 'true');
+            this.macheGroessenGriff(griff, modul.module);
+            chip.appendChild(griff);
             feld.appendChild(chip);
           }
 
@@ -300,6 +310,77 @@
      * ab. Beides muss gehen - am Rechner zieht man, am Handy tippt man
      * lieber, und mit dem Finger zu ziehen soll trotzdem klappen.
      */
+    /**
+     * Ziehen an der Ecke vergroessert das Modul.
+     *
+     * Die Groesse ergibt sich aus der Zone unter dem Finger: wer von der
+     * linken oberen Ecke bis in die Mitte zieht, bekommt 2x2. Waehrend des
+     * Ziehens leuchten alle Zonen auf, die belegt wuerden - sonst zieht man
+     * blind und sieht das Ergebnis erst hinterher.
+     */
+    macheGroessenGriff(griff, modulName) {
+      griff.style.touchAction = 'none';
+
+      griff.addEventListener('pointerdown', (start) => {
+        start.preventDefault();
+        start.stopPropagation();
+        try { griff.setPointerCapture(start.pointerId); } catch { /* alte Browser */ }
+
+        const modul = this.alleModule().find(m => m.module === modulName);
+        const ursprung = window.MMZonen.gitter(window.MMZonen.alsZone(modul?.position));
+        if (!ursprung) return;
+
+        let letzte = null;
+
+        const spanne = (x, y) => {
+          const zone = this.zoneUnter(x, y);
+          const ziel = zone && window.MMZonen.gitter(zone);
+          if (!ziel) return null;
+          return {
+            colSpan: Math.max(1, ziel.col - ursprung.col + 1),
+            rowSpan: Math.max(1, ziel.row - ursprung.row + 1)
+          };
+        };
+
+        const bewegen = (e) => {
+          const s = spanne(e.clientX, e.clientY);
+          if (!s) return;
+          letzte = s;
+          this.zeigeSpanne(ursprung, s);
+        };
+
+        const loslassen = (e) => {
+          griff.removeEventListener('pointermove', bewegen);
+          griff.removeEventListener('pointerup', loslassen);
+          griff.removeEventListener('pointercancel', loslassen);
+          this.zeigeSpanne(null, null);
+
+          const s = spanne(e.clientX, e.clientY) || letzte;
+          if (s) this.setzeGroesse(modulName, s.colSpan, s.rowSpan);
+        };
+
+        griff.addEventListener('pointermove', bewegen);
+        griff.addEventListener('pointerup', loslassen);
+        griff.addEventListener('pointercancel', loslassen);
+      });
+    }
+
+    /** Waehrend des Ziehens: alle Zonen hervorheben, die belegt wuerden. */
+    zeigeSpanne(ursprung, spanne) {
+      for (const feld of this.wurzel.querySelectorAll('.zonen-feld')) {
+        let treffer = false;
+
+        if (ursprung && spanne) {
+          const g = window.MMZonen.gitter(feld.dataset.zone);
+          treffer = Boolean(g)
+            && g.col >= ursprung.col && g.col < ursprung.col + spanne.colSpan
+            && g.row >= ursprung.row && g.row < ursprung.row + spanne.rowSpan;
+        }
+        feld.classList.toggle('zonen-ziel', treffer);
+      }
+    }
+
+
     macheZiehbar(element, modulName) {
       element.style.touchAction = 'none';
 
