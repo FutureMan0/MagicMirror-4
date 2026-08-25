@@ -2550,3 +2550,36 @@ body {
   transform-origin: top left;
   pointer-events: none;
 }
+
+/* ---------- Bildschirm-Einstellungen ---------- */
+
+.screen-outputs-titel {
+  margin: 18px 0 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.screen-output {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--touch-target-min, 44px);
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: var(--bg-darker);
+  border-radius: 8px;
+}
+
+.screen-output-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.screen-output-zustand {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.screen-output.leer { opacity: 0.5; }

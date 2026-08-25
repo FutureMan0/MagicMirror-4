@@ -219,3 +219,30 @@
     text-align: center;
   }
 }
+
+/* Drehung des gesamten Spiegels.
+   Bei 90 und 270 Grad tauschen Breite und Hoehe die Rollen: der Inhalt wird
+   fuer ein hochkant stehendes Panel gesetzt und dann gekippt. */
+@layer base {
+  html[data-rotate="90"] #modules-container,
+  html[data-rotate="270"] #modules-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: center;
+  }
+
+  html[data-rotate="90"] #modules-container {
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+
+  html[data-rotate="270"] #modules-container {
+    transform: translate(-50%, -50%) rotate(270deg);
+  }
+
+  html[data-rotate="180"] #modules-container {
+    transform: rotate(180deg);
+  }
+}

@@ -116,3 +116,23 @@ test('der Renderer benutzt die gemeinsame Platzierung', () => {
   assert.match(quelle, /zonen\.platzierung\(position\)/,
     'der Renderer rechnet wieder selbst - dann kann es erneut in der falschen Funktion landen');
 });
+
+// Drehung: gehört zur Anzeige, nicht zum Inhalt.
+test('nur die vier rechten Winkel sind erlaubt', () => {
+  const fs = require('node:fs');
+  const quelle = fs.readFileSync(path.join(ROOT, 'src/renderer/renderer.js'), 'utf8');
+
+  assert.match(quelle, /\[0, 90, 180, 270\]/, 'die Liste der erlaubten Winkel fehlt');
+  // Ein unbekannter Wert darf nicht als Drehung durchgereicht werden - sonst
+  // steht der Spiegel schief und niemand weiss warum.
+  assert.match(quelle, /erlaubt\.includes\(grad\) \? grad : 0/);
+});
+
+test('bei 90 und 270 Grad tauschen Breite und Hoehe', () => {
+  const fs = require('node:fs');
+  const css = fs.readFileSync(path.join(ROOT, 'src/renderer/styles/main.css'), 'utf8');
+
+  const block = css.slice(css.indexOf('data-rotate="90"'));
+  assert.match(block, /width:\s*100vh/, 'die Breite folgt nicht der Bildschirmhoehe');
+  assert.match(block, /height:\s*100vw/, 'die Hoehe folgt nicht der Bildschirmbreite');
+});

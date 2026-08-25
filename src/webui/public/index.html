@@ -113,6 +113,26 @@
         <div class="settings-section">
           <h2 data-i18n="settings">Einstellungen</h2>
 
+          <!-- Bildschirm: Drehung und einzelne Anzeigen. Beides gehoert
+               hierher und nicht ins Layout - es betrifft das Geraet, nicht
+               den Inhalt. -->
+          <div class="settings-group">
+            <h3 data-i18n="screen">Bildschirm</h3>
+
+            <div class="form-group">
+              <label for="screen-rotation" data-i18n="rotation">Drehung</label>
+              <select id="screen-rotation">
+                <option value="0">0°</option>
+                <option value="90">90°</option>
+                <option value="180">180°</option>
+                <option value="270">270°</option>
+              </select>
+              <p class="form-hint" data-i18n="rotationHint">Gilt für diese Anzeige.</p>
+            </div>
+
+            <div id="screen-outputs" class="screen-outputs"></div>
+          </div>
+
           <div class="settings-group">
             <h3 data-i18n="theme">Design</h3>
             <div class="theme-picker">
@@ -245,6 +265,7 @@
   <script src="i18n.js"></script>
   <script src="zone-editor.js"></script>
   <script src="module-browser.js"></script>
+  <script src="screen.js"></script>
   <script src="visual-editor.js"></script>
   <script src="app.js"></script>
   <script src="control.js"></script>

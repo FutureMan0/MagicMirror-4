@@ -61,6 +61,21 @@ function getLegacyGridPosition(positionName, gridSettings) {
 }
 
 // Generiert dynamisches CSS für das Grid basierend auf gridSettings
+/**
+ * Den Spiegel drehen.
+ *
+ * Als CSS-Drehung im Renderer, nicht ueber xrandr: so wirkt sie auch in der
+ * Live-Vorschau am Handy, sie braucht keine Rechte auf dem Geraet, und sie
+ * ueberlebt einen Wechsel des Anzeigeservers. Bei 90 und 270 Grad tauschen
+ * Breite und Hoehe die Rollen - sonst steht der Spiegel gedreht, aber im
+ * falschen Format.
+ */
+function wendeDrehungAn(config) {
+  const erlaubt = [0, 90, 180, 270];
+  const grad = Number(config?.display?.rotation) || 0;
+  document.documentElement.dataset.rotate = String(erlaubt.includes(grad) ? grad : 0);
+}
+
 function buildGridCSS(gridSettings, config) {
   // Ein Layout aus Zonen braucht das grobe Zonen-Raster, nicht das feine
   // 8x10 aus der Konfiguration - sonst landen die Zonen in Zelle 1 bis 3 von
@@ -319,6 +334,7 @@ async function renderModules() {
 
     // Grid-CSS dynamisch anwenden
     buildGridCSS(config.gridSettings, config);
+    wendeDrehungAn(config);
 
     if (!moduleLoader) {
       moduleLoader = new window.RendererModuleLoader();

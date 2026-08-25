@@ -2,6 +2,11 @@
 
 const translations = {
   de: {
+    screen: 'Bildschirm',
+    rotation: 'Drehung',
+    rotationHint: 'Gilt für diese Anzeige.',
+    outputs: 'Angeschlossene Anzeigen',
+    outputDisconnected: 'nicht angeschlossen',
     moduleOn: 'An',
     moduleOff: 'Aus',
     livePreviewBackdrop: 'Spiegel im Hintergrund',
@@ -104,6 +109,11 @@ const translations = {
     searchPlaceholder: 'Suchen...'
   },
   en: {
+    screen: 'Screen',
+    rotation: 'Rotation',
+    rotationHint: 'Applies to this display.',
+    outputs: 'Connected displays',
+    outputDisconnected: 'not connected',
     moduleOn: 'On',
     moduleOff: 'Off',
     livePreviewBackdrop: 'Mirror as backdrop',

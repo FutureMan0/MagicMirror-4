@@ -296,6 +296,7 @@ async function loadConfig() {
     window.currentConfig = currentConfig;
     // Die Modulkarten haengen an der Konfiguration.
     window.ModulBrowser?.zeichneKarten();
+    window.Bildschirm?.zeigeDrehung();
     console.log('Config geladen:', currentConfig); // Debug
 
     // UI-Sprache an Config anpassen

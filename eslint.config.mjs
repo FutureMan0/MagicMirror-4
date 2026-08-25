@@ -50,6 +50,7 @@ const webuiSharedGlobals = {
   getCurrentLanguage: 'readonly',
   ZonenEditor: 'readonly',
   ModulBrowser: 'readonly',
+  Bildschirm: 'readonly',
   ResizeObserver: 'readonly',
   translations: 'readonly'
 };
