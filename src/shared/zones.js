@@ -126,7 +126,33 @@
     return z.label[sprache === 'en' ? 'en' : 'de'];
   }
 
-  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, zonenLabel, ALTE_NAMEN };
+  /**
+   * Die fertige Platzierung zu einer gespeicherten Position - oder null,
+   * wenn es keine Zone ist.
+   *
+   * Bewusst hier und nicht im Renderer: dort sass sie einmal in der falschen
+   * Funktion und wurde nie erreicht. Die Module standen dann automatisch
+   * nebeneinander, und von aussen sah es aus, als kaeme die Zone nicht an.
+   * Hier laesst sie sich ohne Browser pruefen.
+   */
+  function platzierung(position) {
+    const id = alsZone(position);
+    if (!id) return null;
+
+    const z = zone(id);
+    return {
+      type: 'grid',
+      gridColumn: z.gridColumn,
+      gridRow: z.gridRow,
+      justifySelf: 'stretch',
+      alignSelf: 'stretch',
+      contentJustify: z.justify,
+      contentAlign: z.align,
+      zone: id
+    };
+  }
+
+  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, zonenLabel, platzierung, ALTE_NAMEN };
 
   if (typeof window !== 'undefined') window.MMZonen = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

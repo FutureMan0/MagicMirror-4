@@ -112,6 +112,12 @@ function buildGridCSS(gridSettings, config) {
 
 // Konvertiert alle Position-Formate in ein einheitliches Format
 function parsePosition(position, gridSettings) {
+  // Zonen zuerst: sie sind der Normalfall, seit das Layout ueber Zonen
+  // eingestellt wird. Alte Namen wie "top_left" bildet alsZone() mit ab.
+  const zonen = (typeof window !== 'undefined' && window.MMZonen) || null;
+  const ausZone = zonen && zonen.platzierung(position);
+  if (ausZone) return ausZone;
+
   // String-Position (Legacy-Format wie "top_left")
   if (typeof position === 'string') {
     const pos = getLegacyGridPosition(position, gridSettings);

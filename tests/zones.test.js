@@ -79,3 +79,40 @@ test('zonenLabel folgt der Sprache', () => {
   // Unbekanntes gibt die Kennung zurueck statt zu werfen.
   assert.equal(zonen.zonenLabel('gibtsnicht', 'de'), 'gibtsnicht');
 });
+
+// Der Fehler, der das schon einmal unbemerkt liess: die Zonen-Abfrage sass im
+// Renderer in der falschen Funktion und wurde nie erreicht. Die Module
+// standen dann automatisch nebeneinander - von aussen sah es aus, als kaeme
+// die Zone nicht an.
+test('eine Zone ergibt eine vollstaendige Platzierung', () => {
+  const p = zonen.platzierung('oben-rechts');
+
+  assert.ok(p, 'keine Platzierung');
+  assert.equal(p.type, 'grid');
+  assert.equal(p.gridColumn, '3');
+  assert.equal(p.gridRow, '1');
+  assert.equal(p.justifySelf, 'stretch', 'der Container muss seine Zone ausfüllen');
+  assert.equal(p.zone, 'oben-rechts');
+});
+
+test('jede Zone laesst sich platzieren, und keine landet auf auto', () => {
+  for (const z of zonen.ZONEN) {
+    const p = zonen.platzierung(z.id);
+    assert.ok(p, `${z.id}: keine Platzierung`);
+    assert.notEqual(p.gridColumn, 'auto', `${z.id}: landet in der automatischen Reihe`);
+    assert.notEqual(p.gridRow, 'auto', `${z.id}: landet in der automatischen Reihe`);
+  }
+});
+
+test('Rasterangaben ergeben keine Zonen-Platzierung', () => {
+  assert.equal(zonen.platzierung({ column: 2, row: 3 }), null);
+  assert.equal(zonen.platzierung(undefined), null);
+});
+
+test('der Renderer benutzt die gemeinsame Platzierung', () => {
+  const fs = require('node:fs');
+  const quelle = fs.readFileSync(path.join(ROOT, 'src/renderer/renderer.js'), 'utf8');
+
+  assert.match(quelle, /zonen\.platzierung\(position\)/,
+    'der Renderer rechnet wieder selbst - dann kann es erneut in der falschen Funktion landen');
+});
