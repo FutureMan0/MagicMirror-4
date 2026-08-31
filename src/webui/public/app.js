@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupLiveView();
   window.ModulBrowser?.zeichneKarten();
 
-  // Warte kurz, bis initGridSettings gelaufen ist - dort haengt der
+  // Warte kurz, bis initLayoutReiter gelaufen ist - dort haengt der
   // Layout-Modus. applyLayoutMode legt den passenden Editor an.
   setTimeout(() => {
     if (window.applyLayoutMode && window.getLayoutMode) {
@@ -99,11 +99,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Update-System initialisieren
   initUpdateSystem();
 
-  // Grid-Einstellungen initialisieren
-  initGridSettings();
+  // Layout-Reiter: Modusschalter und Editoren
+  initLayoutReiter();
 
   // Visual Editor nur initialisieren wenn visueller Modus aktiv ist
-  // wird durch initGridSettings gesteuert
+  // wird durch initLayoutReiter gesteuert
 });
 
 // Tab-Navigation
@@ -171,7 +171,7 @@ function switchTab(tabName) {
 
 // Die Knoepfe #mode-btn-visual und #mode-btn-classic gab es im Markup nicht
 // mehr; der Schalter zwischen den Layout-Ansichten sitzt jetzt im
-// Layout-Reiter (.layout-modus-knopf) und wird in initGridSettings verdrahtet.
+// Layout-Reiter (.layout-modus-knopf) und wird in initLayoutReiter verdrahtet.
 
 function updateSettingsButton(currentTab) {
   const settingsBtn = document.getElementById('settings-btn');
@@ -1587,38 +1587,37 @@ if (!document.getElementById('notification-styles')) {
 
 // ==================== GRID SETTINGS ====================
 
-function initGridSettings() {
-  const columnsInput = document.getElementById('grid-columns');
-  const rowsInput = document.getElementById('grid-rows');
-  const gapInput = document.getElementById('grid-gap');
-  const paddingInput = document.getElementById('grid-padding');
-  const saveBtn = document.getElementById('save-grid-settings-btn');
-
-  if (!saveBtn) return;
-
+/**
+ * Der Layout-Reiter.
+ *
+ * Hiess einmal initGridSettings() und verwaltete nebenbei ein Formular fuer
+ * Spalten, Zeilen, Abstand und Rand. Das Formular ist weg: es schrieb
+ * gridSettings, und seit das Layout ueber Zonen oder freie Positionen laeuft,
+ * hat das niemand mehr gelesen.
+ */
+function initLayoutReiter() {
   // --- Layout-Modus ---------------------------------------------------------
   //
   // Zwei Bedienkonzepte auf denselben Daten:
   //
-  //   zonen    sechs grosse Flaechen im 3x3-Grundraster. Mit dem Daumen
-  //            bedienbar - aber eben nur sechs Plaetze.
-  //   raster   das Raster aus den Einstellungen, jede Zelle einzeln, Griffe
-  //            an den Ecken.
+  //   zonen    sechs grosse Flaechen. Mit dem Daumen bedienbar - aber eben
+  //            nur sechs Plaetze.
+  //   frei     jedes Modul liegt und misst, wie man es zieht. In Prozent der
+  //            Flaeche, damit dasselbe Layout auf jedem Panel gilt.
   //
-  // Hier stand einmal ein Schalter zwischen "klassisch" und "visuell", der auf
-  // #classic-preview-desktop und #visual-editor-desktop zeigte. Beide Behaelter
-  // gab es im Markup nicht: der Editor wurde nie gezeichnet, und das
-  // Rasterformular schrieb Werte, die niemand las. Wer 6x12 einstellte, sah
-  // weiter sechs Zonen. tests/layout-verdrahtung.test.js wacht jetzt darueber,
-  // dass jeder Behaelter, den dieser Code sucht, auch existiert.
+  // Dazwischen lag einmal ein Raster-Editor. Er suchte Behaelter, die es im
+  // Markup nicht gab, wurde nie gezeichnet, und das Rasterformular in den
+  // Einstellungen schrieb Werte, die niemand las.
+  // tests/layout-verdrahtung.test.js wacht jetzt darueber, dass jeder
+  // Behaelter, den dieser Code sucht, auch existiert.
 
   function getLayoutMode() {
     const gespeichert = localStorage.getItem('layoutMode');
-    if (gespeichert === 'zonen' || gespeichert === 'raster') return gespeichert;
+    if (gespeichert === 'zonen' || gespeichert === 'frei') return gespeichert;
 
-    // Alte Werte ("visual", "classic") und der erste Start: auf einem Telefon
-    // sind Zonen die bessere Wahl, auf einem breiten Bildschirm das Raster.
-    return window.innerWidth < 768 ? 'zonen' : 'raster';
+    // Alte Werte und der erste Start: auf einem Telefon sind Zonen mit dem
+    // Daumen leichter, auf einem breiten Bildschirm ist Freihand besser.
+    return window.innerWidth < 768 ? 'zonen' : 'frei';
   }
 
   function setLayoutMode(mode) {
@@ -1628,12 +1627,12 @@ function initGridSettings() {
 
   function applyLayoutMode(mode) {
     const zonenBehaelter = document.getElementById('zonen-editor');
-    const rasterBehaelter = document.getElementById('visual-editor-container');
-    if (!zonenBehaelter || !rasterBehaelter) return;
+    const freiBehaelter = document.getElementById('frei-editor');
+    if (!zonenBehaelter || !freiBehaelter) return;
 
-    const freiesRaster = mode === 'raster';
-    zonenBehaelter.hidden = freiesRaster;
-    rasterBehaelter.hidden = !freiesRaster;
+    const frei = mode === 'frei';
+    zonenBehaelter.hidden = frei;
+    freiBehaelter.hidden = !frei;
 
     for (const knopf of document.querySelectorAll('.layout-modus-knopf')) {
       const aktiv = knopf.dataset.modus === mode;
@@ -1642,13 +1641,19 @@ function initGridSettings() {
     }
 
     // Erst umrechnen, dann zeichnen: der Editor soll die Module gleich an
-    // ihrem Platz im Raster finden und nicht erst nach dem ersten Ziehen.
-    if (freiesRaster) uebernehmeZonenInsRaster();
+    // ihrem Platz finden und nicht erst nach dem ersten Ziehen.
+    if (frei) uebernehmeInsFreie();
 
     initVisualEditor();
     renderPreview();
   }
 
+
+  // Beide Namen zeigen auf dieselbe Arbeit - renderPreview() steht an
+  // vierzehn Stellen, refreshActiveLayoutView an sieben.
+  function refreshActiveLayoutView() {
+    renderPreview();
+  }
 
   // Layout-Modus beim Start setzen und die Knoepfe verdrahten.
   for (const knopf of document.querySelectorAll('.layout-modus-knopf')) {
@@ -1656,147 +1661,77 @@ function initGridSettings() {
   }
   applyLayoutMode(getLayoutMode());
 
-  // Lade aktuelle Grid-Einstellungen
-  function loadGridSettings() {
-    if (!currentConfig) return;
-
-    const gridSettings = currentConfig.gridSettings || {
-      columns: 3,
-      rows: 3,
-      gap: 12,
-      padding: 12
-    };
-
-    if (columnsInput) columnsInput.value = gridSettings.columns;
-    if (rowsInput) rowsInput.value = gridSettings.rows;
-    if (gapInput) gapInput.value = gridSettings.gap;
-    if (paddingInput) paddingInput.value = gridSettings.padding;
-  }
-
-  // Initial laden
-  loadGridSettings();
-
-  // Bei Config-Änderung neu laden
-  const originalLoadConfig = loadConfig;
-  window.addEventListener('configLoaded', loadGridSettings);
-
-  // Speichern-Button
-  saveBtn.addEventListener('click', async () => {
-    if (!currentConfig) return;
-
-    const newGridSettings = {
-      columns: parseInt(columnsInput.value) || 3,
-      rows: parseInt(rowsInput.value) || 3,
-      gap: parseInt(gapInput.value) || 12,
-      padding: parseInt(paddingInput.value) || 12,
-      columnSizes: [],
-      rowSizes: []
-    };
-
-    // Generiere columnSizes und rowSizes - alle gleich groß (1fr)
-    for (let i = 0; i < newGridSettings.columns; i++) {
-      newGridSettings.columnSizes.push('1fr');
-    }
-
-    for (let i = 0; i < newGridSettings.rows; i++) {
-      newGridSettings.rowSizes.push('1fr');
-    }
-
-    currentConfig.gridSettings = newGridSettings;
-
-    try {
-      const response = await fetch(`/api/config?instance=${currentInstance}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentConfig)
-      });
-
-      if (response.ok) {
-        await loadConfig();
-        renderPreview();
-        showNotification('✓ Grid-Einstellungen gespeichert!', 'success');
-      }
-    } catch (error) {
-      console.error('Fehler beim Speichern der Grid-Einstellungen:', error);
-      alert('Fehler beim Speichern der Grid-Einstellungen.');
-    }
-  });
-
-  // Hilfsfunktion: Aktualisiere die aktive Layout-Ansicht.
-  // Beide Namen zeigen auf dieselbe Arbeit - renderPreview() steht an vierzehn
-  // Stellen, refreshActiveLayoutView an sieben.
-  function refreshActiveLayoutView() {
-    renderPreview();
-  }
-
-  // Mache Funktionen global verfügbar
+  // Mache Funktionen global verfuegbar
   window.applyLayoutMode = applyLayoutMode;
   window.getLayoutMode = getLayoutMode;
   window.setLayoutMode = setLayoutMode;
   window.refreshActiveLayoutView = refreshActiveLayoutView;
 }
 
-// ==================== VISUAL EDITOR ====================
+// ==================== LAYOUT-EDITOREN ====================
 
-// Ein Editor, nicht zwei. Vorher gab es visualEditorDesktop und
-// visualEditorMobile fuer zwei Behaelter, die es im Markup beide nicht gab.
-// visualEditor selbst ist schon oben deklariert.
+// visualEditor haelt den freien Editor; der Name steht noch an ein paar
+// Stellen. zonenEditor die grobe Ansicht.
 let zonenEditor = null;
 
 /**
- * Zonen einmalig in echte Rasterkoordinaten umrechnen.
+ * Alles einmalig auf freie Positionen in Prozent umrechnen.
  *
- * Solange ALLE Module auf Zonen stehen, ersetzt der Renderer das eingestellte
- * Raster durch das 3x3-Zonenraster (siehe buildGridCSS). Wer 6x12 einstellt,
- * sieht davon nichts - genau der Widerspruch zwischen Einstellungen und
- * Editor, der jahrelang zu sehen war.
+ * Zonen und Rasterangaben bleiben sonst, was sie sind, und der freie Editor
+ * müsste zwei fremde Formate mitdenken. Ein Format, überall dasselbe:
  *
- * Beim Wechsel ins freie Raster werden Zonen deshalb umgerechnet. Die Flaeche
- * bleibt dieselbe: eine Zone belegt ein Drittel, und ein Drittel von zwoelf
- * Zeilen sind vier. Danach ist jedes Modul frei verschiebbar.
+ *     position: { x: '12%', y: '4%', width: '40%', height: '28%' }
+ *
+ * Die Fläche bleibt dabei dieselbe — eine Zone ist ein Drittel, und ein
+ * Drittel sind rund 33 Prozent. Danach lässt sich jedes Modul frei ziehen.
  */
-function uebernehmeZonenInsRaster() {
+function uebernehmeInsFreie() {
   const zonen = window.MMZonen;
-  if (!zonen || !currentConfig || !Array.isArray(currentConfig.modules)) return 0;
+  if (!currentConfig || !Array.isArray(currentConfig.modules)) return 0;
 
   const raster = currentConfig.gridSettings || {};
   const spalten = Math.max(1, Number(raster.columns) || 3);
   const zeilen = Math.max(1, Number(raster.rows) || 3);
 
-  const faktorSpalte = spalten / zonen.ZONEN_RASTER.columns;
-  const faktorZeile = zeilen / zonen.ZONEN_RASTER.rows;
-
   let umgerechnet = 0;
 
   for (const modul of currentConfig.modules) {
-    const zonenId = zonen.alsZone(modul.position);
-    if (!zonenId) continue;   // hat schon eine eigene Rasterposition
+    const p = modul.position;
 
-    const feld = zonen.gitter(zonenId);
-    const groesse = zonen.groesse(modul.position);
-    const z = zonen.zone(zonenId);
-    if (!feld || !z) continue;
+    // Schon frei: nichts zu tun.
+    if (p && typeof p === 'object' && (p.x !== undefined || p.y !== undefined)) continue;
 
-    const spalte = Math.round((feld.col - 1) * faktorSpalte) + 1;
-    const zeile = Math.round((feld.row - 1) * faktorZeile) + 1;
+    let flaeche = null;
 
-    // "unten" geht ueber die ganze Breite - das steht als 1/-1 in der Zone und
-    // nicht in colSpan. Ohne diesen Fall waere das Modul nach dem Umrechnen
-    // nur noch ein Drittel breit.
-    const breite = feld.volleBreite
-      ? spalten
-      : Math.max(1, Math.round(groesse.colSpan * faktorSpalte));
-    const hoehe = Math.max(1, Math.round(groesse.rowSpan * faktorZeile));
+    const zonenId = zonen && zonen.alsZone(p);
+    if (zonenId) {
+      const feld = zonen.gitter(zonenId);
+      const groesse = zonen.groesse(p);
+      const dritt = 100 / 3;
 
+      flaeche = {
+        x: (feld.col - 1) * dritt,
+        y: (feld.row - 1) * dritt,
+        breite: feld.volleBreite ? 100 : Math.min(100, groesse.colSpan * dritt),
+        hoehe: Math.min(100, groesse.rowSpan * dritt)
+      };
+    } else if (p && typeof p === 'object' && p.column !== undefined && p.row !== undefined) {
+      flaeche = {
+        x: ((Number(p.column) - 1) / spalten) * 100,
+        y: ((Number(p.row) - 1) / zeilen) * 100,
+        breite: ((Number(p.columnSpan) || 1) / spalten) * 100,
+        hoehe: ((Number(p.rowSpan) || 1) / zeilen) * 100
+      };
+    }
+
+    if (!flaeche) continue;
+
+    const runde = (wert) => Math.round(wert * 2) / 2;
     modul.position = {
-      column: Math.min(spalte, spalten),
-      row: Math.min(zeile, zeilen),
-      columnSpan: Math.min(breite, spalten - Math.min(spalte, spalten) + 1),
-      rowSpan: Math.min(hoehe, zeilen - Math.min(zeile, zeilen) + 1),
-      // Ausrichtung aus der Zone mitnehmen, damit der Inhalt liegen bleibt,
-      // wo er lag.
-      align: z.align,
-      justify: z.justify
+      x: `${runde(Math.max(0, flaeche.x))}%`,
+      y: `${runde(Math.max(0, flaeche.y))}%`,
+      width: `${runde(Math.min(100 - flaeche.x, flaeche.breite))}%`,
+      height: `${runde(Math.min(100 - flaeche.y, flaeche.hoehe))}%`
     };
 
     umgerechnet += 1;
@@ -1811,10 +1746,10 @@ function uebernehmeZonenInsRaster() {
 }
 
 function initVisualEditor() {
-  const rasterBehaelter = document.getElementById('visual-editor-container');
-  if (rasterBehaelter && !visualEditor && window.VisualGridEditor) {
-    visualEditor = new window.VisualGridEditor(
-      '#visual-editor-container',
+  const freiBehaelter = document.getElementById('frei-editor');
+  if (freiBehaelter && !visualEditor && window.FreiEditor) {
+    visualEditor = new window.FreiEditor(
+      '#frei-editor',
       currentConfig,
       async (updatedConfig) => {
         currentConfig = updatedConfig;

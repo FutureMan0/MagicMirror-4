@@ -95,8 +95,8 @@
             <div class="layout-modus" id="layout-modus" role="group">
               <button type="button" class="layout-modus-knopf" data-modus="zonen"
                       data-i18n="layoutZones">Zonen</button>
-              <button type="button" class="layout-modus-knopf" data-modus="raster"
-                      data-i18n="layoutFreeGrid">Freies Raster</button>
+              <button type="button" class="layout-modus-knopf" data-modus="frei"
+                      data-i18n="layoutFree">Frei</button>
             </div>
             <button type="button" class="btn-secondary" id="toggle-live-view"
                     data-i18n="livePreview">Live-Vorschau</button>
@@ -120,7 +120,7 @@
           </div>
 
           <div id="zonen-editor"></div>
-          <div id="visual-editor-container" hidden></div>
+          <div id="frei-editor" hidden></div>
         </section>
 
       <!-- Tab 3: Mobile App Store (Fallback for mobile) -->
@@ -249,44 +249,10 @@
             </select>
           </div>
 
-          <div class="settings-group">
-            <h3 data-i18n="gridSettings">Grid-Einstellungen</h3>
-            <div class="grid-settings-form">
-              <!-- Der Schalter zwischen Zonen und freiem Raster stand hier und
-                   zeigte auf Behaelter, die es nicht mehr gab. Er steht jetzt im
-                   Layout-Reiter, also bei dem, was er umschaltet. -->
-              <p class="form-hint" data-i18n="gridSettingsHint">Gilt für das freie Raster im Layout-Reiter.</p>
-
-              <div class="form-row"
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <label style="display: flex; flex-direction: column;">
-                  <span data-i18n="columns" style="margin-bottom: 5px;">Spalten:</span>
-                  <input type="number" id="grid-columns" min="1" max="10" value="3"
-                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
-                </label>
-                <label style="display: flex; flex-direction: column;">
-                  <span data-i18n="rows" style="margin-bottom: 5px;">Zeilen:</span>
-                  <input type="number" id="grid-rows" min="1" max="10" value="3"
-                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
-                </label>
-              </div>
-              <div class="form-row"
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <label style="display: flex; flex-direction: column;">
-                  <span data-i18n="gap" style="margin-bottom: 5px;">Abstand (px):</span>
-                  <input type="number" id="grid-gap" min="0" max="50" value="12"
-                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
-                </label>
-                <label style="display: flex; flex-direction: column;">
-                  <span data-i18n="padding" style="margin-bottom: 5px;">Padding (px):</span>
-                  <input type="number" id="grid-padding" min="0" max="50" value="12"
-                    style="padding: 8px; border: 1px solid var(--border-color, #333); background: var(--bg-secondary, #1a1a1a); color: var(--text-primary); border-radius: 4px;">
-                </label>
-              </div>
-              <button id="save-grid-settings-btn" class="btn-primary" data-i18n="applyGridSettings">Grid-Einstellungen
-                anwenden</button>
-            </div>
-          </div>
+          <!-- Hier stand ein Formular fuer Spalten, Zeilen, Abstand und Rand.
+               Es schrieb gridSettings, und weil das Layout ueber Zonen oder
+               freie Positionen laeuft, las das niemand mehr. Ein Feld, das
+               nichts bewirkt, ist schlimmer als keins. -->
 
           <div class="settings-group" id="update-group">
             <h3 data-i18n="update">Update</h3>
@@ -346,7 +312,7 @@
   <script src="zone-editor.js"></script>
   <script src="module-browser.js"></script>
   <script src="screen.js"></script>
-  <script src="visual-editor.js"></script>
+  <script src="free-editor.js"></script>
   <script src="app.js"></script>
   <script src="control.js"></script>
   <script src="privacy.js"></script>

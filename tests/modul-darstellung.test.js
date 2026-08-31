@@ -64,8 +64,12 @@ test('unsinnige Faktoren werden zurechtgebogen statt übernommen', () => {
 test('der Renderer setzt beide Faktoren am Rahmen', () => {
   const quelle = lies('src/renderer/renderer.js');
 
-  assert.match(quelle, /setProperty\('--mm-modul-scale'/);
+  assert.match(quelle, /setProperty\(\s*'--mm-modul-scale'/);
   assert.match(quelle, /setProperty\('--mm-font-scale'/);
+
+  // Bei freier Platzierung ist die gezogene Fläche die Fläche: ein Zoom darauf
+  // würde sie vergrößern und das Modul aus seiner Position schieben.
+  assert.match(quelle, /freiPlatziert \? '1' :/);
   // Auch beim punktuellen Abgleich, nicht nur beim Komplettaufbau: sonst
   // wirkt der Regler erst nach einem Neustart des Spiegels.
   assert.match(quelle, /for \(const \{ key, entry \} of \(changes\.restyled \|\| \[\]\)\)/);

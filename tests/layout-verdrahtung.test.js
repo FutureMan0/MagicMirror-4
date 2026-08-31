@@ -20,7 +20,7 @@ const WEBUI = path.join(ROOT, 'src/webui/public');
 
 const SKRIPTE = [
   'app.js', 'control.js', 'privacy.js', 'screen.js',
-  'module-browser.js', 'zone-editor.js', 'visual-editor.js', 'pwa.js', 'auth.js'
+  'module-browser.js', 'zone-editor.js', 'free-editor.js', 'pwa.js', 'auth.js'
 ];
 
 function quellen() {
@@ -74,10 +74,10 @@ test('der Layout-Editor hat einen Behälter im Markup', () => {
 
   // Die beiden Ansichten des Layout-Reiters. Fehlt eine, ist der zugehörige
   // Modusknopf ein Knopf ohne Wirkung.
-  assert.match(html, /id="visual-editor-container"/, 'das freie Raster hat keinen Behälter');
+  assert.match(html, /id="frei-editor"/, 'das freie Positionieren hat keinen Behälter');
   assert.match(html, /id="zonen-editor"/, 'der Zonen-Editor hat keinen Behälter');
 
-  for (const modus of ['zonen', 'raster']) {
+  for (const modus of ['zonen', 'frei']) {
     assert.match(
       html,
       new RegExp(`data-modus="${modus}"`),
@@ -86,18 +86,17 @@ test('der Layout-Editor hat einen Behälter im Markup', () => {
   }
 });
 
-test('das Rasterformular wirkt auf den Editor, den es meint', () => {
+test('der Layout-Reiter haengt nicht mehr am Rasterformular', () => {
   const app = fs.readFileSync(path.join(WEBUI, 'app.js'), 'utf8');
+  const html = fs.readFileSync(path.join(WEBUI, 'index.html'), 'utf8');
 
-  // Das Formular schrieb gridSettings, und niemand zeichnete danach neu.
-  const speichern = app.slice(app.indexOf('save-grid-settings-btn'));
-  assert.match(
-    speichern.slice(0, 3000),
-    /renderPreview\(\)/,
-    'nach dem Speichern der Rastereinstellungen wird nicht neu gezeichnet'
-  );
+  // Die Modusverwaltung lag in initGridSettings() und begann mit
+  // `if (!saveBtn) return;`. Als das Formular verschwand, wäre damit der
+  // gesamte Layout-Reiter still ausgefallen.
+  assert.match(app, /function initLayoutReiter\(\)/);
+  assert.doesNotMatch(app, /getElementById\('save-grid-settings-btn'\)/);
+  assert.doesNotMatch(html, /id="grid-columns"/, 'das wirkungslose Formular steht noch im Markup');
 });
-
 
 test('der Kanal haengt nicht am Cookie allein', () => {
   const client = fs.readFileSync(path.join(WEBUI, 'ws-client.js'), 'utf8');

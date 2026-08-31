@@ -2895,3 +2895,178 @@ body {
   border-bottom: 2px solid var(--bg-darker);
   opacity: 0.75;
 }
+
+
+/* ==================== Freies Positionieren ==================== */
+
+.frei-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.frei-kopf,
+.frei-werkzeug {
+  align-self: stretch;
+}
+
+.frei-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.frei-schalter {
+  appearance: none;
+  border: 1px solid var(--border-color, #333);
+  background: var(--bg-secondary, #1a1a1a);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.frei-schalter.an {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--text-primary);
+  border-color: var(--accent-cyan);
+}
+
+.frei-hinweis {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+/* Die Fläche selbst. Im Querformat richtet sie sich nach der Breite, im
+   Hochformat nach der Höhe - sonst wäre sie auf einem Telefon zwei
+   Bildschirme hoch. `align-items: center` am Editor sorgt dafür, dass sie
+   sich im Hochformat nicht doch auf volle Breite streckt. */
+.frei-buehne {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--vorschau-format, 16 / 9);
+  background: #000;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 10px;
+  overflow: hidden;
+  /* Kein Wischen der Seite, während man ein Modul zieht. */
+  touch-action: none;
+}
+
+.frei-buehne.hochkant {
+  width: auto;
+  height: min(56vh, 700px);
+  max-width: 100%;
+}
+
+.frei-spiegel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.frei-spiegel-bild {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+.frei-modul {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+  padding: 6px;
+  border: 2px solid rgba(0, 212, 255, 0.55);
+  border-radius: 8px;
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--text-primary);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.frei-modul.gewaehlt {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.22);
+  box-shadow: 0 0 0 1px var(--accent-cyan), 0 6px 20px rgba(0, 0, 0, 0.5);
+  z-index: 5;
+}
+
+.frei-modul.zieht {
+  cursor: grabbing;
+  opacity: 0.85;
+  z-index: 10;
+}
+
+.frei-modul-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.frei-modul-masse {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+/* Der Griff sitzt in der Ecke und ragt bewusst ein Stück heraus - innen
+   liegend trifft ihn kein Finger, ohne das Modul zu verschieben. */
+.frei-griff {
+  position: absolute;
+  right: -9px;
+  bottom: -9px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-darker, #0d0d0d);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+@media (pointer: coarse) {
+  .frei-griff {
+    width: 30px;
+    height: 30px;
+    right: -13px;
+    bottom: -13px;
+  }
+}
+
+.frei-werkzeug {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 10px;
+  background: var(--bg-secondary, #1a1a1a);
+}
+
+.frei-werkzeug-titel {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.frei-werkzeug .darstellung-zeile input[type="range"] {
+  background: transparent;
+}

@@ -269,7 +269,18 @@ function darstellungsFaktor(wert) {
  */
 function wendeDarstellungAn(element, entry) {
   const darstellung = (entry && entry.appearance) || {};
-  element.style.setProperty('--mm-modul-scale', String(darstellungsFaktor(darstellung.scale)));
+  const p = entry && entry.position;
+  const freiPlatziert = p && typeof p === 'object'
+    && (p.x !== undefined || p.y !== undefined);
+
+  // Bei freier Platzierung ist die gezogene Flaeche die Flaeche. Ein Zoom
+  // darauf wuerde sie vergroessern und das Modul aus seiner Position schieben -
+  // "Groesse" heisst dort schlicht: die Ecke weiter ziehen. Die Schriftgroesse
+  // bleibt, sie betrifft nur den Inhalt.
+  element.style.setProperty(
+    '--mm-modul-scale',
+    freiPlatziert ? '1' : String(darstellungsFaktor(darstellung.scale))
+  );
   element.style.setProperty('--mm-font-scale', String(darstellungsFaktor(darstellung.fontScale)));
 }
 

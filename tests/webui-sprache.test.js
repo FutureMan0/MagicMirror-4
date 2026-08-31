@@ -85,7 +85,7 @@ test('kein sichtbarer Text im Markup läuft an der Übersetzung vorbei', () => {
 });
 
 test('kein sichtbarer Text wird fest aus JavaScript geschrieben', () => {
-  const dateien = ['app.js', 'control.js', 'privacy.js', 'visual-editor.js'];
+  const dateien = ['app.js', 'control.js', 'privacy.js', 'free-editor.js'];
   const offen = [];
 
   for (const name of dateien) {
