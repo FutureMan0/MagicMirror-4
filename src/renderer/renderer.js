@@ -436,7 +436,7 @@ async function renderModules() {
         );
 
         if (result.element) {
-          moduleContainer.appendChild(result.element);
+          setzeInhalt(moduleContainer, result.element);
         } else if (result.headless) {
           // Modul ohne Anzeige: kein leerer Container im Raster.
           moduleContainer.remove();
@@ -678,6 +678,27 @@ function vermesseModule() {
   return messwerte;
 }
 
+/**
+ * Den Inhalt eines Moduls einhaengen - samt Huelle fuer die Einpassung.
+ *
+ * Beide Aufbauwege muessen hier durch. Genau daran ist die Einpassung beim
+ * ersten Versuch gescheitert: remountModule() setzte die Huelle, der
+ * Komplettaufbau in renderModules() nicht - und der Komplettaufbau ist der
+ * Normalfall. Am Spiegel gab es die Huelle deshalb nie, und die Uhr blieb
+ * abgeschnitten.
+ */
+function setzeInhalt(container, element) {
+  // Die Huelle laesst das Modul selbst unangetastet - so kann es weiter
+  // eigene transform-Angaben setzen (der Tonarm der Schallplatte tut das).
+  const huelle = document.createElement('div');
+  huelle.className = 'mm-fit';
+  huelle.appendChild(element);
+  container.appendChild(huelle);
+
+  beobachtePassung(container, huelle);
+  requestAnimationFrame(() => passeEin(container));
+}
+
 /** Baut genau ein Modul neu auf, ohne die übrigen anzufassen. */
 async function remountModule(key, entry, container) {
   moduleLoader.destroyInstance(key);
@@ -693,16 +714,7 @@ async function remountModule(key, entry, container) {
     );
 
     if (result.element) {
-      // Zwischenschicht fuer die Einpassung. Das Modul selbst bleibt
-      // unangetastet - so kann es weiter eigene transform-Angaben setzen
-      // (der Tonarm der Schallplatte tut das).
-      const huelle = document.createElement('div');
-      huelle.className = 'mm-fit';
-      huelle.appendChild(result.element);
-      container.appendChild(huelle);
-
-      beobachtePassung(container, huelle);
-      requestAnimationFrame(() => passeEin(container));
+      setzeInhalt(container, result.element);
     } else if (result.headless) {
       container.remove();
       rendered.delete(key);

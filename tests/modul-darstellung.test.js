@@ -135,3 +135,17 @@ test('kein Modul schreibt eine feste Schriftgröße am Faktor vorbei', () => {
     'feste Schriftgrößen gehören in calc(… * var(--mm-font-scale, 1)) oder auf ein --mm-size-Token'
   );
 });
+
+
+test('beide Aufbauwege haengen den Inhalt gleich ein', () => {
+  const quelle = lies('src/renderer/renderer.js');
+
+  // Der erste Versuch der Einpassung scheiterte genau hier: remountModule()
+  // setzte die Hülle, der Komplettaufbau nicht - und der Komplettaufbau ist
+  // der Normalfall. Am Spiegel gab es sie deshalb nie.
+  const direkt = quelle.match(/(?:container|moduleContainer)\.appendChild\(result\.element\)/g) || [];
+  assert.deepEqual(direkt, [], 'ein Aufbauweg haengt das Modul ohne Hülle ein');
+
+  const ueberDenHelfer = quelle.match(/setzeInhalt\(/g) || [];
+  assert.ok(ueberDenHelfer.length >= 3, 'nicht beide Aufbauwege gehen über setzeInhalt()');
+});
