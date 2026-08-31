@@ -25,8 +25,8 @@ async function withHub(authStub, run) {
   }
 }
 
-function connect(port, headers = {}) {
-  return new WebSocket(`ws://127.0.0.1:${port}/ws`, { headers });
+function connect(port, headers = {}, abfrage = '') {
+  return new WebSocket(`ws://127.0.0.1:${port}/ws${abfrage}`, { headers });
 }
 
 function nextMessage(socket) {
@@ -168,4 +168,87 @@ test('abgemeldete Themen werden nicht mehr zugestellt', async () => {
 
     socket.close();
   });
+});
+
+
+/**
+ * Eintrittskarten für den Kanal.
+ *
+ * Der Fehler kam vom Gerät: auf dem iPhone hing im Layout-Reiter das orange
+ * Band „Keine Verbindung zum Spiegel — Änderungen sind vorübergehend
+ * gesperrt", und damit ließ sich nichts mehr speichern. HTTP funktionierte
+ * tadellos; iOS Safari schickt den Sitzungs-Cookie beim WebSocket-Upgrade
+ * aber nicht mit, wenn die Oberfläche als App auf dem Startbildschirm liegt.
+ *
+ * Deshalb ein zweiter Weg herein, der nicht am Cookie hängt.
+ */
+const fs = require('node:fs');
+const os = require('node:os');
+const { Auth } = require(path.join(ROOT, 'src/main/auth.js'));
+
+/** Eine Auth-Instanz mit eigenem Verzeichnis, wie in tests/auth.test.js. */
+function macheAuth() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mm4-ws-'));
+  const env = {};
+  delete process.env.MM_AUTH;
+
+  return new Auth({
+    configDir: dir,
+    envPath: path.join(dir, '.env'),
+    readEnv: () => ({ ...env }),
+    writeEnv: (vars) => Object.assign(env, vars)
+  });
+}
+
+function nurKarte(auth) {
+  // Kein Cookie, kein Loopback-Freibrief: genau die Lage auf dem Telefon.
+  return {
+    isAuthenticated: () => false,
+    consumeWsTicket: (t) => auth.consumeWsTicket(t)
+  };
+}
+
+test('eine Eintrittskarte laesst den Kanal zu', async () => {
+  const auth = macheAuth();
+  const karte = auth.createWsTicket();
+
+  await withHub(nurKarte(auth), async ({ port }) => {
+    const socket = connect(port, {}, `?ticket=${karte}`);
+    socket.on('open', () => socket.send(JSON.stringify({ type: 'hello', clientId: 'a' })));
+
+    const nachricht = await nextMessage(socket);
+    assert.equal(nachricht.type, 'welcome');
+    socket.close();
+  });
+});
+
+test('eine Karte gilt genau einmal', async () => {
+  const auth = macheAuth();
+  const karte = auth.createWsTicket();
+
+  assert.equal(auth.consumeWsTicket(karte), true);
+  // Ein zweiter Verbindungsaufbau mit derselben Karte darf nicht durchkommen -
+  // sie steht in der Adresse und landet damit in jeder Protokollzeile.
+  assert.equal(auth.consumeWsTicket(karte), false);
+});
+
+test('ohne Karte und ohne Cookie bleibt der Kanal zu', async () => {
+  const auth = macheAuth();
+
+  await withHub(nurKarte(auth), async ({ port }) => {
+    const socket = connect(port);
+    await assert.rejects(nextMessage(socket).then(m => {
+      // Die Fehlermeldung kommt noch vor dem Schliessen.
+      assert.equal(m.payload.code, 'unauthorized');
+      throw Object.assign(new Error('abgewiesen'), { code: CLOSE_UNAUTHORIZED });
+    }));
+  });
+});
+
+test('erfundene Karten werden nicht angenommen', () => {
+  const auth = macheAuth();
+
+  assert.equal(auth.consumeWsTicket('deadbeef'), false);
+  assert.equal(auth.consumeWsTicket(''), false);
+  assert.equal(auth.consumeWsTicket(undefined), false);
 });

@@ -31,8 +31,14 @@ body {
   max-width: 1400px;
   margin: 0 auto;
   padding: 15px;
-  padding-bottom: 80px;
-  /* Platz für Bottom-Nav auf Mobile */
+
+  /* viewport-fit=cover laesst die Seite unter die Statusleiste laufen. Ohne
+     diesen Abstand lag die Ueberschrift auf einem iPhone im App-Modus direkt
+     unter der Uhrzeit - beide Texte uebereinander. */
+  padding-top: calc(15px + env(safe-area-inset-top));
+
+  /* Platz für die Leiste unten, samt Bereich fuer den Home-Balken. */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
 }
 
 /* Mobile-First: Kompakter Header */
@@ -1262,6 +1268,24 @@ body {
   font-size: 1.2rem;
 }
 
+/* Am Telefon nimmt die Werkzeugleiste sonst zwei hohe Zeilen ein - und die
+   fehlen der Leinwand darunter. */
+@media (max-width: 560px) {
+  .editor-toolbar {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .editor-toolbar button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .editor-grid-info {
+    font-size: 0.8rem;
+  }
+}
+
 /* Editor Canvas */
 .visual-editor-canvas {
   background: #000000;
@@ -1929,7 +1953,9 @@ body {
 .live-view-frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  /* Nur bis app.js gemessen hat - danach stehen Breite und Höhe als
+     Inline-Angaben, weil sie an der Drehung hängen. */
+  aspect-ratio: var(--vorschau-format, 16 / 9);
   margin-inline: auto;
   background: #000;
   overflow: hidden;

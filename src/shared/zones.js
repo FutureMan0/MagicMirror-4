@@ -142,6 +142,43 @@
     };
   }
 
+  /**
+   * Zu welcher Zone gehört eine Rasterangabe?
+   *
+   * Die Gegenrichtung zur Umrechnung im Layout-Editor. Sobald ein Modul dort
+   * einmal angefasst wurde, steht in seiner Position Spalte und Zeile — der
+   * Zonen-Editor zeigte es dann in *keiner* Zone mehr, das Raster blieb leer
+   * und daneben stand nur „eigene Position". Beide Ansichten sollen dieselben
+   * Module zeigen, auch wenn nur eine von ihnen sie genau abbilden kann.
+   *
+   * Gewählt wird die Zone, in der der Mittelpunkt des Moduls liegt.
+   */
+  function zoneFuerPlatzierung(position, gridSettings) {
+    if (!position || typeof position !== 'object') return null;
+    if (position.column === undefined || position.row === undefined) return null;
+
+    const spalten = Math.max(1, Number(gridSettings?.columns) || ZONEN_RASTER.columns);
+    const zeilen = Math.max(1, Number(gridSettings?.rows) || ZONEN_RASTER.rows);
+
+    // Mittelpunkt in Rasterfeldern, dann auf das 3x3-Grundraster gerechnet.
+    const mitteSpalte = (Number(position.column) - 1) + (Number(position.columnSpan) || 1) / 2;
+    const mitteZeile = (Number(position.row) - 1) + (Number(position.rowSpan) || 1) / 2;
+
+    const spalte = Math.min(3, Math.max(1,
+      Math.floor((mitteSpalte / spalten) * ZONEN_RASTER.columns) + 1));
+    const zeile = Math.min(3, Math.max(1,
+      Math.floor((mitteZeile / zeilen) * ZONEN_RASTER.rows) + 1));
+
+    // Die unterste Reihe ist eine einzige Zone über die ganze Breite.
+    if (zeile === 3) return 'unten';
+
+    const treffer = ZONEN.find(z => Number(z.gridRow) === zeile
+      && !z.gridColumn.includes('/')
+      && Number(z.gridColumn) === spalte);
+
+    return treffer ? treffer.id : null;
+  }
+
   /** Beschriftung in der gewünschten Sprache. */
   function zonenLabel(id, sprache = 'de') {
     const z = zone(id);
@@ -184,7 +221,8 @@
     };
   }
 
-  const api = { ZONEN, ZONEN_RASTER, istZone, zone, alsZone, groesse, gitter, zonenLabel, platzierung, ALTE_NAMEN };
+  const api = {
+    zoneFuerPlatzierung, ZONEN, ZONEN_RASTER, istZone, zone, alsZone, groesse, gitter, zonenLabel, platzierung, ALTE_NAMEN };
 
   if (typeof window !== 'undefined') window.MMZonen = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

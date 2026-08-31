@@ -46,12 +46,39 @@ function createWsHub({
   }
 
   wss.on('connection', (socket, request) => {
-    // Dieselbe Prüfung wie auf der HTTP-Seite: Session-Cookie oder Loopback.
-    if (auth && !auth.isAuthenticated({
+    // Drei Wege herein, in dieser Reihenfolge:
+    //
+    //   1. Loopback - die Module holen ihre Daten von der eigenen Adresse.
+    //   2. Eine Eintrittskarte in der Adresse (?ticket=). Die braucht es, weil
+    //      iOS Safari den Sitzungs-Cookie beim WebSocket-Upgrade nicht
+    //      mitschickt, wenn die Oberflaeche als App auf dem Startbildschirm
+    //      liegt: HTTP ging, der Kanal nicht, und die Oberflaeche sperrte
+    //      daraufhin jede Aenderung.
+    //   3. Der Sitzungs-Cookie, wie auf der HTTP-Seite.
+    const anfrage = {
       headers: request.headers,
       socket: request.socket,
       path: '/ws'
-    })) {
+    };
+
+    let ticket = null;
+    try {
+      ticket = new URL(request.url, 'http://localhost').searchParams.get('ticket');
+    } catch {
+      // Keine auswertbare Adresse - dann bleibt es beim Cookie.
+    }
+
+    const willkommen = (auth ? auth.isAuthenticated(anfrage) : true)
+      || (ticket && auth && auth.consumeWsTicket(ticket));
+
+    if (!willkommen) {
+      // Absichtlich mit Hinweis, welche Nachweise fehlten: ohne diese Zeile
+      // sah man am Geraet nur "keine Verbindung" und hatte nichts in der Hand.
+      console.warn('[ws] abgewiesen von %s (Cookie: %s, Karte: %s)',
+        request.socket.remoteAddress,
+        request.headers.cookie ? 'ja' : 'nein',
+        ticket ? 'ungueltig' : 'keine');
+
       send(socket, { type: 'error', payload: { code: 'unauthorized' } });
       socket.close(CLOSE_UNAUTHORIZED, 'nicht angemeldet');
       return;

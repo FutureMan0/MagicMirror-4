@@ -169,3 +169,54 @@ test('die Drehung wirkt auch bei laufendem Spiegel', () => {
     'applyConfig wendet die Drehung nicht an - dann greift sie erst nach '
     + 'einem Neustart');
 });
+
+
+/**
+ * Hin und zurück.
+ *
+ * Der Layout-Editor rechnet Zonen in Rasterkoordinaten um, damit sich Module
+ * frei platzieren lassen. Danach zeigte der Zonen-Editor sie in *keiner* Zone
+ * mehr: das Raster war leer, daneben stand nur „eigene Position". Beide
+ * Ansichten müssen dieselben Module zeigen.
+ */
+test('eine umgerechnete Zone findet zu sich zurueck', () => {
+  const raster = { columns: 6, rows: 12 };
+  const fS = raster.columns / zonen.ZONEN_RASTER.columns;
+  const fZ = raster.rows / zonen.ZONEN_RASTER.rows;
+
+  for (const z of zonen.ZONEN) {
+    const feld = zonen.gitter(z.id);
+    const groesse = zonen.groesse({});
+
+    const spalte = Math.round((feld.col - 1) * fS) + 1;
+    const zeile = Math.round((feld.row - 1) * fZ) + 1;
+    const breite = feld.volleBreite
+      ? raster.columns
+      : Math.max(1, Math.round(groesse.colSpan * fS));
+    const hoehe = Math.max(1, Math.round(groesse.rowSpan * fZ));
+
+    const zurueck = zonen.zoneFuerPlatzierung(
+      { column: spalte, row: zeile, columnSpan: breite, rowSpan: hoehe },
+      raster
+    );
+
+    assert.equal(zurueck, z.id, `${z.id} landet nach dem Umrechnen bei ${zurueck}`);
+  }
+});
+
+test('eine Rasterangabe ohne Zone ergibt trotzdem eine', () => {
+  const raster = { columns: 6, rows: 12 };
+
+  // Irgendwohin geschoben - der Zonen-Editor soll das Modul trotzdem zeigen.
+  assert.equal(zonen.zoneFuerPlatzierung({ column: 1, row: 1 }, raster), 'oben-links');
+  assert.equal(zonen.zoneFuerPlatzierung({ column: 6, row: 1 }, raster), 'oben-rechts');
+  assert.equal(zonen.zoneFuerPlatzierung({ column: 3, row: 6 }, raster), 'mitte');
+  assert.equal(zonen.zoneFuerPlatzierung({ column: 2, row: 11 }, raster), 'unten');
+});
+
+test('eine Zonenangabe bleibt eine Zonenangabe', () => {
+  // Nur Rasterangaben werden zurückgerechnet - eine Zone ist schon eine.
+  assert.equal(zonen.zoneFuerPlatzierung('oben-links', { columns: 6, rows: 12 }), null);
+  assert.equal(zonen.zoneFuerPlatzierung(null, { columns: 6, rows: 12 }), null);
+  assert.equal(zonen.zoneFuerPlatzierung({ zone: 'mitte' }, { columns: 6, rows: 12 }), null);
+});

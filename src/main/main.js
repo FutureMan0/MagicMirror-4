@@ -361,6 +361,15 @@ function startWebServer() {
   // Ab hier ist alles unter /api geschuetzt.
   expressApp.use('/api', auth.middleware(['/auth/']));
 
+  // Eintrittskarte fuer den WebSocket. Steht hinter der Absicherung: nur wer
+  // ueber HTTP angemeldet ist, bekommt eine.
+  expressApp.get('/api/auth/ws-ticket', (req, res) => {
+    if (!auth.isAuthenticated(req)) {
+      return res.status(401).json({ error: 'Nicht angemeldet.' });
+    }
+    res.json({ ticket: auth.createWsTicket() });
+  });
+
   // --- Privatsphaere und Gesten ------------------------------------------
 
   const readConfig = () => new ConfigManager(instanceName).loadConfig();

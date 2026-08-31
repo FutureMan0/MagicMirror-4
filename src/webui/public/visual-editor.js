@@ -210,16 +210,21 @@ class VisualGridEditor {
     //
     // Im Querformat ist die Breite mit 100% festgelegt und die Hoehe frei -
     // dort greift aspect-ratio wie erwartet.
+    // Am Telefon stehen ueber der Leinwand Kopf, Reiter, Modusschalter und
+    // Werkzeugleiste, darunter die Navigationsleiste. Mit 70vh ragte sie unten
+    // heraus - im Bild war das unterste Modul angeschnitten.
+    const platz = this.isMobile ? '52vh' : '70vh';
+
     return hoch
       ? [
-        '--leinwand-hoehe: min(70vh, 760px);',
+        `--leinwand-hoehe: min(${platz}, 760px);`,
         'height: var(--leinwand-hoehe);',
         'width: calc(var(--leinwand-hoehe) * 9 / 16);',
         'aspect-ratio: 9 / 16;',
         'margin-inline: auto;',
         'min-height: 0;'
       ].join(' ')
-      : 'aspect-ratio: 16 / 9; width: 100%; min-height: 0;';
+      : `aspect-ratio: 16 / 9; width: 100%; max-height: min(${platz}, 760px); min-height: 0;`;
   }
 
   render() {

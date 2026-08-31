@@ -97,3 +97,41 @@ test('das Rasterformular wirkt auf den Editor, den es meint', () => {
     'nach dem Speichern der Rastereinstellungen wird nicht neu gezeichnet'
   );
 });
+
+
+test('der Kanal haengt nicht am Cookie allein', () => {
+  const client = fs.readFileSync(path.join(WEBUI, 'ws-client.js'), 'utf8');
+  const hub = fs.readFileSync(path.join(ROOT, 'src/main/wsHub.js'), 'utf8');
+
+  // iOS Safari schickt den Sitzungs-Cookie beim WebSocket-Upgrade nicht mit,
+  // wenn die Oberfläche als App auf dem Startbildschirm liegt. Am Gerät hing
+  // dann dauerhaft „Keine Verbindung zum Spiegel" und nichts ließ sich
+  // speichern - während HTTP tadellos funktionierte.
+  assert.match(client, /\/api\/auth\/ws-ticket/, 'der Client holt keine Eintrittskarte');
+  assert.match(client, /\?ticket=/, 'die Karte landet nicht in der Adresse');
+  assert.match(hub, /consumeWsTicket/, 'der Server nimmt keine Karte an');
+
+  // Und eine Spur, wenn es trotzdem klemmt: vorher sah man nur das Band.
+  assert.match(hub, /console\.warn\('\[ws\] abgewiesen/);
+});
+
+test('zwei Knoepfe heissen nicht gleich', () => {
+  const zonenEditor = fs.readFileSync(path.join(WEBUI, 'zone-editor.js'), 'utf8');
+  const html = fs.readFileSync(path.join(WEBUI, 'index.html'), 'utf8');
+
+  // Im Layout-Reiter standen „Live Preview" und „Live Preview" nebeneinander:
+  // einer blendet die Vorschau ein, der andere geht auf Vollbild.
+  assert.match(html, /id="toggle-live-view"[^>]*data-i18n="livePreview"/s);
+  assert.match(zonenEditor, /text\('fullscreen'/, 'der Vollbild-Knopf heisst noch anders');
+});
+
+test('der Kopf liegt nicht unter der Statusleiste', () => {
+  const css = fs.readFileSync(path.join(WEBUI, 'styles.css'), 'utf8');
+  const html = fs.readFileSync(path.join(WEBUI, 'index.html'), 'utf8');
+
+  // viewport-fit=cover laesst die Seite unter die Statusleiste laufen. Ohne
+  // Abstand lag die Ueberschrift auf dem iPhone auf der Uhrzeit.
+  assert.match(html, /viewport-fit=cover/);
+  assert.match(css, /padding-top:\s*calc\(15px \+ env\(safe-area-inset-top\)\)/);
+  assert.match(css, /padding-bottom:\s*calc\(88px \+ env\(safe-area-inset-bottom\)\)/);
+});

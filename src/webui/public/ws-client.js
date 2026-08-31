@@ -21,6 +21,7 @@
   let reconnectTimer = null;
   let connected = false;
   let banner = null;
+  let verbindet = false;
 
   // 'config:*', nicht 'config': das Ereignis heisst config:changed, und ein
   // Muster ohne :* trifft nur den exakten Namen. Sonst kommt nie etwas an.
@@ -47,7 +48,9 @@
     if (banner) return;
     banner = document.createElement('div');
     banner.className = 'mm-offline-banner';
-    banner.textContent = 'Keine Verbindung zum Spiegel — Änderungen sind vorübergehend gesperrt.';
+    banner.textContent = typeof t === 'function'
+      ? (t('offlineBanner') || 'Keine Verbindung zum Spiegel.')
+      : 'Keine Verbindung zum Spiegel — Änderungen sind vorübergehend gesperrt.';
     document.body.appendChild(banner);
   }
 
@@ -84,13 +87,45 @@
     reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_MS);
   }
 
-  function connect() {
+  /**
+   * Eine Eintrittskarte fuer den Kanal holen.
+   *
+   * iOS Safari schickt den Sitzungs-Cookie beim WebSocket-Upgrade nicht mit,
+   * wenn die Oberflaeche als App auf dem Startbildschirm liegt. HTTP ging
+   * dabei tadellos - der Kanal wurde trotzdem abgewiesen, und weil dieser
+   * Client bei fehlender Verbindung jede Aenderung sperrt, liess sich am
+   * Telefon nichts mehr speichern.
+   *
+   * Die Karte kommt ueber HTTP (dort ist der Cookie da), gilt dreissig
+   * Sekunden und genau einmal.
+   */
+  async function holeKarte() {
+    try {
+      const antwort = await fetch('/api/auth/ws-ticket', { credentials: 'same-origin' });
+      if (!antwort.ok) return null;
+      return (await antwort.json()).ticket || null;
+    } catch {
+      // Kein Netz. Der Versuch scheitert gleich ohnehin, der Backoff greift.
+      return null;
+    }
+  }
+
+  async function connect() {
+    if (verbindet) return;
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
       return;
     }
 
+    // Die Sperre gilt ueber das Holen der Karte hinweg: sonst legen zwei
+    // Ausloeser (Sichtbarkeit und Backoff) zwei Verbindungen an.
+    verbindet = true;
+    const karte = await holeKarte();
+    verbindet = false;
+
     const scheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    socket = new WebSocket(`${scheme}//${window.location.host}/ws`);
+    const adresse = `${scheme}//${window.location.host}/ws`
+      + (karte ? `?ticket=${encodeURIComponent(karte)}` : '');
+    socket = new WebSocket(adresse);
 
     socket.addEventListener('open', () => {
       reconnectDelay = RECONNECT_MIN_MS;

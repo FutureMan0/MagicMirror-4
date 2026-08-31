@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const SESSION_COOKIE = 'mm4_session';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;   // 30 Tage
+const WS_TICKET_TTL_MS = 30 * 1000;                // 30 Sekunden
 const PAIRING_TTL_MS = 60 * 1000;                  // 60 Sekunden
 const PAIRING_MIN_INTERVAL_MS = 5 * 1000;          // Rate-Limit pro IP
 
@@ -36,6 +37,10 @@ class Auth {
 
     this.enabled = process.env.MM_AUTH !== 'off';
     this.sessions = this._loadSessions();
+
+    // Nur im Speicher: eine Eintrittskarte lebt dreissig Sekunden, die muss
+    // keinen Neustart ueberstehen.
+    this.wsTickets = new Map();
     this.pairing = null;
     this.lastPairingRequest = new Map();
 
@@ -114,6 +119,40 @@ class Auth {
       delete this.sessions[id];
       this._persistSessions();
     }
+  }
+
+  // --- Eintrittskarten fuer den WebSocket ----------------------------------
+  //
+  // Warum nicht einfach der Sitzungs-Cookie: den schickt iOS Safari bei einem
+  // WebSocket-Upgrade nicht mit, wenn die Oberflaeche als App auf dem
+  // Startbildschirm liegt. HTTP funktionierte dabei tadellos - der Spiegel
+  // meldete trotzdem "keine Verbindung", und weil die Oberflaeche dann jede
+  // Aenderung sperrt, liess sich nichts mehr speichern.
+  //
+  // Die Karte wird nur an eine angemeldete Sitzung ausgegeben, gilt dreissig
+  // Sekunden und genau einmal. Sie steht damit zwar in der Adresse - aber sie
+  // ist nach dem Verbinden verbraucht, und laenger als der Verbindungsaufbau
+  // lebt sie nicht.
+  createWsTicket() {
+    const ticket = crypto.randomBytes(24).toString('hex');
+    this.wsTickets.set(ticket, Date.now() + WS_TICKET_TTL_MS);
+
+    // Abgelaufene mitnehmen, damit die Ablage nicht unbegrenzt waechst.
+    for (const [wert, ablauf] of this.wsTickets) {
+      if (ablauf <= Date.now()) this.wsTickets.delete(wert);
+    }
+
+    return ticket;
+  }
+
+  consumeWsTicket(ticket) {
+    if (!ticket) return false;
+
+    const ablauf = this.wsTickets.get(ticket);
+    // Einmal und nicht wieder: auch ein abgelaufener Wert wird entfernt.
+    this.wsTickets.delete(ticket);
+
+    return typeof ablauf === 'number' && ablauf > Date.now();
   }
 
   // --- Kopplung ------------------------------------------------------------

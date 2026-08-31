@@ -304,7 +304,7 @@ function setupLiveView() {
    */
   function rescale() {
     const wrapper = frame.parentElement;
-    if (!wrapper) return;
+    if (!wrapper || section.hidden) return;
 
     const v = window.Bildschirm?.vorschau(currentInstance)
       || { breite: MIRROR_WIDTH, hoehe: MIRROR_HEIGHT };
@@ -314,15 +314,26 @@ function setupLiveView() {
     frame.style.width = `${breite}px`;
     frame.style.height = `${hoehe}px`;
 
+    // Am Abschnitt messen und nicht am Rahmen: dessen Breite setzen wir gleich
+    // selbst, und wer sein eigenes Ergebnis misst, kommt nie zur Ruhe.
+    const platz = section.clientWidth || wrapper.clientWidth;
+    if (!platz) return;
+
     // Hochkant ist die Hoehe der Engpass und nicht die Breite: auf volle
     // Spaltenbreite gerechnet waere die Vorschau fast zwei Bildschirme hoch.
-    const platz = (wrapper.parentElement || wrapper).clientWidth;
-    const maxHoehe = Math.round(window.innerHeight * 0.7);
+    const maxHoehe = Math.round(window.innerHeight * 0.6);
     const scale = Math.min(platz / breite, maxHoehe / hoehe);
 
     wrapper.style.width = `${Math.round(breite * scale)}px`;
     wrapper.style.height = `${Math.round(hoehe * scale)}px`;
     wrapper.style.setProperty('--live-view-scale', String(scale));
+  }
+
+  // Einmal messen genuegt nicht: beim Einblenden steht die Breite des
+  // Abschnitts im selben Durchlauf noch nicht fest, und ein Drehen des
+  // Telefons aendert sie wieder. Der Beobachter zieht beides nach.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(() => rescale()).observe(section);
   }
 
   function apply() {
@@ -335,6 +346,9 @@ function setupLiveView() {
       // zweiter Spiegel samt aller Netzabfragen mit.
       if (frame.getAttribute('src') !== url()) frame.setAttribute('src', url());
       rescale();
+      // Noch einmal im naechsten Bild: erst dann steht das Layout des gerade
+      // eingeblendeten Abschnitts.
+      requestAnimationFrame(rescale);
       if (hint) hint.textContent = t('livePreviewHint');
     } else {
       frame.removeAttribute('src');

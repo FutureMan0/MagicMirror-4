@@ -68,7 +68,15 @@
 
     /** Die aktuell gewählte Zone eines Moduls. */
     zoneVon(modul) {
-      return window.MMZonen.alsZone(modul.position) || null;
+      const zonen = window.MMZonen;
+
+      // Erst die echte Zone. Steht dort eine Rasterangabe - weil das Modul im
+      // freien Raster angefasst wurde -, dann die Zone, in der sein
+      // Mittelpunkt liegt. Ohne das blieb das Zonenraster leer, sobald jemand
+      // einmal im freien Raster gearbeitet hatte.
+      return zonen.alsZone(modul.position)
+        || zonen.zoneFuerPlatzierung(modul.position, this.config?.gridSettings)
+        || null;
     }
 
     sprache() {
@@ -110,7 +118,10 @@
       const vollbild = document.createElement('button');
       vollbild.type = 'button';
       vollbild.className = 'btn-primary zonen-vollbild';
-      vollbild.textContent = this.text('livePreview', 'Live-Vorschau');
+      // Nicht "Live-Vorschau": so heisst schon der Schalter im Kopf des
+      // Layout-Reiters, und zwei gleich beschriftete Knoepfe nebeneinander
+      // sind keine Auswahl, sondern ein Raetsel. Dieser hier macht Vollbild.
+      vollbild.textContent = this.text('fullscreen', 'Vollbild');
       vollbild.addEventListener('click', () => this.zeigeVollbild());
 
       kopf.append(hintergrund, vollbild);
