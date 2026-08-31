@@ -345,6 +345,70 @@ body {
   height: 20px;
 }
 
+/* Größe und Schriftgröße je Modul.
+   Beschriftung, Regler und Wert in einer Zeile - der Wert muss neben dem
+   Regler stehen, sonst zieht man ins Blaue. */
+.darstellung-zeile {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) 1fr minmax(52px, auto);
+  align-items: center;
+  gap: 10px;
+}
+
+.darstellung-zeile label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Ein Schieberegler braucht weder Rahmen noch Innenabstand - die Regel für
+   .form-group input gibt ihm beides. */
+.form-group .darstellung-zeile input[type="range"] {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--accent-cyan);
+}
+
+.darstellung-zeile output {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* Ein ausgegrauter Regler ist einer, der gerade nichts bewirkt - der
+   Bildversatz ist aus, oder die Nachtabsenkung. */
+.darstellung-zeile input:disabled,
+.burnin-zeitraum input:disabled {
+  opacity: 0.4;
+}
+
+.darstellung-zeile:has(input:disabled) label,
+.darstellung-zeile:has(input:disabled) output {
+  opacity: 0.4;
+}
+
+/* Von-Bis in einer Zeile. */
+.burnin-zeitraum {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.burnin-zeitraum label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.form-group .burnin-zeitraum input[type="time"] {
+  padding: 8px;
+  font-size: 0.9rem;
+}
+
 .settings-actions {
   display: flex;
   gap: 10px;
@@ -1706,11 +1770,15 @@ body {
 
 /* Der Spiegel läuft in seiner echten Auflösung und wird als Ganzes skaliert.
    Ein einfach verkleinerter iframe würde stattdessen ein Handy-Layout zeigen -
-   also gerade nicht das, was am Spiegel zu sehen ist. */
+   also gerade nicht das, was am Spiegel zu sehen ist.
+
+   Breite und Höhe setzt app.js, sobald der Rahmen sichtbar ist: sie hängen an
+   der Drehung. Die Angaben hier gelten nur bis dahin. */
 .live-view-frame {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+  margin-inline: auto;
   background: #000;
   overflow: hidden;
 }

@@ -12,6 +12,12 @@ let rendered = new Map();
 let gridEl = null;
 let absoluteEl = null;
 
+// Vorschau-Rahmen, die bereits das Format des gedrehten Panels mitbringen,
+// haengen rotate=off an die Adresse. Der Renderer laesst seine eigene Drehung
+// dann weg - sonst waere es die zweite Drehung auf denselben Inhalt und der
+// Text laege quer im Hochformat.
+let drehungAus = false;
+
 // Wetter-Effekte werden erst erzeugt, wenn ein Modul sie tatsächlich anfordert.
 // Vorher lief hier beim Start unbedingt ein vollflächiger Canvas mit, auch wenn
 // gar kein Wetter-Modul aktiv war.
@@ -73,7 +79,13 @@ function getLegacyGridPosition(positionName, gridSettings) {
 function wendeDrehungAn(config) {
   const erlaubt = [0, 90, 180, 270];
   const grad = Number(config?.display?.rotation) || 0;
-  document.documentElement.dataset.rotate = String(erlaubt.includes(grad) ? grad : 0);
+
+  // Die Live-Ansicht im Konfigurator zeigt, was an der Wand steht, und gibt
+  // ihrem Rahmen dafuer selbst das Hochformat. Dort waere diese Drehung die
+  // zweite auf denselben Inhalt.
+  document.documentElement.dataset.rotate = drehungAus
+    ? '0'
+    : String(erlaubt.includes(grad) ? grad : 0);
 }
 
 function buildGridCSS(gridSettings, config) {
@@ -217,6 +229,33 @@ async function applyTheme() {
   await window.mmThemeEngine.applyTheme(themeId, meta);
 }
 
+/**
+ * Ein Faktor fuer Groesse oder Schriftgroesse. Unsinn faellt auf 1 zurueck.
+ *
+ * Die Grenzen stehen hier und nicht nur in der Oberflaeche: die
+ * Konfiguration laesst sich auch von Hand schreiben, und ein Modul mit
+ * Faktor 40 waere nicht "gross", sondern weg.
+ */
+function darstellungsFaktor(wert) {
+  const zahl = Number(wert);
+  if (!Number.isFinite(zahl) || zahl <= 0) return 1;
+  return Math.min(3, Math.max(0.5, zahl));
+}
+
+/**
+ * Groesse und Schriftgroesse eines einzelnen Moduls.
+ *
+ * Beides sind Darstellungswerte des Kerns, keine Einstellungen des Moduls -
+ * deshalb liegen sie neben `config` und nicht darin. Ein Modul, das nichts
+ * davon weiss, skaliert trotzdem mit: die Arbeit macht CSS ueber
+ * --mm-modul-scale und --mm-font-scale (siehe .module-container in main.css).
+ */
+function wendeDarstellungAn(element, entry) {
+  const darstellung = (entry && entry.appearance) || {};
+  element.style.setProperty('--mm-modul-scale', String(darstellungsFaktor(darstellung.scale)));
+  element.style.setProperty('--mm-font-scale', String(darstellungsFaktor(darstellung.fontScale)));
+}
+
 /** Baut den Rahmen eines Moduls samt seiner Attribute. */
 function createModuleContainer(moduleConfig) {
   const element = document.createElement('div');
@@ -231,6 +270,8 @@ function createModuleContainer(moduleConfig) {
 
   // Optionale Modulseite - nur gesetzt, wenn die Konfiguration eine nennt.
   if (moduleConfig.page) element.dataset.page = String(moduleConfig.page);
+
+  wendeDarstellungAn(element, moduleConfig);
 
   return element;
 }
@@ -335,6 +376,7 @@ async function renderModules() {
     // Grid-CSS dynamisch anwenden
     buildGridCSS(config.gridSettings, config);
     wendeDrehungAn(config);
+    window.mmEinbrennschutz?.anwenden(config);
 
     if (!moduleLoader) {
       moduleLoader = new window.RendererModuleLoader();
@@ -435,6 +477,10 @@ async function applyConfig(nextConfig) {
   // wirksam, an der Wand nicht.
   wendeDrehungAn(nextConfig);
 
+  // Ebenso der Einbrennschutz: er haengt an config.display und nicht an einem
+  // Modul, taucht im Abgleich also gar nicht auf.
+  window.mmEinbrennschutz?.anwenden(nextConfig);
+
   // Sprache betrifft jedes Modul - da lohnt der Abgleich nicht.
   if (changes.language) return renderModules();
 
@@ -457,6 +503,22 @@ async function applyConfig(nextConfig) {
     if (!current) continue;
 
     placeModuleContainer(current.container, entry);
+    wendeDarstellungAn(current.container, entry);
+    current.entry = entry;
+  }
+
+  // Nur Groesse oder Schriftgroesse: zwei CSS-Variablen am Rahmen. Das Modul
+  // selbst merkt davon nichts und muss weder neu gebaut noch gefragt werden.
+  //
+  // Die Rueckfallebene ist kein Schmuck: reconciler.js und renderer.js kommen
+  // beide ueber HTTP, und der Browser kann die eine aus dem Zwischenspeicher
+  // nehmen und die andere frisch holen. Ein alter Abgleich kennt restyled
+  // nicht, und for..of ueber undefined wuerde den ganzen Aufbau abbrechen.
+  for (const { key, entry } of (changes.restyled || [])) {
+    const current = rendered.get(key);
+    if (!current) continue;
+
+    wendeDarstellungAn(current.container, entry);
     current.entry = entry;
   }
 
@@ -468,6 +530,7 @@ async function applyConfig(nextConfig) {
     const decision = window.mmReconciler.decide(instance, change.entry, change.changed);
 
     if (change.moved) placeModuleContainer(current.container, change.entry);
+    wendeDarstellungAn(current.container, change.entry);
     current.entry = change.entry;
 
     if (decision === 'patch') {
@@ -642,6 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams(window.location.search);
     const instance = params.get('instance');
     const isPreview = params.get('preview') === '1';
+    drehungAus = params.get('rotate') === 'off';
 
     if (isPreview) {
       // In der Vorschau nicht dimmen - sonst sieht man ein fast schwarzes

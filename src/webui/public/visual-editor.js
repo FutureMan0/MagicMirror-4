@@ -46,6 +46,10 @@ class VisualGridEditor {
       this.render();
     });
 
+    // Dreht sich die Anzeige, dreht sich der Editor mit. screen.js meldet das,
+    // sobald die Auswahl steht - nicht erst nach dem Speichern.
+    document.addEventListener('mm:drehung', () => this.render());
+
     // Initial Render
     this.render();
   }
@@ -163,6 +167,44 @@ class VisualGridEditor {
     return this.config.modules || [];
   }
 
+  /**
+   * Das Format, in dem der Editor das Raster zeigt.
+   *
+   * Der Renderer setzt den Inhalt bei 90 und 270 Grad in ein hochkantes Feld
+   * (100vh breit, 100vw hoch) und kippt dieses Feld erst danach in den
+   * liegenden Bildspeicher. Die Rasterkoordinaten sind damit bereits
+   * Wandkoordinaten - Spalte 1 ist die Spalte, die an der Wand links steht.
+   * Der Editor muss sie deshalb nur im richtigen Format zeigen.
+   *
+   * Die Leinwand selbst zu drehen waere falsch: das waere die zweite Drehung
+   * auf denselben Inhalt, und der Spiegel dreht nur einmal.
+   */
+  leinwandFormat() {
+    const hoch = window.Bildschirm ? window.Bildschirm.hochkant(this.config) : false;
+
+    // min-height muss weg: die 500 bzw. 600 Pixel aus dem Stylesheet wuerden
+    // sonst das Seitenverhaeltnis wieder aufheben.
+    //
+    // Im Hochformat wird die Breite ausgerechnet und nicht dem
+    // Seitenverhaeltnis ueberlassen: die Leinwand ist ein Block-Element, und
+    // dort heisst width:auto "so breit wie der Platz" - aspect-ratio kommt
+    // dagegen nicht an. Die Leinwand waere volle Breite und 760 Pixel hoch
+    // gewesen, also gerade wieder liegend.
+    //
+    // Im Querformat ist die Breite mit 100% festgelegt und die Hoehe frei -
+    // dort greift aspect-ratio wie erwartet.
+    return hoch
+      ? [
+        '--leinwand-hoehe: min(70vh, 760px);',
+        'height: var(--leinwand-hoehe);',
+        'width: calc(var(--leinwand-hoehe) * 9 / 16);',
+        'aspect-ratio: 9 / 16;',
+        'margin-inline: auto;',
+        'min-height: 0;'
+      ].join(' ')
+      : 'aspect-ratio: 16 / 9; width: 100%; min-height: 0;';
+  }
+
   render() {
     if (!this.canvas) return;
 
@@ -190,6 +232,7 @@ class VisualGridEditor {
       grid-template-rows: ${rowTemplate};
       gap: ${gridSettings.gap}px;
       padding: ${gridSettings.padding || 20}px;
+      ${this.leinwandFormat()}
     `;
 
     console.log('Canvas Grid Template:', columnTemplate, rowTemplate);
@@ -205,10 +248,14 @@ class VisualGridEditor {
       this.renderModule(module, index);
     });
 
-    // Grid-Info aktualisieren
+    // Grid-Info aktualisieren. Die Drehung steht dabei, weil das Hochformat
+    // sonst wie ein Fehler aussieht - man sieht ein schmales Feld und weiss
+    // nicht, warum.
     const gridInfo = this.toolbar?.querySelector('.editor-grid-info');
     if (gridInfo) {
-      gridInfo.textContent = `${t('editorGrid')} ${gridSettings.columns}×${gridSettings.rows}`;
+      const grad = window.Bildschirm ? window.Bildschirm.drehung(this.config) : 0;
+      const raster = `${t('editorGrid')} ${gridSettings.columns}×${gridSettings.rows}`;
+      gridInfo.textContent = grad ? `${raster} · ${grad}°` : raster;
     }
   }
 

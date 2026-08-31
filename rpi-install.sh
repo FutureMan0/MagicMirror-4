@@ -44,11 +44,11 @@ if [ "$EXISTING_INSTALL" -eq 1 ] && [ -f "$INSTALL_DIR/ecosystem.config.js" ]; t
 fi
 
 # 1. Update System
-echo -e "${GREEN}[1/7] Updating system...${NC}"
+echo -e "${GREEN}[1/9] Updating system...${NC}"
 apt update && apt upgrade -y
 
 # 2. Install Dependencies
-echo -e "${GREEN}[2/7] Installing dependencies...${NC}"
+echo -e "${GREEN}[2/9] Installing dependencies...${NC}"
 apt install -y \
   curl git build-essential whiptail \
   xserver-xorg x11-xserver-utils xinit openbox unclutter \
@@ -69,7 +69,7 @@ if [ "$ASK_KEEP_ECOSYSTEM" -eq 1 ]; then
 fi
 
 # 3. Install Node.js (Latest LTS)
-echo -e "${GREEN}[3/7] Installing Node.js...${NC}"
+echo -e "${GREEN}[3/9] Installing Node.js...${NC}"
 NODE_MAJOR_REQUIRED=22
 CURRENT_NODE_MAJOR="$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)"
 
@@ -85,7 +85,7 @@ fi
 # Abhaengigkeit mehr - kein Uebersetzer, kein electron-rebuild, kein ABI.
 
 # 4. Install Project Dependencies
-echo -e "${GREEN}[4/7] Installing MagicMirror⁴ dependencies...${NC}"
+echo -e "${GREEN}[4/9] Installing MagicMirror⁴ dependencies...${NC}"
 # --omit=dev: eslint und electron-builder werden auf dem Pi nie gebraucht,
 # machen aber gut zwei Drittel aller Pakete aus. Auf einer schwachen
 # WLAN-Verbindung entscheidet das darueber, ob die Installation ueberhaupt
@@ -114,7 +114,7 @@ if [ ! -f ".env" ] && [ -f ".env.example" ]; then
 fi
 
 # 5. Setup PM2
-echo -e "${GREEN}[5/7] Setting up PM2...${NC}"
+echo -e "${GREEN}[5/9] Setting up PM2...${NC}"
 if ! command -v pm2 &> /dev/null; then
     npm install -g pm2
 fi
@@ -203,7 +203,7 @@ if [ "$CHOICE" != "keep" ]; then
 fi
 
 # 7. Setup Autostart (Kiosk X11 + pm2-runtime)
-echo -e "${GREEN}[6/7] Setting up Kiosk Autostart (X11 + pm2-runtime)...${NC}"
+echo -e "${GREEN}[6/9] Setting up Kiosk Autostart (X11 + pm2-runtime)...${NC}"
 
 # Install helper scripts and systemd unit
 install -d "$INSTALL_DIR/scripts/rpi"
@@ -234,6 +234,11 @@ done
 xset s off       2>/dev/null || true
 xset -dpms       2>/dev/null || true
 xset s noblank   2>/dev/null || true
+
+# Hintergrund in der Farbe des Spiegels (--mm-color-bg). Ohne das liegt
+# zwischen dem Bootlogo und dem ersten Bild des Renderers das graue
+# Karomuster von X - genau die Sekunden, in denen man hinsieht.
+xsetroot -solid '#05080C' 2>/dev/null || true
 
 # Hide cursor after 0.1s idle
 unclutter -idle 0.1 -root &
@@ -306,6 +311,30 @@ sudo -u $REAL_USER git config --global --add safe.directory "$INSTALL_DIR"
 
 # Kiosk mode tweaks are applied inside the X session script (mm-xsession.sh)
 
+# 8. Boot logo in the display's rotation
+#
+# Rotates the IMAGE, not the framebuffer: a framebuffer rotated via
+# video=...,rotate= would also rotate X, and the mirror rotates once more via
+# CSS on top of that - it would end up sideways.
+echo -e "${GREEN}[7/9] Setting up boot logo...${NC}"
+chmod +x "$INSTALL_DIR/scripts/rpi/boot-splash.sh" 2>/dev/null || true
+if ! "$INSTALL_DIR/scripts/rpi/boot-splash.sh"; then
+    echo -e "${YELLOW}Boot logo could not be set up - continuing.${NC}"
+fi
+
+# 9. Lock Wi-Fi to 2.4 GHz
+#
+# Takes effect on the next connection, not immediately: if this installation is
+# running over SSH on a 5 GHz link, switching now would drop the session in the
+# middle of the run.
+echo -e "${GREEN}[8/9] Locking Wi-Fi to 2.4 GHz...${NC}"
+chmod +x "$INSTALL_DIR/scripts/rpi/wifi-24ghz.sh" 2>/dev/null || true
+if ! "$INSTALL_DIR/scripts/rpi/wifi-24ghz.sh"; then
+    echo -e "${YELLOW}Wi-Fi band could not be locked - continuing.${NC}"
+fi
+
+echo -e "${GREEN}[9/9] Done.${NC}"
+
 echo -e "${BLUE}==============================================${NC}"
 echo -e "${GREEN}   Installation Complete!${NC}"
 echo -e "${BLUE}==============================================${NC}"
@@ -313,6 +342,8 @@ echo -e "The MagicMirror will now start automatically on boot (systemd -> X11 ki
 echo -e "Note: ${BLUE}HDMI-0${NC} is the port closer to the USB-C power input."
 echo -e "You can manage the processes with: ${BLUE}pm2 list${NC} (inside the kiosk session)"
 echo -e "View logs with: ${BLUE}journalctl -u mm-kiosk -f${NC} or ${BLUE}pm2 logs${NC}"
+echo -e "Boot logo:      ${BLUE}sudo ./scripts/rpi/boot-splash.sh --aus${NC} to revert"
+echo -e "Wi-Fi band:     ${BLUE}sudo ./scripts/rpi/wifi-24ghz.sh --pruefen${NC} to check"
 echo -e "Web Interface: ${BLUE}http://$(hostname -I | awk '{print $1}'):3000${NC}"
 echo -e "${BLUE}==============================================${NC}"
 

@@ -44,7 +44,10 @@
     grid-template-rows: var(--grid-row-template, auto 1fr 1fr);
     width: 100%;
     height: 100%;
-    padding: var(--grid-padding, var(--mm-space-4));
+    /* Die Reserve ist die Weite des Bildversatzes (siehe burnIn.js). Ohne sie
+       schöbe der Versatz genau so viel Inhalt über den Rand, wie er wandert -
+       am oberen Rand fehlten dann die obersten Pixel der Uhrzeit. */
+    padding: calc(var(--grid-padding, var(--mm-space-4)) + var(--mm-shift-reserve, 0px));
     gap: var(--grid-gap, var(--mm-space-4));
     align-items: stretch;
     box-sizing: border-box;
@@ -78,10 +81,40 @@
     box-shadow: var(--mm-surface-shadow);
     backdrop-filter: var(--mm-surface-filter);
     transition: opacity var(--mm-dur-normal) var(--mm-ease-standard);
-    max-height: 100%;
     overflow: auto;
     min-width: 0;
-    max-width: 100%;
+
+    /* --- Größe und Schriftgröße je Modul -----------------------------------
+
+       Zwei Regler, zwei Wirkungen:
+
+       * Größe (--mm-modul-scale) über zoom. Nicht über transform: scale() -
+         das lässt die Kachel ihren alten Platz belegen und die vergrößerte
+         Uhr läge über dem Nachbarn. zoom rechnet auch rem mit, ein transform
+         nicht die Umbrüche.
+       * Schriftgröße (--mm-font-scale) über die Größen-Tokens. Sie werden
+         hier neu belegt, damit der Faktor am Modul aufgelöst wird und nicht
+         auf :root - siehe die Begründung in tokens.css.
+
+       Ein Theme, das eine Größe verstellen will, belegt --mm-size-*-quelle
+       neu, nicht --mm-size-*: die Zeile hier gewinnt sonst gegen das Theme,
+       weil sie am Element selbst steht und nicht geerbt wird. */
+    zoom: var(--mm-modul-scale, 1);
+
+    /* Durch den Faktor teilen: sonst bezöge sich 100% auf die Rasterfläche
+       in ungezoomten Pixeln und ein vergrößertes Modul träte aus seiner
+       Zelle heraus. So bleibt das Raster das Raster. */
+    max-height: calc(100% / var(--mm-modul-scale, 1));
+    max-width: calc(100% / var(--mm-modul-scale, 1));
+
+    --mm-size-xs:   calc(var(--mm-size-xs-quelle)   * var(--mm-font-scale, 1));
+    --mm-size-sm:   calc(var(--mm-size-sm-quelle)   * var(--mm-font-scale, 1));
+    --mm-size-base: calc(var(--mm-size-base-quelle) * var(--mm-font-scale, 1));
+    --mm-size-lg:   calc(var(--mm-size-lg-quelle)   * var(--mm-font-scale, 1));
+    --mm-size-xl:   calc(var(--mm-size-xl-quelle)   * var(--mm-font-scale, 1));
+    --mm-size-2xl:  calc(var(--mm-size-2xl-quelle)  * var(--mm-font-scale, 1));
+    --mm-size-3xl:  calc(var(--mm-size-3xl-quelle)  * var(--mm-font-scale, 1));
+    --mm-size-4xl:  calc(var(--mm-size-4xl-quelle)  * var(--mm-font-scale, 1));
   }
 
   /* Scrollbar-Optik. Sichtbar wird sie nur, wenn ein Modul überläuft. */
@@ -217,6 +250,35 @@
   .untis-error,
   .untis-empty {
     text-align: center;
+  }
+}
+
+/*
+ * Einbrennschutz: Bildversatz und Absenkung.
+ *
+ * Der Versatz läuft über die eigenständige translate-Eigenschaft, nicht über
+ * transform. In transform sitzt bereits die Drehung, und eine zweite
+ * transform-Angabe würde sie ersetzen statt sich dazuzumischen. translate,
+ * rotate und scale werden als Einzeleigenschaften VOR transform angewandt -
+ * beide Angaben bestehen damit nebeneinander.
+ *
+ * Über Abstände oder Positionen zu verschieben wäre der falsche Weg: das
+ * berechnet den Umbruch neu, und in den Modulen starten dabei die
+ * Endlos-Animationen der Themes wieder bei Frame 0 - genau das Ruckeln, das
+ * die Uhr schon einmal verursacht hat. translate läuft im Compositor.
+ *
+ * Die Absenkung läuft über Deckkraft und nicht über filter: brightness().
+ * Gegen die schwarze Grundfläche des Spiegels wirkt beides gleich, aber
+ * Deckkraft kostet keine eigene Filterstufe - auf einem Pi ist das der
+ * Unterschied.
+ */
+@layer base {
+  #modules-container {
+    translate: var(--mm-shift-x, 0px) var(--mm-shift-y, 0px);
+    opacity: var(--mm-luminanz, 1);
+    transition:
+      translate var(--mm-dur-drift) var(--mm-ease-standard),
+      opacity var(--mm-dur-slow) var(--mm-ease-standard);
   }
 }
 

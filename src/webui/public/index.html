@@ -139,6 +139,60 @@
             <div id="screen-outputs" class="screen-outputs"></div>
           </div>
 
+          <!-- Einbrennschutz: betrifft das Panel und nicht den Inhalt - also
+               hierher neben die Drehung und nicht ins Layout. -->
+          <div class="settings-group" id="burnin-group">
+            <h3 data-i18n="burnIn">Einbrennschutz</h3>
+
+            <div class="form-group">
+              <div class="form-group-checkbox">
+                <input type="checkbox" id="burnin-shift">
+                <span data-i18n="burnInShift">Bildversatz</span>
+              </div>
+              <p class="form-hint" data-i18n="burnInShiftHint">Der Inhalt wandert alle paar Minuten um wenige Pixel weiter. Auf einem OLED verhindert das, dass sich die Uhrzeit dauerhaft ins Panel brennt.</p>
+
+              <div class="darstellung-zeile">
+                <label for="burnin-range" data-i18n="burnInRange">Weite</label>
+                <input type="range" id="burnin-range" min="2" max="24" step="2">
+                <output for="burnin-range"></output>
+              </div>
+
+              <div class="darstellung-zeile">
+                <label for="burnin-interval" data-i18n="burnInInterval">Takt</label>
+                <input type="range" id="burnin-interval" min="1" max="30" step="1">
+                <output for="burnin-interval"></output>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="darstellung-zeile">
+                <label for="burnin-brightness" data-i18n="burnInBrightness">Helligkeit</label>
+                <input type="range" id="burnin-brightness" min="15" max="100" step="5">
+                <output for="burnin-brightness"></output>
+              </div>
+
+              <div class="form-group-checkbox">
+                <input type="checkbox" id="burnin-night">
+                <span data-i18n="burnInNight">Nachts absenken</span>
+              </div>
+
+              <div class="darstellung-zeile">
+                <label for="burnin-night-brightness" data-i18n="burnInNightBrightness">Nachts</label>
+                <input type="range" id="burnin-night-brightness" min="5" max="100" step="5">
+                <output for="burnin-night-brightness"></output>
+              </div>
+
+              <div class="burnin-zeitraum">
+                <label for="burnin-from" data-i18n="burnInFrom">Von</label>
+                <input type="time" id="burnin-from">
+                <label for="burnin-to" data-i18n="burnInTo">Bis</label>
+                <input type="time" id="burnin-to">
+              </div>
+
+              <p class="form-hint" data-i18n="burnInBrightnessHint">Einbrennen hängt an Helligkeit mal Zeit. Ganz ausschalten lässt sich der Bildschirm hier nicht - das entscheidet die Anwesenheit.</p>
+            </div>
+          </div>
+
           <div class="settings-group">
             <h3 data-i18n="theme">Design</h3>
             <div class="theme-picker">

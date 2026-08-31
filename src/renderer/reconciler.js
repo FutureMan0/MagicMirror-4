@@ -24,6 +24,18 @@
     return JSON.stringify(entry.config ?? {});
   }
 
+  /**
+   * Größe und Schriftgröße - Darstellung des Kerns, nicht Sache des Moduls.
+   *
+   * Deshalb ein eigener Vergleich: eine geänderte Schriftgröße darf ein Modul
+   * nicht neu aufbauen lassen. Läge der Wert in `config`, entschiede
+   * onConfigChange darüber - und ohne onConfigChange hieße das Neuaufbau, also
+   * für die Uhr eine neu abgefragte Zeitzone, weil jemand am Regler gezogen hat.
+   */
+  function darstellungOf(entry) {
+    return JSON.stringify(entry.appearance ?? null);
+  }
+
   /** Welche Schlüssel unterscheiden sich zwischen zwei Konfigurationen? */
   function changedKeys(before = {}, after = {}) {
     const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
@@ -46,6 +58,7 @@
       removed: [],
       moved: [],
       patched: [],
+      restyled: [],
       rebuilt: [],
       unchanged: []
     };
@@ -79,6 +92,7 @@
 
       const moved = positionOf(old) !== positionOf(entry);
       const configChanged = configOf(old) !== configOf(entry);
+      const restyled = darstellungOf(old) !== darstellungOf(entry);
 
       if (configChanged) {
         result.patched.push({
@@ -86,10 +100,13 @@
           entry,
           previousEntry: old,
           changed: changedKeys(old.config, entry.config),
-          moved
+          moved,
+          restyled
         });
       } else if (moved) {
-        result.moved.push({ key, entry });
+        result.moved.push({ key, entry, restyled });
+      } else if (restyled) {
+        result.restyled.push({ key, entry });
       } else {
         result.unchanged.push({ key, entry });
       }
@@ -108,7 +125,8 @@
   function isEmpty(d) {
     return !d.theme && !d.grid && !d.language
       && d.added.length === 0 && d.removed.length === 0
-      && d.moved.length === 0 && d.patched.length === 0;
+      && d.moved.length === 0 && d.patched.length === 0
+      && d.restyled.length === 0;
   }
 
   /**

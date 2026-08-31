@@ -24,7 +24,8 @@
     "fonts:build": "node scripts/build-fonts.mjs",
     "check:tokens": "node scripts/check-tokens.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "icons:build": "node scripts/build-icons.mjs"
+    "icons:build": "node scripts/build-icons.mjs",
+    "logo:build": "node scripts/build-boot-logo.mjs"
   },
   "keywords": [
     "magic-mirror",

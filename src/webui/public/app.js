@@ -300,6 +300,7 @@ async function loadConfig() {
     // Die Modulkarten haengen an der Konfiguration.
     window.ModulBrowser?.zeichneKarten();
     window.Bildschirm?.zeigeDrehung();
+    window.Bildschirm?.zeigeSchutz();
     console.log('Config geladen:', currentConfig); // Debug
 
     // UI-Sprache an Config anpassen
@@ -341,16 +342,46 @@ function setupLiveView() {
   if (!section || !toggle || !frame) return;
 
   const MIRROR_WIDTH = 1920;
+  const MIRROR_HEIGHT = 1080;
   let visible = localStorage.getItem('liveViewVisible') === '1';
 
-  function url() {
-    return `/mirror/index.html?instance=${encodeURIComponent(currentInstance)}&preview=1`;
+  function hochkant() {
+    return window.Bildschirm ? window.Bildschirm.hochkant(currentConfig) : false;
   }
 
+  function url() {
+    // rotate=off: der Rahmen bringt das Format des gedrehten Panels schon mit,
+    // der Renderer soll nicht ein zweites Mal drehen.
+    return `/mirror/index.html?instance=${encodeURIComponent(currentInstance)}&preview=1&rotate=off`;
+  }
+
+  /**
+   * Rahmen und Massstab aus der Drehung.
+   *
+   * Gezeigt wird, was an der Wand steht - nicht der Bildspeicher. Steht das
+   * Panel hochkant, laeuft der Spiegel in 1080x1920 und die Vorschau ist
+   * hochkant. Andersherum saehe man den liegenden Bildspeicher mit quer
+   * liegendem Text, also gerade nicht das, was man vor sich hat.
+   */
   function rescale() {
     const wrapper = frame.parentElement;
     if (!wrapper) return;
-    const scale = wrapper.clientWidth / MIRROR_WIDTH;
+
+    const hoch = hochkant();
+    const breite = hoch ? MIRROR_HEIGHT : MIRROR_WIDTH;
+    const hoehe = hoch ? MIRROR_WIDTH : MIRROR_HEIGHT;
+
+    frame.style.width = `${breite}px`;
+    frame.style.height = `${hoehe}px`;
+
+    // Hochkant ist die Hoehe der Engpass und nicht die Breite: auf volle
+    // Spaltenbreite gerechnet waere die Vorschau fast zwei Bildschirme hoch.
+    const platz = (wrapper.parentElement || wrapper).clientWidth;
+    const maxHoehe = Math.round(window.innerHeight * 0.7);
+    const scale = Math.min(platz / breite, maxHoehe / hoehe);
+
+    wrapper.style.width = `${Math.round(breite * scale)}px`;
+    wrapper.style.height = `${Math.round(hoehe * scale)}px`;
     wrapper.style.setProperty('--live-view-scale', String(scale));
   }
 
@@ -380,6 +411,12 @@ function setupLiveView() {
   });
 
   window.addEventListener('resize', rescale);
+
+  // Die Drehung aendert das Format des Rahmens. Der Inhalt im iframe richtet
+  // sich allein danach - neu laden muss man ihn dafuer nicht.
+  document.addEventListener('mm:drehung', () => {
+    if (visible) rescale();
+  });
 
   // Beim Wechsel der Instanz die andere Anzeige zeigen.
   document.getElementById('instance-select')?.addEventListener('change', () => {
@@ -709,6 +746,25 @@ function selectModule(index) {
   }
 }
 
+/**
+ * Ein Regler von 50 bis 200 Prozent.
+ *
+ * Gespeichert wird ein Faktor (1 = unveraendert), angezeigt werden Prozent:
+ * "120 %" versteht man, "1.2" muss man sich uebersetzen.
+ */
+function darstellungsRegler(name, beschriftung, wert) {
+  const zahl = Number(wert);
+  const prozent = Math.round((Number.isFinite(zahl) && zahl > 0 ? zahl : 1) * 100);
+
+  return `
+    <div class="darstellung-zeile">
+      <label for="${name}">${beschriftung}</label>
+      <input type="range" id="${name}" name="${name}"
+             min="50" max="200" step="5" value="${prozent}">
+      <output for="${name}">${prozent} %</output>
+    </div>`;
+}
+
 function showModuleSettings(moduleConfig, moduleInfo) {
   const settingsSection = document.getElementById('settings-section');
   const moduleSettings = document.getElementById('module-settings');
@@ -751,6 +807,18 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   }
   html += '</div>';
 
+  // Groesse und Schriftgroesse.
+  //
+  // Sie stehen hier oben bei der Position und nicht zwischen den Werten aus
+  // dem Manifest, weil sie dem Kern gehoeren und nicht dem Modul: ein Modul
+  // muss von seiner Groesse nichts wissen, damit sie sich verstellen laesst.
+  const darstellung = moduleConfig.appearance || {};
+  html += '<div class="form-group darstellung">';
+  html += `<label>${t('appearance')}</label>`;
+  html += darstellungsRegler('appearanceScale', t('moduleScale'), darstellung.scale);
+  html += darstellungsRegler('appearanceFontScale', t('moduleFontScale'), darstellung.fontScale);
+  html += `<p class="form-hint">${t('appearanceHint')}</p>`;
+  html += '</div>';
 
   // Modul-spezifische Einstellungen
   const secretFields = moduleInfo?.secretFields || [];
@@ -828,6 +896,15 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   html += '</form>';
 
   moduleSettings.innerHTML = html;
+
+  // Der Wert am Regler soll beim Ziehen mitlaufen - ohne ihn sieht man nur,
+  // dass sich etwas bewegt, aber nicht wohin.
+  for (const regler of moduleSettings.querySelectorAll('.darstellung-zeile input[type="range"]')) {
+    regler.addEventListener('input', () => {
+      const anzeige = regler.parentElement.querySelector('output');
+      if (anzeige) anzeige.textContent = `${regler.value} %`;
+    });
+  }
 
   if (moduleConfig.module === 'untis') {
     initUntisClassPicker(moduleConfig);
@@ -1170,6 +1247,14 @@ function hideSettings() {
   renderModuleList();
 }
 
+/** Formularfelder, die zum Eintrag gehoeren und nicht in seine `config`. */
+const AUSSERHALB_DER_MODULCONFIG = new Set([
+  'position',
+  'positionZone',
+  'appearanceScale',
+  'appearanceFontScale'
+]);
+
 async function saveModuleSettings() {
   if (selectedModule === null) return;
 
@@ -1190,15 +1275,38 @@ async function saveModuleSettings() {
     moduleConfig.config = {};
   }
 
+  // Groesse und Schriftgroesse gehoeren zum Rahmen, nicht in die Einstellungen
+  // des Moduls - deshalb neben `config` und nicht darin. Steht beides auf 100
+  // Prozent, faellt der Eintrag ganz weg: der Standard hat in der Datei nichts
+  // zu suchen.
+  //
+  // Erst auf null pruefen, dann umrechnen: Number(null) ist 0 und nicht NaN.
+  // Fehlten die Regler im Formular, stuende danach scale: 0 in der Datei - der
+  // Spiegel biegt das zwar zurecht, aber in der Konfiguration staende Unsinn.
+  const rohGroesse = formData.get('appearanceScale');
+  const rohSchrift = formData.get('appearanceFontScale');
+  if (rohGroesse !== null && rohSchrift !== null) {
+    const scale = Number(rohGroesse);
+    const fontScale = Number(rohSchrift);
+
+    if (!Number.isFinite(scale) || !Number.isFinite(fontScale)) {
+      // Nichts anfassen - lieber der alte Wert als ein kaputter.
+    } else if (scale === 100 && fontScale === 100) {
+      delete moduleConfig.appearance;
+    } else {
+      moduleConfig.appearance = { scale: scale / 100, fontScale: fontScale / 100 };
+    }
+  }
+
   // Speichere alle Formular-Daten
   const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
   const secretFields = moduleInfo?.secretFields || [];
 
   for (const [key, value] of formData.entries()) {
-    // positionZone gehoert zur Platzierung, nicht in die Einstellungen des
-      // Moduls. Ohne diese Ausnahme landete es als Konfigurationswert im
-      // Modul und wurde bei jedem Speichern mitgeschleppt.
-      if (key !== 'position' && key !== 'positionZone') {
+    // Platzierung und Darstellung gehoeren nicht in die Einstellungen des
+      // Moduls. Ohne diese Ausnahme landeten sie als Konfigurationswerte im
+      // Modul und wuerden bei jedem Speichern mitgeschleppt.
+      if (!AUSSERHALB_DER_MODULCONFIG.has(key)) {
       const schema = moduleInfo?.info.config?.[key];
 
       if (schema?.type === 'boolean') {

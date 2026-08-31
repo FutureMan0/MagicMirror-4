@@ -196,7 +196,7 @@
   position: absolute;
   left: 0;
   top: -10px;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--mm-font-scale, 1));
   color: var(--mm-color-danger);
   font-weight: 700;
   background: var(--mm-color-bg);
@@ -209,7 +209,7 @@
 }
 
 .untis-day-title {
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--mm-font-scale, 1));
   margin-bottom: 15px;
   color: var(--mm-color-text);
 }
@@ -222,19 +222,19 @@
 }
 
 .untis-lesson-time {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--mm-font-scale, 1));
   color: var(--mm-color-text-muted);
   margin-bottom: 5px;
 }
 
 .untis-lesson-subject {
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--mm-font-scale, 1));
   font-weight: 600;
   margin-bottom: 5px;
 }
 
 .untis-lesson-details {
-  font-size: 0.85rem;
+  font-size: calc(0.85rem * var(--mm-font-scale, 1));
   color: var(--mm-color-text-muted);
 }
 
@@ -245,7 +245,7 @@
 }
 
 .untis-next-label {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--mm-font-scale, 1));
   color: var(--mm-color-text-muted);
   margin-bottom: 10px;
   text-transform: uppercase;
@@ -253,25 +253,25 @@
 }
 
 .untis-next-time {
-  font-size: 1rem;
+  font-size: calc(1rem * var(--mm-font-scale, 1));
   color: var(--mm-color-text);
   margin-bottom: 15px;
 }
 
 .untis-next-subject {
-  font-size: 2rem;
+  font-size: calc(2rem * var(--mm-font-scale, 1));
   font-weight: 600;
   margin-bottom: 10px;
 }
 
 .untis-next-details {
-  font-size: 1.1rem;
+  font-size: calc(1.1rem * var(--mm-font-scale, 1));
   color: var(--mm-color-text);
   margin-bottom: 5px;
 }
 
 .untis-next-room {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--mm-font-scale, 1));
   color: var(--mm-color-text-muted);
 }
 /* ==================== Fach-Kategorien ====================

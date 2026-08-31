@@ -11,7 +11,7 @@
  * zurückschreiben. Offline-Daten leben deshalb in der App-Schicht, sichtbar
  * als solche gekennzeichnet.
  */
-const VERSION = '29';
+const VERSION = '31';
 const SHELL_CACHE = `mm4-shell-v${VERSION}`;
 
 const SHELL_ASSETS = [

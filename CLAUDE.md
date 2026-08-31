@@ -70,6 +70,14 @@ ebenfalls automatisch endet), `this.html` (escapendes Template-Tag),
 * **Keine rohen Farben in `styles.css`.** Was nicht über ein Token läuft, kann
   kein Theme umfärben — und im Standard-Theme sieht es trotzdem richtig aus.
   `npm run check:tokens` weist das ab.
+* **Feste Schriftgrößen durchrechnen:**
+  `font-size: calc(4rem * var(--mm-font-scale, 1))`. Ein `--mm-size-*`-Token
+  ist der bessere Weg und braucht nichts weiter — es bringt den Faktor schon
+  mit. `rem` hängt dagegen an der Wurzelschrift und erreicht der Faktor nie:
+  wer ihn vergisst, baut genau die große Uhrzeit, die sich als Einzige nicht
+  verstellen lässt. `em` und `%` bleiben, wie sie sind — sie erben den bereits
+  skalierten Wert und würden den Faktor sonst ein zweites Mal anwenden.
+  `tests/modul-darstellung.test.js` wacht darüber.
 * **Keine eigenen `setInterval`.** `this.timers.every()` benutzen. Für alles
   im Sekundentakt am gemeinsamen `tick:second` hängen.
 * **Fremde Daten nur über `this.html`.** Fach-, Raum- und Lehrernamen kommen
@@ -171,6 +179,13 @@ deshalb kann `html[data-perf="low"]` jedem Theme den Blur abschalten.
 
 Alle Tokens: `src/renderer/styles/tokens.css`.
 
+**Schriftgrößen über `--mm-size-*-quelle` neu belegen, nicht über
+`--mm-size-*`.** Die Größen gibt es in zwei Ebenen: `-quelle` ist der
+Grundwert, `--mm-size-*` das, was die Module benutzen. `main.css` belegt
+`--mm-size-*` am Modulrahmen neu und rechnet dort die Schriftgröße des
+einzelnen Moduls hinein. Diese Zeile steht am Element selbst und gewinnt damit
+gegen jeden geerbten `:root`-Wert — auch gegen den eines Themes.
+
 ## Konfigurationsänderungen
 
 `src/renderer/reconciler.js` vergleicht alte und neue Konfiguration und fasst
@@ -183,6 +198,7 @@ das Wetter neu geladen und der Stundenplan neu abgefragt wurde.
 | Theme | nur Stylesheet tauschen |
 | Rastereinstellungen | nur CSS-Variablen neu setzen |
 | Modul verschoben | nur umplatzieren (Rasterposition liegt im Style, nicht in der DOM-Reihenfolge) |
+| Größe, Schriftgröße | nur zwei CSS-Variablen am Rahmen setzen |
 | Moduleinstellung | `onConfigChange` des Moduls entscheidet: patchen oder neu aufbauen |
 | Sprache | Komplettneubau — betrifft ohnehin jedes Modul |
 
@@ -190,9 +206,112 @@ Ein Modul erklärt über `static patchable = [...]`, welche Schlüssel es ohne
 Neuaufbau übernehmen kann. **Ohne `onConfigChange` wird neu aufgebaut** — der
 sichere Weg.
 
+### Größe und Schriftgröße je Modul
+
+Beides steht **neben** `config`, nicht darin:
+
+```json
+{ "module": "clock", "position": "oben-links",
+  "appearance": { "scale": 1.2, "fontScale": 0.9 } }
+```
+
+Warum nicht in `config`: dann entschiede `onConfigChange` des Moduls darüber —
+und ohne `onConfigChange` heißt das Neuaufbau. Wer am Schriftgrößen-Regler
+zieht, ließe damit die Uhr ihre Zeitzone neu holen. So ist es der Kern, der die
+Werte setzt, und ein Modul muss von seiner Größe nichts wissen.
+
+Die Größe läuft über `zoom`, nicht über `transform: scale()`: ein `transform`
+ließe die Kachel ihren alten Platz belegen, und die vergrößerte Uhr läge über
+dem Nachbarn. Damit ein vergrößertes Modul trotzdem in seiner Rasterfläche
+bleibt, teilt `main.css` `max-height`/`max-width` durch denselben Faktor.
+
+Beides fehlt oder steht auf 1 → der Eintrag entfällt beim Speichern. Der
+Standard hat in der Datei nichts zu suchen.
+
 Jeder Modul-Eintrag bekommt beim Laden eine feste `id`. Über den Array-Index
 zu vergleichen ginge nicht: ein nach oben geschobenes Modul sähe aus wie „alle
 ausgetauscht".
+
+## Drehung
+
+Sie liegt in `config.display.rotation` (0, 90, 180, 270) und wirkt als
+**CSS-Drehung im Renderer** — nicht über `xrandr` und nicht über
+`video=…,rotate=` in der `cmdline.txt`. So wirkt sie auch in der Live-Vorschau
+am Handy, sie braucht keine Rechte auf dem Gerät, und sie überlebt einen
+Wechsel des Anzeigeservers.
+
+Bei 90 und 270 Grad setzt der Renderer den Inhalt in ein hochkantes Feld
+(`100vh` breit, `100vw` hoch) und kippt erst dieses Feld in den liegenden
+Bildspeicher. **Die Rasterkoordinaten sind damit bereits Wandkoordinaten:**
+Spalte 1 ist die Spalte, die an der Wand links steht.
+
+Daraus folgt, was der Konfigurator tut — und was er *nicht* tut:
+
+| | |
+| :--- | :--- |
+| **Layout-Editor** | nimmt das Format an (hochkant bei 90/270), dreht die Leinwand aber **nicht** |
+| **Live-Ansicht** | Rahmen im Format des gedrehten Panels, Inhalt aufrecht — was an der Wand steht |
+| **Renderer in der Vorschau** | lässt seine eigene Drehung weg, wenn `rotate=off` in der Adresse steht |
+
+Eine gedrehte Leinwand wäre die **zweite** Drehung auf denselben Inhalt. Wer
+das im Editor nachrüsten will, hat den Fehler schon gemacht.
+
+`screen.js` meldet jede Änderung als `mm:drehung` an alle, die sich mitdrehen —
+und zwar **vor** dem Speichern: der Editor soll sich sofort drehen und nicht
+erst, wenn der Server geantwortet hat.
+
+## Einbrennschutz
+
+`src/renderer/burnIn.js`. Ein Spiegel zeigt rund um die Uhr fast dasselbe Bild:
+die Uhrzeit steht Jahr für Jahr an derselben Stelle. Auf einem OLED altern die
+Leuchtstoffe dort schneller, wo sie heller leuchten — das Nachbild bleibt und
+lässt sich nicht rückgängig machen.
+
+```json
+"display": {
+  "burnIn": {
+    "shift": true, "shiftRange": 8, "shiftIntervalMinutes": 5,
+    "brightness": 1,
+    "night": false, "nightBrightness": 0.4,
+    "nightFrom": "23:00", "nightTo": "06:30"
+  }
+}
+```
+
+**Der Versatz ist ohne Angabe an.** Dieselbe Regel wie bei der Privatsphäre:
+die schützende Einstellung ist die Vorgabe. Auf einem LCD schadet er nicht, auf
+einem OLED entscheidet er.
+
+Drei Dinge, an denen man sich sonst die Zähne ausbeißt:
+
+* **Der Versatz läuft über `translate`, nicht über `transform`.** In `transform`
+  sitzt bereits die Drehung, und eine zweite `transform`-Angabe würde sie
+  ersetzen statt sich dazuzumischen. `translate`, `rotate` und `scale` werden
+  als Einzeleigenschaften *vor* `transform` angewandt — beide bestehen
+  nebeneinander.
+* **Nicht über Abstände oder Positionen verschieben.** Das berechnet den Umbruch
+  neu, und in den Modulen starten dabei die Endlos-Animationen der Themes wieder
+  bei Frame 0 — genau das Ruckeln, das die Uhr schon einmal verursacht hat.
+  `translate` läuft im Compositor.
+* **Der Schritt kommt aus der Uhrzeit, nicht aus einem Zähler.** Der Spiegel
+  wird nach jedem Update neu gestartet; ein Zähler finge dann wieder bei null
+  an. Bei mehreren Updates am Tag stünde der Inhalt öfter auf Schritt 0 als
+  irgendwo sonst — also genau die Ungleichverteilung, gegen die der Versatz
+  antritt.
+
+`.modules-grid` reserviert die Versatzweite als zusätzlichen Innenabstand,
+damit nichts über den Rand geschoben wird. **Absolut platzierte Module sind
+davon nicht erfasst** — wer eine Kachel auf `x: 0` setzt, verliert beim Versatz
+ein paar Pixel.
+
+Abgesenkt wird über Deckkraft und nicht über `filter: brightness()`: gegen die
+schwarze Grundfläche wirkt beides gleich, aber Deckkraft kostet keine eigene
+Filterstufe. Ganz dunkel wird es nie — eine Anzeige, die aussieht wie
+ausgeschaltet, ist ein Defekt und keine Einstellung. Zum Abschalten gibt es
+`displayPower`.
+
+In der Vorschau wandert und dimmt nichts (die Randreserve bleibt, sonst bräche
+die Vorschau anders um als der Spiegel).
 
 ## Bildschirm an und aus
 
@@ -218,6 +337,48 @@ Electron unter `devDependencies`, würde ein Update über die Web-Oberfläche di
 Laufzeit löschen und der Spiegel käme nicht wieder hoch. Auf dem Dev-Rechner
 fällt das nie auf. `tests/dependencies.test.js` wacht darüber, und zwar für
 jedes Paket, das `src/` oder `modules/` zur Laufzeit lädt.
+
+## Auf dem Pi: Bootlogo und WLAN
+
+Zwei Skripte, die `rpi-install.sh` als Schritt 7 und 8 aufruft. Beide sind
+idempotent, legen vor der ersten Änderung eine Sicherung `*.vor-mm4` an und
+lassen sich mit `--aus` zurücknehmen. Schlägt eines fehl, läuft die
+Installation weiter — ein Spiegel ohne Bootlogo ist ein Spiegel, ein
+abgebrochener Installer ist keiner.
+
+### `scripts/rpi/boot-splash.sh`
+
+Ersetzt die vier Himbeeren durch ein Plymouth-Theme mit eigenem Logo.
+`scripts/build-boot-logo.mjs` erzeugt es — dasselbe Motiv wie die App-Icons,
+gezeichnet in einen Pixelpuffer und mit `zlib` als PNG geschrieben. Liegt
+`assets/boot/logo.png`, wird stattdessen dieses Bild genommen (`--input`);
+`scripts/lib/png.mjs` liest 8-Bit-RGB und -RGBA.
+
+**Gedreht wird das Bild, nicht der Framebuffer.** `video=…,rotate=` würde auch
+X drehen — und der Spiegel dreht danach noch einmal per CSS, er stünde quer.
+Der Bildspeicher bleibt liegend, das Logo darin ist vorgedreht. Die Drehung
+kommt aus derselben Datei, aus der sie auch der Spiegel liest.
+
+`cmdline.txt` ist **eine** Zeile; eine zweite macht den Pi unbootbar. Deshalb
+wird sie zusammengezogen, bearbeitet und als genau eine Zeile zurückgeschrieben.
+`console=tty1` wandert auf `tty3` — sonst schreiben Kernel-Meldungen über das
+Logo.
+
+### `scripts/rpi/wifi-24ghz.sh`
+
+Nagelt das WLAN auf 2,4 GHz fest: NetworkManager über
+`802-11-wireless.band bg`, ältere Systeme über `freq_list` im
+`network={…}`-Block. 5 GHz ist schneller, kommt aber schlechter durch Fliesen
+und ein verspiegeltes Glas; ein Gerät, das zwischen den Bändern springt, ist
+schlimmer als eines auf dem schwächeren, stabilen Band.
+
+**Wirkt erst beim nächsten Verbindungsaufbau.** Absichtlich: läuft die
+Installation über SSH auf 5 GHz, risse ein sofortiges Umschalten die Sitzung
+mitten im Herunterladen ab.
+
+NetworkManager kennt keinen globalen Vorgabewert für das Band — die Einstellung
+hängt an der einzelnen Verbindung. Ein später von Hand angelegtes WLAN ist
+wieder frei; dann das Skript noch einmal laufen lassen.
 
 ## Privatsphäre
 
@@ -332,6 +493,7 @@ müsste, für etwas, das sich praktisch nie ändert.
 npm run verify        # Lint + Token-Disziplin + Tests
 npm run check:tokens  # nur die Farbprüfung
 npm run routes        # zeigt alle registrierten Modul-Routen
+npm run logo:build    # Bootlogo, in der Drehung dieser Anzeige
 npm run dev           # Electron mit DevTools
 ```
 

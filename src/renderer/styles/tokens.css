@@ -95,14 +95,38 @@
     --mm-font-emoji: 'Noto Color Emoji', 'Noto Emoji', 'Apple Color Emoji',
                      'Segoe UI Emoji', 'Segoe UI Symbol', 'EmojiOne Color', sans-serif;
 
-    --mm-size-xs:   clamp(0.68rem, 0.62rem + 0.20vw, 0.80rem);
-    --mm-size-sm:   clamp(0.80rem, 0.74rem + 0.24vw, 0.94rem);
-    --mm-size-base: clamp(0.94rem, 0.86rem + 0.32vw, 1.12rem);
-    --mm-size-lg:   clamp(1.12rem, 1.00rem + 0.48vw, 1.40rem);
-    --mm-size-xl:   clamp(1.40rem, 1.20rem + 0.80vw, 1.90rem);
-    --mm-size-2xl:  clamp(1.90rem, 1.55rem + 1.40vw, 2.80rem);
-    --mm-size-3xl:  clamp(2.60rem, 2.00rem + 2.60vw, 4.20rem);
-    --mm-size-4xl:  clamp(3.60rem, 2.60rem + 4.20vw, 6.40rem);
+    /* Zwei Ebenen, damit sich die Schriftgröße je Modul verstellen lässt.
+       --mm-*-quelle ist der Grundwert; --mm-size-* ist das, was die Module
+       benutzen. main.css belegt --mm-size-* am Modulrahmen neu und rechnet
+       dort --mm-font-scale hinein.
+
+       Warum nicht einfach den Faktor hier hineinschreiben: eine
+       Custom Property wird an der Stelle aufgelöst, an der sie DEKLARIERT
+       ist. Stünde var(--mm-font-scale) hier auf :root, käme immer der Wert
+       von :root heraus - der Faktor eines einzelnen Moduls erreichte sie
+       nie. */
+    --mm-size-xs-quelle:   clamp(0.68rem, 0.62rem + 0.20vw, 0.80rem);
+    --mm-size-sm-quelle:   clamp(0.80rem, 0.74rem + 0.24vw, 0.94rem);
+    --mm-size-base-quelle: clamp(0.94rem, 0.86rem + 0.32vw, 1.12rem);
+    --mm-size-lg-quelle:   clamp(1.12rem, 1.00rem + 0.48vw, 1.40rem);
+    --mm-size-xl-quelle:   clamp(1.40rem, 1.20rem + 0.80vw, 1.90rem);
+    --mm-size-2xl-quelle:  clamp(1.90rem, 1.55rem + 1.40vw, 2.80rem);
+    --mm-size-3xl-quelle:  clamp(2.60rem, 2.00rem + 2.60vw, 4.20rem);
+    --mm-size-4xl-quelle:  clamp(3.60rem, 2.60rem + 4.20vw, 6.40rem);
+
+    --mm-size-xs:   var(--mm-size-xs-quelle);
+    --mm-size-sm:   var(--mm-size-sm-quelle);
+    --mm-size-base: var(--mm-size-base-quelle);
+    --mm-size-lg:   var(--mm-size-lg-quelle);
+    --mm-size-xl:   var(--mm-size-xl-quelle);
+    --mm-size-2xl:  var(--mm-size-2xl-quelle);
+    --mm-size-3xl:  var(--mm-size-3xl-quelle);
+    --mm-size-4xl:  var(--mm-size-4xl-quelle);
+
+    /* Die beiden Regler je Modul. Auf :root stehen sie neutral; der Renderer
+       setzt sie am Rahmen des einzelnen Moduls. */
+    --mm-modul-scale: 1;
+    --mm-font-scale: 1;
 
     --mm-leading-tight: 1.05;
     --mm-leading-normal: 1.45;
@@ -129,6 +153,10 @@
     --mm-dur-fast: 120ms;
     --mm-dur-normal: 240ms;
     --mm-dur-slow: 480ms;
+    /* Der Bildversatz des Einbrennschutzes. Deutlich langsamer als alles
+       andere: er soll gerade nicht auffallen. Ein Sprung um acht Pixel sieht
+       man, ein Wandern über zweieinhalb Sekunden nicht. */
+    --mm-dur-drift: 2400ms;
     --mm-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
     --mm-ease-decel: cubic-bezier(0, 0, 0.2, 1);
     /* Dauerläufer-Animationen hängen hieran und lassen sich zentral anhalten. */
@@ -201,6 +229,7 @@
       --mm-dur-fast: 0ms;
       --mm-dur-normal: 0ms;
       --mm-dur-slow: 0ms;
+      --mm-dur-drift: 0ms;
     }
   }
 }

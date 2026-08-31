@@ -8,3 +8,10 @@ config/sessions.json
 config/instances/*.json
 !config/instances/.gitkeep
 logs/
+
+# Vom Installer auf dem Pi geschrieben
+scripts/rpi/mm-xsession.sh
+
+# Erzeugtes Bootlogo - haengt an der Drehung dieser Anzeige.
+# Ein eigenes Logo gehoert nach assets/boot/logo.png und darf mit.
+assets/boot/boot-logo.png
