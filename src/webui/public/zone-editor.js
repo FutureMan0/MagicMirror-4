@@ -140,7 +140,7 @@
           this.liveBild.setAttribute('sandbox', 'allow-scripts allow-same-origin');
           // preview=1 schaltet das Praesenz-Dimmen ab - sonst sieht man ein
           // fast schwarzes Bild und haelt die Vorschau fuer kaputt.
-          this.liveBild.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
+          this.liveBild.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1&rotate=off`;
 
           this.liveRahmen.appendChild(this.liveBild);
         }
@@ -208,6 +208,15 @@
     /** Den Spiegel auf die Rahmenbreite verkleinern. */
     skaliereLive(rahmen) {
       if (!this.liveBild) return;
+
+      // Masse und Massstab aus screen.js: steht das Panel hochkant, laeuft der
+      // Spiegel in 1080x1920. Mit festen 1920 gerechnet waere das Bild um die
+      // Haelfte zu klein und saesse in der linken Haelfte des Rahmens.
+      if (window.Bildschirm?.richteVorschauAus) {
+        window.Bildschirm.richteVorschauAus(rahmen, this.liveBild);
+        return;
+      }
+
       const breite = rahmen.clientWidth;
       if (breite) this.liveBild.style.transform = `scale(${breite / 1920})`;
     }
@@ -505,7 +514,7 @@
       spiegel.className = 'live-vollbild-bild';
       spiegel.title = this.text('livePreview', 'Live-Vorschau');
       spiegel.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-      spiegel.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
+      spiegel.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1&rotate=off`;
       buehne.appendChild(spiegel);
 
       const zurueck = document.createElement('button');
@@ -523,10 +532,18 @@
       const beiTaste = (e) => { if (e.key === 'Escape') schliessen(); };
 
       const skaliere = () => {
-        const faktor = Math.min(overlay.clientWidth / 1920, overlay.clientHeight / 1080);
+        // Die Masse haengen an der Drehung - ein hochkant montiertes Panel
+        // laeuft in 1080x1920.
+        const v = window.Bildschirm?.vorschau(instanz)
+          || { breite: 1920, hoehe: 1080 };
+
+        spiegel.style.width = `${v.breite}px`;
+        spiegel.style.height = `${v.hoehe}px`;
+
+        const faktor = Math.min(overlay.clientWidth / v.breite, overlay.clientHeight / v.hoehe);
         spiegel.style.transform = `scale(${faktor})`;
-        buehne.style.width = `${1920 * faktor}px`;
-        buehne.style.height = `${1080 * faktor}px`;
+        buehne.style.width = `${v.breite * faktor}px`;
+        buehne.style.height = `${v.hoehe * faktor}px`;
       };
 
       zurueck.addEventListener('click', schliessen);

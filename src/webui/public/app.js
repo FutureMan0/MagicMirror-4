@@ -31,8 +31,6 @@ let currentInstance = 'display1';
 // Auch am window: der Zonen-Editor liegt in einer eigenen Datei.
 window.currentInstance = currentInstance;
 let selectedModule = null;
-let moduleListSortable = null;
-let previewGridSortable = null;
 
 // Visual Editor Instance
 let visualEditor = null;
@@ -45,7 +43,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Tab-Navigation Setup
   setupTabNavigation();
-  setupModeButtons();
 
   // Settings-Button Setup
   setupSettingsButton();
@@ -61,22 +58,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   // und braucht dafür die geladene Konfiguration.
   await setupMirrorThemePicker();
   setupLiveView();
-  renderModuleList();
+  window.ModulBrowser?.zeichneKarten();
 
-  // Warte kurz, bis initGridSettings gelaufen ist
+  // Warte kurz, bis initGridSettings gelaufen ist - dort haengt der
+  // Layout-Modus. applyLayoutMode legt den passenden Editor an.
   setTimeout(() => {
-    const mode = localStorage.getItem('layoutMode') || 'visual';
-    console.log('Initial layout mode:', mode);
-    if (mode === 'classic') {
-      renderPreview();
+    if (window.applyLayoutMode && window.getLayoutMode) {
+      window.applyLayoutMode(window.getLayoutMode());
     } else {
-      // Initialisiere Visual Editor für den visuellen Modus
       initVisualEditor();
     }
   }, 300);
-
-  // SortableJS Setup
-  setupDragAndDrop();
 
   // Event Listeners
   document.getElementById('instance-select')?.addEventListener('change', (e) => {
@@ -163,27 +155,10 @@ function switchTab(tabName) {
     renderPreview();
   }
 
-  // Layout Editor aktualisieren/initialisieren wenn Layout-Tab geöffnet wird
-  if (tabName === 'layout') {
-    const mode = window.getLayoutMode ? window.getLayoutMode() : 'visual';
-
-    if (mode === 'visual') {
-      // Initialisiere Editoren falls noch nicht geschehen
-      if (!visualEditorDesktop && !visualEditorMobile) {
-        console.log('Initializing visual editor from tab switch');
-        setTimeout(() => initVisualEditor(), 100);
-      } else {
-        // Aktualisiere vorhandene Editoren
-        if (visualEditorDesktop) {
-          visualEditorDesktop.updateConfig(currentConfig);
-        }
-        if (visualEditorMobile) {
-          visualEditorMobile.updateConfig(currentConfig);
-        }
-      }
-    } else {
-      renderPreview();
-    }
+  // Layout-Reiter: den Modus anwenden. Das zeichnet den richtigen Editor,
+  // legt ihn beim ersten Mal an und rechnet Zonen um, wenn noetig.
+  if (tabName === 'layout' && window.applyLayoutMode && window.getLayoutMode) {
+    window.applyLayoutMode(window.getLayoutMode());
   }
 
   // App Store aktualisieren wenn App Store-Tab geöffnet wird
@@ -194,42 +169,9 @@ function switchTab(tabName) {
 
 
 
-// Mode Buttons (Classic vs Visual)
-function setupModeButtons() {
-  const visualBtn = document.getElementById('mode-btn-visual');
-  const classicBtn = document.getElementById('mode-btn-classic');
-
-  if (visualBtn) {
-    visualBtn.addEventListener('click', () => {
-      if (window.setLayoutMode) window.setLayoutMode('visual');
-      updateModeButtons('visual');
-    });
-  }
-
-  if (classicBtn) {
-    classicBtn.addEventListener('click', () => {
-      if (window.setLayoutMode) window.setLayoutMode('classic');
-      updateModeButtons('classic');
-    });
-  }
-
-  // Initialer Status
-  const currentMode = localStorage.getItem('layoutMode') || 'visual';
-  updateModeButtons(currentMode);
-}
-
-function updateModeButtons(mode) {
-  const visualBtn = document.getElementById('mode-btn-visual');
-  const classicBtn = document.getElementById('mode-btn-classic');
-  const viewTitle = document.getElementById('view-title');
-
-  if (visualBtn) visualBtn.classList.toggle('active', mode === 'visual');
-  if (classicBtn) classicBtn.classList.toggle('active', mode === 'classic');
-
-  if (viewTitle) {
-    viewTitle.textContent = mode === 'visual' ? 'Layout Editor' : 'Live Preview';
-  }
-}
+// Die Knoepfe #mode-btn-visual und #mode-btn-classic gab es im Markup nicht
+// mehr; der Schalter zwischen den Layout-Ansichten sitzt jetzt im
+// Layout-Reiter (.layout-modus-knopf) und wird in initGridSettings verdrahtet.
 
 function updateSettingsButton(currentTab) {
   const settingsBtn = document.getElementById('settings-btn');
@@ -308,7 +250,7 @@ async function loadConfig() {
       setLanguage(currentConfig.language);
     }
 
-    renderModuleList(); // Aktualisiere auch die Modul-Liste
+    window.ModulBrowser?.zeichneKarten();
     renderPreview();
     updateMirrorThemeUI(); // Update UI for Mirror Theme
 
@@ -345,14 +287,11 @@ function setupLiveView() {
   const MIRROR_HEIGHT = 1080;
   let visible = localStorage.getItem('liveViewVisible') === '1';
 
-  function hochkant() {
-    return window.Bildschirm ? window.Bildschirm.hochkant(currentConfig) : false;
-  }
-
   function url() {
     // rotate=off: der Rahmen bringt das Format des gedrehten Panels schon mit,
     // der Renderer soll nicht ein zweites Mal drehen.
-    return `/mirror/index.html?instance=${encodeURIComponent(currentInstance)}&preview=1&rotate=off`;
+    return window.Bildschirm?.vorschau(currentInstance).url
+      || `/mirror/index.html?instance=${encodeURIComponent(currentInstance)}&preview=1&rotate=off`;
   }
 
   /**
@@ -367,9 +306,10 @@ function setupLiveView() {
     const wrapper = frame.parentElement;
     if (!wrapper) return;
 
-    const hoch = hochkant();
-    const breite = hoch ? MIRROR_HEIGHT : MIRROR_WIDTH;
-    const hoehe = hoch ? MIRROR_WIDTH : MIRROR_HEIGHT;
+    const v = window.Bildschirm?.vorschau(currentInstance)
+      || { breite: MIRROR_WIDTH, hoehe: MIRROR_HEIGHT };
+    const breite = v.breite;
+    const hoehe = v.hoehe;
 
     frame.style.width = `${breite}px`;
     frame.style.height = `${hoehe}px`;
@@ -436,7 +376,7 @@ function setupLiveView() {
 window.reloadEverything = async function reloadEverything() {
   await loadModules();
   await loadConfig();
-  renderModuleList();
+  window.ModulBrowser?.zeichneKarten();
   updateMirrorThemeUI();
   if (window.refreshActiveLayoutView) {
     window.refreshActiveLayoutView();
@@ -463,7 +403,7 @@ document.addEventListener('mm:config', (event) => {
   if (!payload.config) return;
 
   currentConfig = payload.config;
-  renderModuleList();
+  window.ModulBrowser?.zeichneKarten();
   updateMirrorThemeUI();
   if (window.refreshActiveLayoutView) {
     window.refreshActiveLayoutView();
@@ -568,169 +508,17 @@ async function loadModules() {
   }
 }
 
-function setupDragAndDrop() {
-  const moduleList = document.getElementById('module-list');
-  const previewGridDesktop = document.getElementById('preview-grid-desktop');
-  const previewGridMobile = document.getElementById('preview-grid-mobile');
-
-  if (!moduleList) return;
-
-  // SortableJS für Module-Liste
-  if (moduleListSortable) {
-    moduleListSortable.destroy();
-  }
-
-  moduleListSortable = new Sortable(moduleList, {
-    animation: 150,
-    handle: '.drag-handle',
-    ghostClass: 'sortable-ghost',
-    chosenClass: 'sortable-chosen',
-    dragClass: 'sortable-drag',
-    group: {
-      name: 'modules',
-      pull: 'clone',
-      put: false
-    },
-    sort: false,
-    onEnd: () => {
-      // Module-Liste neu rendern nach Drag
-      renderModuleList();
-    }
-  });
-
-  // SortableJS für Preview-Grid (beide Versionen)
-  const setupPreviewGrid = (grid) => {
-    if (!grid) return null;
-
-    return new Sortable(grid, {
-      animation: 150,
-      group: 'modules',
-      ghostClass: 'sortable-ghost',
-      chosenClass: 'sortable-chosen',
-      onAdd: (evt) => {
-        const moduleIndex = parseInt(evt.item.dataset.index);
-        const newPosition = evt.newIndex;
-
-        // Position aus Grid-Index berechnen
-        const positions = [
-          'top_left', 'top_center', 'top_right',
-          'middle_left', 'middle_center', 'middle_right',
-          'bottom_left', 'bottom_center', 'bottom_right'
-        ];
-
-        if (currentConfig.modules[moduleIndex]) {
-          currentConfig.modules[moduleIndex].position = positions[newPosition];
-          saveConfig();
-        }
-      },
-      onUpdate: (evt) => {
-        // Position innerhalb des Grids geändert
-        const moduleIndex = parseInt(evt.item.dataset.index);
-        const newPosition = evt.newIndex;
-
-        const positions = [
-          'top_left', 'top_center', 'top_right',
-          'middle_left', 'middle_center', 'middle_right',
-          'bottom_left', 'bottom_center', 'bottom_right'
-        ];
-
-        if (currentConfig.modules[moduleIndex]) {
-          currentConfig.modules[moduleIndex].position = positions[newPosition];
-          saveConfig();
-        }
-      }
-    });
-  };
-
-  if (previewGridSortable) {
-    previewGridSortable.destroy();
-  }
-
-  // Setup beide Preview-Grids
-  setupPreviewGrid(previewGridDesktop);
-  setupPreviewGrid(previewGridMobile);
-}
-
-function renderModuleList() {
-  const moduleList = document.getElementById('module-list');
-  if (!moduleList) return;
-
-  moduleList.innerHTML = '';
-
-  if (!currentConfig) {
-    console.warn('Keine Config geladen');
-    return;
-  }
-
-  const configModules = currentConfig.modules || [];
-
-  configModules.forEach((moduleConfig, index) => {
-    const moduleInfo = availableModules.find(m => m.name === moduleConfig.module);
-    const displayName = modulName(moduleInfo?.info?.displayName, moduleConfig.module);
-
-    const item = document.createElement('div');
-    item.className = `module-item ${selectedModule === index ? 'active' : ''}`;
-    item.dataset.index = index;
-
-    // Drag Handle
-    const dragHandle = document.createElement('span');
-    dragHandle.className = 'drag-handle';
-    dragHandle.innerHTML = '⋮⋮';
-    dragHandle.title = 'Ziehen um zu verschieben';
-
-    // Checkbox für Enable/Disable
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = moduleConfig.enabled !== false;
-    checkbox.setAttribute('aria-label', displayName);
-    checkbox.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-    checkbox.addEventListener('change', (e) => {
-      toggleModule(index, e.target.checked);
-    });
-
-    // Modul-Name
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'module-item-name';
-    nameSpan.textContent = displayName;
-    nameSpan.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectModule(index);
-    });
-
-    // Edit-Button
-    const editBtn = document.createElement('button');
-    editBtn.className = 'module-edit-btn';
-    editBtn.textContent = '⚙️';
-    editBtn.title = 'Einstellungen';
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectModule(index);
-    });
-
-    item.appendChild(dragHandle);
-    item.appendChild(checkbox);
-    item.appendChild(nameSpan);
-    item.appendChild(editBtn);
-
-    item.addEventListener('click', (e) => {
-      if (e.target !== checkbox) {
-        selectModule(index);
-      }
-    });
-
-    moduleList.appendChild(item);
-  });
-
-  // SortableJS neu initialisieren
-  setupDragAndDrop();
-}
+// Hier standen setupDragAndDrop() und renderModuleList(): eine Seitenleiste
+// mit ziehbaren Modulen (#module-list) und ein Vorschau-Gitter
+// (#preview-grid-desktop/-mobile). Alle drei Behaelter sind mit der Umstellung
+// auf Modulkarten aus dem Markup verschwunden, die beiden Funktionen kehrten
+// seither an ihrer ersten Zeile wieder um. Die Karten zeichnet
+// window.ModulBrowser.zeichneKarten().
 
 function selectModule(index) {
   // Auch am window: der Modul-Browser liegt in einer eigenen Datei.
   selectedModule = index;
-  renderModuleList();
+  window.ModulBrowser?.zeichneKarten();
 
   const moduleConfig = currentConfig.modules[index];
   if (!moduleConfig) return;
@@ -776,6 +564,18 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   const displayName = modulName(moduleInfo?.info?.displayName, moduleConfig.module);
   let html = `<h3>${displayName}</h3>`;
   html += '<form class="settings-form" id="module-settings-form">';
+
+  // An und Aus.
+  //
+  // Stand frueher als Kaestchen in der Modulliste (#module-list) - die gibt es
+  // nicht mehr. Danach fuehrte der einzige Weg ueber den Zonen-Editor: wer im
+  // freien Raster arbeitete, konnte ein Modul ueberhaupt nicht mehr abschalten.
+  html += '<div class="form-group">';
+  html += '<div class="form-group-checkbox">';
+  html += `<input type="checkbox" name="moduleEnabled" ${moduleConfig.enabled !== false ? 'checked' : ''}>`;
+  html += `<span>${t('moduleActive')}</span>`;
+  html += '</div>';
+  html += '</div>';
 
   // Position: eine Zone, sonst nichts.
   //
@@ -914,16 +714,9 @@ function showModuleSettings(moduleConfig, moduleInfo) {
     initSpotifySetup();
   }
 
-  // Position Type Switcher
-  const posTypeSelect = document.getElementById('position-type-select');
-  if (posTypeSelect) {
-    posTypeSelect.addEventListener('change', (e) => {
-      const posType = e.target.value;
-      document.querySelectorAll('.position-config').forEach(el => el.style.display = 'none');
-      const targetDiv = document.getElementById(`position-${posType}`);
-      if (targetDiv) targetDiv.style.display = 'block';
-    });
-  }
+  // Hier stand ein Umschalter zwischen den drei Positionsarten
+  // (#position-type-select). Das Auswahlfeld ist mit der Umstellung auf Zonen
+  // aus dem Markup verschwunden; die Verdrahtung blieb stehen und tat nichts.
 }
 
 async function initUntisClassPicker(moduleConfig) {
@@ -1244,13 +1037,14 @@ function hideSettings() {
   if (versteckAktionen) versteckAktionen.style.display = 'none';
   document.getElementById('module-settings').innerHTML = `<p style="color: var(--text-secondary);">${t('pickModuleHint')}</p>`;
   selectedModule = null;
-  renderModuleList();
+  window.ModulBrowser?.zeichneKarten();
 }
 
 /** Formularfelder, die zum Eintrag gehoeren und nicht in seine `config`. */
 const AUSSERHALB_DER_MODULCONFIG = new Set([
   'position',
   'positionZone',
+  'moduleEnabled',
   'appearanceScale',
   'appearanceFontScale'
 ]);
@@ -1262,6 +1056,10 @@ async function saveModuleSettings() {
   const formData = new FormData(form);
 
   const moduleConfig = currentConfig.modules[selectedModule];
+
+  // Ein nicht angehaktes Kaestchen steht gar nicht in den Formulardaten -
+  // fehlt der Eintrag, ist das Modul aus.
+  moduleConfig.enabled = formData.get('moduleEnabled') === 'on';
 
   // Position: nur noch eine Zone. Ein leeres Feld heisst "eigene Position",
   // die dann unangetastet bleibt - sonst verliert man beim Speichern der
@@ -1369,72 +1167,21 @@ async function saveModuleSettings() {
   }
 }
 
-function toggleModule(index, enabled) {
-  if (!currentConfig.modules[index]) return;
-  currentConfig.modules[index].enabled = enabled;
 
-  fetch(`/api/config?instance=${currentInstance}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(currentConfig)
-  }).then(() => {
-    loadConfig();
-  });
-}
-
+/**
+ * Die aktive Layout-Ansicht neu zeichnen.
+ *
+ * Hiess einmal so, weil sie ein festes 3x3-Gitter in #preview-grid-desktop und
+ * #preview-grid-mobile zeichnete. Beide Behaelter gibt es im Markup nicht mehr -
+ * die Funktion lief an vierzehn Aufrufstellen ins Leere, und damit blieb jede
+ * Aenderung am Layout unsichtbar, bis jemand die Seite neu lud.
+ *
+ * Der Name bleibt, weil er an diesen vierzehn Stellen steht. Der Inhalt
+ * aktualisiert jetzt den Editor, der gerade sichtbar ist.
+ */
 function renderPreview() {
-  const previewGridDesktop = document.getElementById('preview-grid-desktop');
-  const previewGridMobile = document.getElementById('preview-grid-mobile');
-
-  // Rendere beide Preview-Grids
-  [previewGridDesktop, previewGridMobile].forEach(previewGrid => {
-    if (!previewGrid) return;
-
-    previewGrid.innerHTML = '';
-
-    // Erstelle 9 Grid-Zellen
-    const positions = [
-      'top_left', 'top_center', 'top_right',
-      'middle_left', 'middle_center', 'middle_right',
-      'bottom_left', 'bottom_center', 'bottom_right'
-    ];
-
-    positions.forEach((pos, index) => {
-      const cell = document.createElement('div');
-      cell.className = 'preview-module';
-      cell.style.gridColumn = (index % 3) + 1;
-      cell.style.gridRow = Math.floor(index / 3) + 1;
-      cell.dataset.position = pos;
-
-      // Zeige nur aktivierte Module
-      const module = currentConfig?.modules?.find(m =>
-        m.position === pos && m.enabled !== false
-      );
-
-      if (module) {
-        const moduleIndex = currentConfig.modules.indexOf(module);
-        const moduleInfo = availableModules.find(m => m.name === module.module);
-        cell.textContent = modulName(moduleInfo?.info?.displayName, module.module);
-        cell.style.border = '1px solid var(--accent-cyan)';
-        cell.classList.add('has-module');
-        cell.dataset.index = moduleIndex;
-
-        // Klick um Modul zu konfigurieren
-        cell.addEventListener('click', () => {
-          selectModule(moduleIndex);
-          switchTab('modules'); // Wechsle zu Module-Tab um Einstellungen zu zeigen
-        });
-      } else {
-        cell.textContent = getPositionName(pos);
-        cell.style.opacity = '0.3';
-      }
-
-      previewGrid.appendChild(cell);
-    });
-  });
-
-  // SortableJS für Preview aktualisieren
-  setupDragAndDrop();
+  if (visualEditor) visualEditor.updateConfig(currentConfig);
+  if (zonenEditor) zonenEditor.updateConfig(currentConfig);
 }
 
 async function saveConfig() {
@@ -1613,7 +1360,7 @@ async function addModule(moduleName) {
     if (response.ok) {
       await loadConfig();
       renderAppStore();
-      renderModuleList();
+      window.ModulBrowser?.zeichneKarten();
       if (window.refreshActiveLayoutView) {
         window.refreshActiveLayoutView();
       } else {
@@ -1654,7 +1401,7 @@ async function removeModule(moduleName) {
     if (response.ok) {
       await loadConfig();
       renderAppStore();
-      renderModuleList();
+      window.ModulBrowser?.zeichneKarten();
       if (window.refreshActiveLayoutView) {
         window.refreshActiveLayoutView();
       } else {
@@ -1832,13 +1579,32 @@ function initGridSettings() {
   const gapInput = document.getElementById('grid-gap');
   const paddingInput = document.getElementById('grid-padding');
   const saveBtn = document.getElementById('save-grid-settings-btn');
-  const layoutModeSelect = document.getElementById('layout-mode');
 
   if (!saveBtn) return;
 
-  // Layout-Modus Verwaltung
+  // --- Layout-Modus ---------------------------------------------------------
+  //
+  // Zwei Bedienkonzepte auf denselben Daten:
+  //
+  //   zonen    sechs grosse Flaechen im 3x3-Grundraster. Mit dem Daumen
+  //            bedienbar - aber eben nur sechs Plaetze.
+  //   raster   das Raster aus den Einstellungen, jede Zelle einzeln, Griffe
+  //            an den Ecken.
+  //
+  // Hier stand einmal ein Schalter zwischen "klassisch" und "visuell", der auf
+  // #classic-preview-desktop und #visual-editor-desktop zeigte. Beide Behaelter
+  // gab es im Markup nicht: der Editor wurde nie gezeichnet, und das
+  // Rasterformular schrieb Werte, die niemand las. Wer 6x12 einstellte, sah
+  // weiter sechs Zonen. tests/layout-verdrahtung.test.js wacht jetzt darueber,
+  // dass jeder Behaelter, den dieser Code sucht, auch existiert.
+
   function getLayoutMode() {
-    return localStorage.getItem('layoutMode') || 'visual';
+    const gespeichert = localStorage.getItem('layoutMode');
+    if (gespeichert === 'zonen' || gespeichert === 'raster') return gespeichert;
+
+    // Alte Werte ("visual", "classic") und der erste Start: auf einem Telefon
+    // sind Zonen die bessere Wahl, auf einem breiten Bildschirm das Raster.
+    return window.innerWidth < 768 ? 'zonen' : 'raster';
   }
 
   function setLayoutMode(mode) {
@@ -1847,78 +1613,34 @@ function initGridSettings() {
   }
 
   function applyLayoutMode(mode) {
-    const classicDesktop = document.getElementById('classic-preview-desktop');
-    const visualDesktop = document.getElementById('visual-editor-desktop');
-    const classicMobile = document.getElementById('classic-preview-mobile');
-    const visualMobile = document.getElementById('visual-editor-mobile');
+    const zonenBehaelter = document.getElementById('zonen-editor');
+    const rasterBehaelter = document.getElementById('visual-editor-container');
+    if (!zonenBehaelter || !rasterBehaelter) return;
 
-    console.log('Applying layout mode:', mode);
+    const freiesRaster = mode === 'raster';
+    zonenBehaelter.hidden = freiesRaster;
+    rasterBehaelter.hidden = !freiesRaster;
 
-    if (mode === 'classic') {
-      // Zeige NUR klassisches Preview, entferne Visual Editor komplett
-      if (classicDesktop) {
-        classicDesktop.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-        console.log('Showing classic desktop');
-      }
-      if (visualDesktop) {
-        visualDesktop.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
-        console.log('Hiding visual desktop');
-      }
-      if (classicMobile) {
-        classicMobile.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-      }
-      if (visualMobile) {
-        visualMobile.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
-      }
-
-      // Rendere Preview
-      setTimeout(() => renderPreview(), 100);
-    } else {
-      // Zeige NUR visuellen Editor, entferne klassisches Preview komplett
-      if (classicDesktop) {
-        classicDesktop.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
-        console.log('Hiding classic desktop');
-      }
-      if (visualDesktop) {
-        visualDesktop.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-        console.log('Showing visual desktop');
-      }
-      if (classicMobile) {
-        classicMobile.style.cssText = 'display: none !important; visibility: hidden !important; opacity: 0 !important; position: absolute !important; left: -9999px !important;';
-      }
-      if (visualMobile) {
-        visualMobile.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-      }
-
-      // Initialisiere Visual Editor falls noch nicht geschehen
-      setTimeout(() => {
-        if (!visualEditorDesktop && !visualEditorMobile) {
-          console.log('Initializing visual editor');
-          initVisualEditor();
-        } else {
-          console.log('Updating visual editor config');
-          if (visualEditorDesktop) {
-            visualEditorDesktop.updateConfig(currentConfig);
-          }
-          if (visualEditorMobile) {
-            visualEditorMobile.updateConfig(currentConfig);
-          }
-        }
-      }, 100);
+    for (const knopf of document.querySelectorAll('.layout-modus-knopf')) {
+      const aktiv = knopf.dataset.modus === mode;
+      knopf.classList.toggle('aktiv', aktiv);
+      knopf.setAttribute('aria-pressed', String(aktiv));
     }
+
+    // Erst umrechnen, dann zeichnen: der Editor soll die Module gleich an
+    // ihrem Platz im Raster finden und nicht erst nach dem ersten Ziehen.
+    if (freiesRaster) uebernehmeZonenInsRaster();
+
+    initVisualEditor();
+    renderPreview();
   }
 
-  // Layout-Modus beim Start laden
-  if (layoutModeSelect) {
-    const savedMode = getLayoutMode();
-    layoutModeSelect.value = savedMode;
-    applyLayoutMode(savedMode);
 
-    // Event-Listener für Modus-Änderung
-    layoutModeSelect.addEventListener('change', (e) => {
-      setLayoutMode(e.target.value);
-    });
+  // Layout-Modus beim Start setzen und die Knoepfe verdrahten.
+  for (const knopf of document.querySelectorAll('.layout-modus-knopf')) {
+    knopf.addEventListener('click', () => setLayoutMode(knopf.dataset.modus));
   }
+  applyLayoutMode(getLayoutMode());
 
   // Lade aktuelle Grid-Einstellungen
   function loadGridSettings() {
@@ -1977,20 +1699,7 @@ function initGridSettings() {
 
       if (response.ok) {
         await loadConfig();
-
-        // Aktualisiere die aktive Ansicht
-        const currentMode = getLayoutMode();
-        if (currentMode === 'classic') {
-          renderPreview();
-        } else {
-          if (visualEditorDesktop) {
-            visualEditorDesktop.updateConfig(currentConfig);
-          }
-          if (visualEditorMobile) {
-            visualEditorMobile.updateConfig(currentConfig);
-          }
-        }
-
+        renderPreview();
         showNotification('✓ Grid-Einstellungen gespeichert!', 'success');
       }
     } catch (error) {
@@ -1999,20 +1708,11 @@ function initGridSettings() {
     }
   });
 
-  // Hilfsfunktion: Aktualisiere die aktive Layout-Ansicht
+  // Hilfsfunktion: Aktualisiere die aktive Layout-Ansicht.
+  // Beide Namen zeigen auf dieselbe Arbeit - renderPreview() steht an vierzehn
+  // Stellen, refreshActiveLayoutView an sieben.
   function refreshActiveLayoutView() {
-    const mode = getLayoutMode();
-    if (mode === 'classic') {
-      renderPreview();
-    } else {
-      // Aktualisiere beide Editoren falls vorhanden
-      if (visualEditorDesktop) {
-        visualEditorDesktop.updateConfig(currentConfig);
-      }
-      if (visualEditorMobile) {
-        visualEditorMobile.updateConfig(currentConfig);
-      }
-    }
+    renderPreview();
   }
 
   // Mache Funktionen global verfügbar
@@ -2024,24 +1724,83 @@ function initGridSettings() {
 
 // ==================== VISUAL EDITOR ====================
 
-let visualEditorDesktop = null;
-let visualEditorMobile = null;
+// Ein Editor, nicht zwei. Vorher gab es visualEditorDesktop und
+// visualEditorMobile fuer zwei Behaelter, die es im Markup beide nicht gab.
+// visualEditor selbst ist schon oben deklariert.
 let zonenEditor = null;
 
-function initVisualEditor() {
-  console.log('Initializing visual editor...');
+/**
+ * Zonen einmalig in echte Rasterkoordinaten umrechnen.
+ *
+ * Solange ALLE Module auf Zonen stehen, ersetzt der Renderer das eingestellte
+ * Raster durch das 3x3-Zonenraster (siehe buildGridCSS). Wer 6x12 einstellt,
+ * sieht davon nichts - genau der Widerspruch zwischen Einstellungen und
+ * Editor, der jahrelang zu sehen war.
+ *
+ * Beim Wechsel ins freie Raster werden Zonen deshalb umgerechnet. Die Flaeche
+ * bleibt dieselbe: eine Zone belegt ein Drittel, und ein Drittel von zwoelf
+ * Zeilen sind vier. Danach ist jedes Modul frei verschiebbar.
+ */
+function uebernehmeZonenInsRaster() {
+  const zonen = window.MMZonen;
+  if (!zonen || !currentConfig || !Array.isArray(currentConfig.modules)) return 0;
 
-  if (!window.VisualGridEditor) {
-    console.error('VisualGridEditor class not found');
-    return;
+  const raster = currentConfig.gridSettings || {};
+  const spalten = Math.max(1, Number(raster.columns) || 3);
+  const zeilen = Math.max(1, Number(raster.rows) || 3);
+
+  const faktorSpalte = spalten / zonen.ZONEN_RASTER.columns;
+  const faktorZeile = zeilen / zonen.ZONEN_RASTER.rows;
+
+  let umgerechnet = 0;
+
+  for (const modul of currentConfig.modules) {
+    const zonenId = zonen.alsZone(modul.position);
+    if (!zonenId) continue;   // hat schon eine eigene Rasterposition
+
+    const feld = zonen.gitter(zonenId);
+    const groesse = zonen.groesse(modul.position);
+    const z = zonen.zone(zonenId);
+    if (!feld || !z) continue;
+
+    const spalte = Math.round((feld.col - 1) * faktorSpalte) + 1;
+    const zeile = Math.round((feld.row - 1) * faktorZeile) + 1;
+
+    // "unten" geht ueber die ganze Breite - das steht als 1/-1 in der Zone und
+    // nicht in colSpan. Ohne diesen Fall waere das Modul nach dem Umrechnen
+    // nur noch ein Drittel breit.
+    const breite = feld.volleBreite
+      ? spalten
+      : Math.max(1, Math.round(groesse.colSpan * faktorSpalte));
+    const hoehe = Math.max(1, Math.round(groesse.rowSpan * faktorZeile));
+
+    modul.position = {
+      column: Math.min(spalte, spalten),
+      row: Math.min(zeile, zeilen),
+      columnSpan: Math.min(breite, spalten - Math.min(spalte, spalten) + 1),
+      rowSpan: Math.min(hoehe, zeilen - Math.min(zeile, zeilen) + 1),
+      // Ausrichtung aus der Zone mitnehmen, damit der Inhalt liegen bleibt,
+      // wo er lag.
+      align: z.align,
+      justify: z.justify
+    };
+
+    umgerechnet += 1;
   }
 
-  // Desktop-Editor initialisieren
-  const desktopContainer = document.getElementById('visual-editor-container-desktop');
-  if (desktopContainer && !visualEditorDesktop) {
-    console.log('Creating desktop visual editor');
-    visualEditorDesktop = new window.VisualGridEditor(
-      '#visual-editor-container-desktop',
+  if (umgerechnet > 0) {
+    saveConfigAndRefresh();
+    showNotification(`${umgerechnet} × ${t('zonesConverted')}`, 'success');
+  }
+
+  return umgerechnet;
+}
+
+function initVisualEditor() {
+  const rasterBehaelter = document.getElementById('visual-editor-container');
+  if (rasterBehaelter && !visualEditor && window.VisualGridEditor) {
+    visualEditor = new window.VisualGridEditor(
+      '#visual-editor-container',
       currentConfig,
       async (updatedConfig) => {
         currentConfig = updatedConfig;
@@ -2050,7 +1809,6 @@ function initVisualEditor() {
     );
   }
 
-  // Zonen-Editor: der Layout-Reiter laeuft nicht mehr ueber die Leinwand.
   const zonenBehaelter = document.getElementById('zonen-editor');
   if (zonenBehaelter && !zonenEditor && window.ZonenEditor) {
     zonenEditor = new window.ZonenEditor('#zonen-editor', currentConfig,
@@ -2058,26 +1816,7 @@ function initVisualEditor() {
         currentConfig = updatedConfig;
         await saveConfigAndRefresh();
       });
-  } else if (zonenEditor) {
-    zonenEditor.updateConfig(currentConfig);
   }
-
-  // Mobile-Editor initialisieren
-  const mobileContainer = document.getElementById('visual-editor-container-mobile');
-  if (mobileContainer && !visualEditorMobile) {
-    console.log('Creating mobile visual editor');
-    visualEditorMobile = new window.VisualGridEditor(
-      '#visual-editor-container-mobile',
-      currentConfig,
-      async (updatedConfig) => {
-        currentConfig = updatedConfig;
-        await saveConfigAndRefresh();
-      }
-    );
-  }
-
-  // Setze visualEditor auf den passenden Editor
-  visualEditor = visualEditorDesktop || visualEditorMobile;
 }
 
 async function saveConfigAndRefresh() {
@@ -2090,15 +1829,7 @@ async function saveConfigAndRefresh() {
 
     if (response.ok) {
       await loadConfig();
-
-      // Aktualisiere beide Editoren falls vorhanden
-      if (visualEditorDesktop) {
-        visualEditorDesktop.updateConfig(currentConfig);
-      }
-      if (visualEditorMobile) {
-        visualEditorMobile.updateConfig(currentConfig);
-      }
-
+      renderPreview();
       showNotification('✓ Layout gespeichert!', 'success');
     }
   } catch (error) {

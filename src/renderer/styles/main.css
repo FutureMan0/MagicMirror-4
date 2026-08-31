@@ -81,8 +81,17 @@
     box-shadow: var(--mm-surface-shadow);
     backdrop-filter: var(--mm-surface-filter);
     transition: opacity var(--mm-dur-normal) var(--mm-ease-standard);
-    overflow: auto;
+
+    /* Kein Rollbalken. Ein Spiegel an der Wand wird nicht gerollt - der Balken
+       war nur ein sichtbarer Streifen, den niemand bedienen kann. Passt der
+       Inhalt nicht, gehoert das Modul groesser gezogen oder seine Schriftgroesse
+       herunter; beides geht im Layout-Reiter. */
+    overflow: hidden;
+
+    /* Beide Richtungen: ohne min-height:0 setzt der Inhalt eine Untergrenze
+       durch und das Modul waechst aus seiner Rasterflaeche heraus. */
     min-width: 0;
+    min-height: 0;
 
     /* --- Größe und Schriftgröße je Modul -----------------------------------
 

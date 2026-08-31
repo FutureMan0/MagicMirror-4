@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" alt="MagicMirror⁴" width="128" height="128">
+</p>
+
 # MagicMirror⁴
 
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-cyan.svg)](https://opensource.org/licenses/MIT)

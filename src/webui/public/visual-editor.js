@@ -146,6 +146,23 @@ class VisualGridEditor {
     });
   }
 
+  /**
+   * Dieselbe Rechnung wie spurenTemplate() im Renderer.
+   *
+   * `1fr` ist `minmax(auto, 1fr)` - der Inhalt kann die Spur aufblaehen. Der
+   * Editor muss dieselben Spuren zeigen wie der Spiegel, sonst schiebt man
+   * Module in ein Raster, das es an der Wand so nicht gibt.
+   */
+  spurenTemplate(groessen, anzahl) {
+    const spuren = Array.isArray(groessen) && groessen.length > 0
+      ? groessen
+      : Array(Math.max(1, Number(anzahl) || 1)).fill('1fr');
+
+    return spuren
+      .map((spur) => (/^\s*\d*\.?\d+fr\s*$/.test(String(spur)) ? `minmax(0, ${String(spur).trim()})` : spur))
+      .join(' ');
+  }
+
   getGridSettings() {
     const defaults = {
       columns: 3,
@@ -217,13 +234,8 @@ class VisualGridEditor {
     this.canvas.innerHTML = '';
 
     // Canvas Grid konfigurieren
-    const columnTemplate = gridSettings.columnSizes && gridSettings.columnSizes.length > 0
-      ? gridSettings.columnSizes.join(' ')
-      : `repeat(${gridSettings.columns}, 1fr)`;
-
-    const rowTemplate = gridSettings.rowSizes && gridSettings.rowSizes.length > 0
-      ? gridSettings.rowSizes.join(' ')
-      : `repeat(${gridSettings.rows}, 1fr)`;
+    const columnTemplate = this.spurenTemplate(gridSettings.columnSizes, gridSettings.columns);
+    const rowTemplate = this.spurenTemplate(gridSettings.rowSizes, gridSettings.rows);
 
     // Setze Grid-Styles direkt als inline styles (haben höchste Priorität)
     this.canvas.style.cssText = `
@@ -265,13 +277,8 @@ class VisualGridEditor {
     gridLines.className = 'editor-grid-lines';
 
     // Dynamisches Grid generieren - verwende die gleichen Werte wie das Canvas
-    const columnTemplate = gridSettings.columnSizes && gridSettings.columnSizes.length > 0
-      ? gridSettings.columnSizes.join(' ')
-      : `repeat(${gridSettings.columns}, 1fr)`;
-
-    const rowTemplate = gridSettings.rowSizes && gridSettings.rowSizes.length > 0
-      ? gridSettings.rowSizes.join(' ')
-      : `repeat(${gridSettings.rows}, 1fr)`;
+    const columnTemplate = this.spurenTemplate(gridSettings.columnSizes, gridSettings.columns);
+    const rowTemplate = this.spurenTemplate(gridSettings.rowSizes, gridSettings.rows);
 
     // Setze Grid-Styles als inline styles (höchste Priorität)
     gridLines.style.cssText = `
@@ -343,8 +350,14 @@ class VisualGridEditor {
     posInfo.textContent = `${position.col},${position.row} (${position.colSpan}×${position.rowSpan})`;
     moduleEl.appendChild(posInfo);
 
-    // Resize Handles (nur Desktop & Edit Mode & Selected)
-    if (this.state.editMode && !this.isMobile && this.state.selectedModule === index) {
+    // Griffe am ausgewaehlten Modul.
+    //
+    // Vorher nur auf dem Desktop (!this.isMobile): auf einem Tablet oder Handy
+    // liessen sich Module damit ueberhaupt nicht in der Groesse aendern - und
+    // isMobile haengt an der Fensterbreite, nicht am Eingabegeraet. Die
+    // Touch-Ereignisse sind seit immer verdrahtet, sie wurden nur nie
+    // angebracht. Auf grobem Zeiger sind die Griffe per CSS groesser.
+    if (this.state.editMode && this.state.selectedModule === index) {
       this.addResizeHandles(moduleEl);
     }
 

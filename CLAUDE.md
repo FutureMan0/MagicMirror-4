@@ -232,6 +232,59 @@ Jeder Modul-Eintrag bekommt beim Laden eine feste `id`. Über den Array-Index
 zu vergleichen ginge nicht: ein nach oben geschobenes Modul sähe aus wie „alle
 ausgetauscht".
 
+## Layout: zwei Ansichten, ein Datenmodell
+
+Der Layout-Reiter hat einen Schalter:
+
+| | |
+| :--- | :--- |
+| **Zonen** | sechs große Flächen im 3×3-Grundraster (`src/shared/zones.js`). Mit dem Daumen bedienbar — ein feines Raster trifft man auf einem Telefon nicht. |
+| **Freies Raster** | `config.gridSettings`, jede Zelle einzeln, Griffe an den Ecken (`visual-editor.js`). |
+
+Beim Wechsel ins freie Raster rechnet `uebernehmeZonenInsRaster()` vorhandene
+Zonen einmalig in Spalten und Zeilen um. Das ist nötig, weil `buildGridCSS`
+das eingestellte Raster durch `ZONEN_RASTER` **ersetzt**, solange *alle* Module
+auf Zonen stehen: wer 6×12 einstellte, sah weiter sechs Zonen. Die Fläche
+bleibt beim Umrechnen dieselbe — eine Zone ist ein Drittel, und ein Drittel von
+zwölf Zeilen sind vier.
+
+### Der Fehler, der monatelang unsichtbar war
+
+`app.js` suchte `#visual-editor-container-desktop`, `#classic-preview-desktop`,
+`#module-list`, `#preview-grid-desktop` und `#live-view` — **keinen einzigen
+davon gab es im Markup noch.** Jeder Zugriff war ordentlich mit `if (element)`
+abgesichert, und genau deshalb fiel nichts auf: der Editor wurde nie
+gezeichnet, `renderPreview()` lief an vierzehn Aufrufstellen ins Leere, die
+Live-Ansicht kehrte in ihrer ersten Zeile um, und das Rasterformular in den
+Einstellungen schrieb Werte, die niemand las.
+
+Zwei Tests halten das zusammen, und beide Hälften sind nötig:
+
+* `tests/webui-sprache.test.js` — ein Zugriff darf den Startpfad nicht abreißen.
+* `tests/layout-verdrahtung.test.js` — **jede gesuchte Kennung muss es auch
+  geben.** Abgesichert *und* vorhanden.
+
+### Rasterspuren: immer `minmax(0, 1fr)`
+
+`1fr` heißt in CSS `minmax(auto, 1fr)`, und `auto` als Mindestmaß ist die
+Mindestgröße des Inhalts. Ein Modul, das mehr braucht als seine Spur, lässt die
+Spur **wachsen** — bei zwölf Zeilen ragt das Raster unten aus dem Bild, und weil
+der Spiegel nicht rollt, ist der Rest abgeschnitten. `spurenTemplate()` schreibt
+deshalb `minmax(0, 1fr)`; Angaben mit eigener Untergrenze (`minmax(320px, 1fr)`)
+bleiben unangetastet. Renderer und Editor benutzen dieselbe Rechnung — sonst
+schiebt man Module in ein Raster, das es an der Wand nicht gibt.
+
+Dazu: `.module-container` hat `overflow: hidden`, nicht `auto`. Ein Rollbalken
+an einer Wand ist ein sichtbarer Streifen, den niemand bedienen kann.
+
+## Vorschauen
+
+Drei Stellen zeigen den Spiegel klein: die Modul-Detailansicht, der
+Zonen-Editor und die Live-Ansicht im Layout-Reiter. Alle drei rechnen über
+**eine** Funktion — `Bildschirm.vorschau()` und `richteVorschauAus()` in
+`screen.js`. Vorher rechnete jede für sich mit festen 1920×1080, und beim Umbau
+auf die gedrehte Ansicht wurden zwei davon schlicht vergessen.
+
 ## Drehung
 
 Sie liegt in `config.display.rotation` (0, 90, 180, 270) und wirkt als
@@ -481,6 +534,14 @@ Ebenfalls per Test abgesichert: dass nichts von einem fremden Server geladen
 wird (SortableJS liegt unter `vendor/`), dass jede Datei aus `SHELL_ASSETS`
 existiert, und dass der Worker nicht ungefragt übernimmt — ein Wechsel mitten
 in einer offenen Bearbeitung würde sie verwerfen.
+
+Der Schriftzug auf dem Bootlogo entsteht aus einem eigenen Strichalphabet
+(`scripts/lib/schrift.mjs`) — neun Zeichen, gerade so viel wie
+„MAGIC MIRROR⁴ OS" braucht. Die Projektschrift liegt als woff2 vor, und ein
+woff2 zu lesen hieße einen Schriftparser mitzubringen; dieselbe Überlegung wie
+bei den Icons. Jedes Zeichen wird auf seinen Vorschub normiert — ohne das ist
+jeder Buchstabe so breit wie sein Einheitsquadrat, aber nur so weit
+vorgeschoben wie sein Vorschub, und die Buchstaben laufen ineinander.
 
 Icons erzeugt `npm run icons:build` — direkt in einen Pixelpuffer gezeichnet
 und mit `zlib` als PNG geschrieben, ohne Bildbibliothek. `sharp` oder

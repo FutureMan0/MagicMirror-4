@@ -71,6 +71,53 @@
     meldeDrehung();
   }
 
+  /**
+   * Adresse und Masse fuer eine Spiegel-Vorschau.
+   *
+   * Drei Stellen zeigen den Spiegel klein: die Modul-Detailansicht, der
+   * Zonen-Editor und die Live-Ansicht im Layout-Reiter. Alle drei rechneten mit
+   * festen 1920x1080 und dem liegenden Bildspeicher - bei einem hochkant
+   * montierten Panel zeigten sie damit quer liegenden Text.
+   *
+   * `rotate=off` sagt dem Renderer, dass er seine eigene Drehung weglassen
+   * soll: der Rahmen bringt das Format schon mit, und zweimal drehen legt den
+   * Inhalt quer.
+   */
+  function vorschau(instanz) {
+    const hoch = hochkant();
+    const name = instanz || window.currentInstance || 'display1';
+
+    return {
+      url: `/mirror/index.html?instance=${encodeURIComponent(name)}&preview=1&rotate=off`,
+      breite: hoch ? 1080 : 1920,
+      hoehe: hoch ? 1920 : 1080,
+      format: hoch ? '9 / 16' : '16 / 9',
+      hochkant: hoch
+    };
+  }
+
+  /**
+   * Setzt Rahmen und Massstab einer Vorschau.
+   *
+   * `buehne` bekommt das Seitenverhaeltnis, `bild` die echten Spiegelmasse und
+   * einen Massstab. Ein einfach verkleinerter iframe wuerde stattdessen ein
+   * Handy-Layout rendern - also gerade nicht das, was am Spiegel zu sehen ist.
+   */
+  function richteVorschauAus(buehne, bild, instanz) {
+    if (!buehne || !bild) return null;
+
+    const v = vorschau(instanz);
+
+    buehne.style.setProperty('--vorschau-format', v.format);
+    bild.style.width = `${v.breite}px`;
+    bild.style.height = `${v.hoehe}px`;
+
+    const platz = buehne.clientWidth;
+    if (platz) bild.style.transform = `scale(${platz / v.breite})`;
+
+    return v;
+  }
+
   /** Die Konfiguration dieser Anzeige zurueckschreiben. */
   async function speichere(config) {
     await fetch(`/api/config?instance=${encodeURIComponent(window.currentInstance || 'display1')}`, {
@@ -265,7 +312,8 @@
     // SCHUTZ_STANDARD haengt mit dran, damit ein Test die Vorgaben hier gegen
     // die in src/renderer/burnIn.js halten kann.
     window.Bildschirm = {
-      zeigeDrehung, zeigeSchutz, zeigeAusgaenge, drehung, hochkant, SCHUTZ_STANDARD
+      zeigeDrehung, zeigeSchutz, zeigeAusgaenge, drehung, hochkant,
+      vorschau, richteVorschauAus, SCHUTZ_STANDARD
     };
     document.addEventListener('DOMContentLoaded', start);
   }

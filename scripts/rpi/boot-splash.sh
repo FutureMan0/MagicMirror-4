@@ -103,8 +103,10 @@ if [ -f "$EIGENES" ]; then
   node "$PROJEKT/scripts/build-boot-logo.mjs" \
     --input "$EIGENES" --rotate "$DREHUNG" --out "$THEME_DIR/logo.png"
 else
+  # 900 Pixel breit: das Logo tragt jetzt den Schriftzug "MAGIC MIRROR4 OS",
+  # und bei 512 waere die Schrift auf einem 1920er Panel kaum zu lesen.
   node "$PROJEKT/scripts/build-boot-logo.mjs" \
-    --rotate "$DREHUNG" --size 512 --out "$THEME_DIR/logo.png"
+    --rotate "$DREHUNG" --size 900 --out "$THEME_DIR/logo.png"
 fi
 
 cat > "$THEME_DIR/mm4.plymouth" <<'EOF'

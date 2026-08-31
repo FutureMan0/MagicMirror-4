@@ -125,19 +125,30 @@
     const buehne = rahmen?.parentElement;
     if (!rahmen || !buehne) return;
 
-    const instanz = window.currentInstance || 'display1';
-    const url = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1`;
+    // Format, Masse und Massstab kommen aus screen.js - dieselbe Rechnung wie
+    // fuer die Live-Ansicht und den Zonen-Editor. Steht das Panel hochkant, ist
+    // auch die Vorschau hochkant.
+    const richte = () => window.Bildschirm?.richteVorschauAus(buehne, rahmen);
+
+    const v = window.Bildschirm?.vorschau();
+    const url = v ? v.url : '/mirror/index.html?preview=1&rotate=off';
     if (rahmen.getAttribute('src') !== url) rahmen.setAttribute('src', url);
 
-    const skaliere = () => {
-      const breite = buehne.clientWidth;
-      if (breite) rahmen.style.transform = `scale(${breite / 1920})`;
-    };
-    requestAnimationFrame(skaliere);
+    requestAnimationFrame(richte);
 
     if (!buehne._beobachter) {
-      buehne._beobachter = new ResizeObserver(skaliere);
+      buehne._beobachter = new ResizeObserver(richte);
       buehne._beobachter.observe(buehne);
+    }
+
+    // Dreht sich die Anzeige, dreht sich die Vorschau mit.
+    if (!buehne._drehung) {
+      buehne._drehung = true;
+      document.addEventListener('mm:drehung', () => {
+        if (!detailOffen) return;
+        rahmen.setAttribute('src', window.Bildschirm?.vorschau().url || url);
+        richte();
+      });
     }
   }
 

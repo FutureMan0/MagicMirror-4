@@ -18,7 +18,13 @@ import { drawIcon } from './lib/motiv.mjs';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'src/webui/public/icons');
 
+// Dasselbe Motiv noch einmal fuer das Repository: als Bild in der README und
+// als Avatar auf GitHub. Mit Hintergrund, weil ein Avatar nicht durchsichtig
+// sein kann - hinter einem transparenten PNG steht dort weiss.
+const PROJEKT = path.join(ROOT, 'assets');
+
 await mkdir(OUT, { recursive: true });
+await mkdir(PROJEKT, { recursive: true });
 
 const targets = [
   { file: 'icon-192.png', size: 192, padding: 0.16 },
@@ -36,5 +42,11 @@ for (const target of targets) {
   await writeFile(path.join(OUT, target.file), encodePng(canvas));
   console.log(`${target.file} (${target.size}x${target.size})`);
 }
+
+await writeFile(
+  path.join(PROJEKT, 'icon.png'),
+  encodePng(drawIcon(512, { padding: 0.16 }))
+);
+console.log('icon.png (512x512) fuer das Repository');
 
 console.log(`\n${targets.length} Icons in ${path.relative(ROOT, OUT)}`);

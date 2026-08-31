@@ -90,6 +90,103 @@ test('unlesbare Formate werden abgelehnt, nicht geraten', async () => {
   assert.throws(() => rotiere(bild, 45), /Nur 0, 90, 180 und 270/);
 });
 
+// --- Schriftzug -------------------------------------------------------------
+
+const schrift = () => import('../scripts/lib/schrift.mjs');
+
+test('jedes Zeichen des Schriftzugs gibt es im Alphabet', async () => {
+  const { ZEICHENSATZ } = await schrift();
+  const quelle = lies('scripts/build-boot-logo.mjs');
+
+  // Der Text steht im Generator. Ein Zeichen, das der Strichsatz nicht kennt,
+  // wird stillschweigend als Leerzeichen gesetzt - aus "OS" würde "  ".
+  const treffer = quelle.match(/const text = '([^']+)'/);
+  assert.ok(treffer, 'der Schriftzug steht nicht mehr an der erwarteten Stelle');
+
+  const fehlend = [...new Set([...treffer[1]])].filter(z => !ZEICHENSATZ.includes(z));
+  assert.deepEqual(fehlend, [], `diese Zeichen fehlen im Strichsatz: ${fehlend.join(' ')}`);
+});
+
+test('die gemessene Breite ist die gezeichnete Breite', async () => {
+  const { textBreite, zeichneText } = await schrift();
+  const { Canvas } = await png();
+
+  // Ohne Normierung war jedes Zeichen so breit wie sein Einheitsquadrat, aber
+  // nur so weit vorgeschoben wie sein Vorschub - die Buchstaben liefen
+  // ineinander, und gemessen stimmte trotzdem alles.
+  const leinwand = new Canvas(600, 120);
+  const gemessen = textBreite('MAGIC', 80, 0.16);
+  const gezeichnet = zeichneText(leinwand, 'MAGIC', {
+    x: 10, y: 10, hoehe: 80, dicke: 8, farbe: [255, 255, 255, 255], sperrung: 0.16
+  });
+
+  // zeichneText gibt die Breite samt der Sperrung nach dem letzten Zeichen
+  // zurück - genau um diese eine Lücke ist sie größer.
+  assert.ok(
+    Math.abs((gezeichnet - 0.16 * 80) - gemessen) < 0.001,
+    `gemessen ${gemessen}, gezeichnet ${gezeichnet}`
+  );
+});
+
+test('kein Buchstabe ragt in den Nachbarn', async () => {
+  const { zeichneText } = await schrift();
+  const { Canvas } = await png();
+
+  // Zwei M mit Sperrung 0: zwischen ihnen muss trotzdem eine Spalte frei
+  // bleiben, sonst berühren sich die Buchstaben.
+  const leinwand = new Canvas(400, 120);
+  zeichneText(leinwand, 'II', {
+    x: 0, y: 10, hoehe: 80, dicke: 6, farbe: [255, 255, 255, 255], sperrung: 0.3
+  });
+
+  // In der Mitte zwischen den beiden Strichen darf nichts stehen.
+  let leer = 0;
+  for (let x = 0; x < 400; x += 1) {
+    let spalte = 0;
+    for (let y = 0; y < 120; y += 1) spalte += leinwand.data[(y * 400 + x) * 4 + 3];
+    if (spalte === 0) leer += 1;
+  }
+  assert.ok(leer > 300, 'die Buchstaben füllen die Fläche - da stimmt der Vorschub nicht');
+});
+
+test('der Schriftzug passt in das Bild', async () => {
+  const { decodePng } = await png();
+  const { execFileSync } = require('node:child_process');
+  const os = require('node:os');
+  const ziel = path.join(os.tmpdir(), `mm4-logo-${process.pid}.png`);
+
+  execFileSync(process.execPath, [
+    path.join(ROOT, 'scripts/build-boot-logo.mjs'),
+    '--rotate', '0', '--size', '900', '--out', ziel
+  ]);
+
+  const bild = decodePng(fs.readFileSync(ziel));
+  fs.rmSync(ziel, { force: true });
+
+  // Steht in der ersten oder letzten Spalte etwas, ist der Schriftzug über den
+  // Rand gelaufen - genau das passierte bei fester Schriftgröße.
+  const spalte = (x) => {
+    let summe = 0;
+    for (let y = 0; y < bild.height; y += 1) summe += bild.data[(y * bild.width + x) * 4 + 3];
+    return summe;
+  };
+
+  assert.equal(spalte(0), 0, 'links ist etwas abgeschnitten');
+  assert.equal(spalte(bild.width - 1), 0, 'rechts ist etwas abgeschnitten');
+});
+
+test('das Projektlogo liegt im Repository und steht in der README', () => {
+  assert.ok(
+    fs.existsSync(path.join(ROOT, 'assets/icon.png')),
+    'assets/icon.png fehlt - npm run icons:build erzeugt es'
+  );
+  assert.match(lies('README.md'), /assets\/icon\.png/);
+
+  // Mit Hintergrund: ein Avatar kann nicht durchsichtig sein.
+  const bau = lies('scripts/build-icons.mjs');
+  assert.match(bau, /PROJEKT, 'icon\.png'/);
+});
+
 test('die Drehung kommt aus derselben Datei wie beim Spiegel', () => {
   const quelle = lies('scripts/build-boot-logo.mjs');
 

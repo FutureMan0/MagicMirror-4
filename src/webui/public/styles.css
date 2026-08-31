@@ -376,6 +376,105 @@ body {
   font-size: 0.85rem;
   color: var(--text-primary);
   text-align: right;
+  min-width: 3.5em;
+}
+
+/* Regler mit eigener Optik.
+   Der Standardgriff von Chromium ist etwa zwölf Pixel breit - mit dem Daumen
+   trifft man ihn nicht, und genau daran scheiterte das Einstellen am Telefon.
+   Sobald der Griff gestaltet wird, muss auch die Schiene gestaltet werden:
+   appearance:none nimmt beides zugleich weg. */
+.darstellung-zeile input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.darstellung-zeile input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-darker, #0d0d0d);
+  border: 1px solid var(--border-color, #333);
+}
+
+.darstellung-zeile input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  /* Halbe Griffhöhe minus halbe Schienenhöhe - sonst sitzt er oben an. */
+  margin-top: -8px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-darker, #0d0d0d);
+}
+
+.darstellung-zeile input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-darker, #0d0d0d);
+  border: 1px solid var(--border-color, #333);
+}
+
+.darstellung-zeile input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  border: 2px solid var(--bg-darker, #0d0d0d);
+}
+
+/* Finger statt Maus. Die Abfrage geht über den Zeiger und nicht über die
+   Fensterbreite - ein Tablet im Querformat ist breit UND grob. */
+@media (pointer: coarse) {
+  .darstellung-zeile input[type="range"] {
+    height: 40px;
+  }
+
+  .darstellung-zeile input[type="range"]::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+    margin-top: -11px;
+  }
+
+  .darstellung-zeile input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
+
+  .form-group-checkbox input[type="checkbox"] {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+/* Auf einem schmalen Bildschirm bleibt neben Beschriftung und Wert kaum
+   Regelweg übrig - bei 390 Pixeln Gerätebreite waren es rund 150. Deshalb
+   Beschriftung und Wert in eine Zeile, der Regler darunter über die volle
+   Breite. */
+@media (max-width: 560px) {
+  .darstellung-zeile {
+    grid-template-columns: 1fr auto;
+    row-gap: 2px;
+  }
+
+  .darstellung-zeile label {
+    grid-column: 1;
+  }
+
+  .darstellung-zeile output {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .darstellung-zeile input[type="range"] {
+    grid-column: 1 / -1;
+  }
+
+  .burnin-zeitraum {
+    grid-template-columns: auto 1fr;
+  }
 }
 
 /* Ein ausgegrauter Regler ist einer, der gerade nichts bewirkt - der
@@ -1260,6 +1359,48 @@ body {
   border-radius: 3px;
 }
 
+/* ==================== Layout-Reiter ==================== */
+
+.layout-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+/* Zwei Bedienkonzepte, ein Schalter. Segmentiert und nicht als Auswahlfeld:
+   beide Möglichkeiten sollen gleichzeitig sichtbar sein. */
+.layout-modus {
+  display: inline-flex;
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.layout-modus-knopf {
+  appearance: none;
+  border: 0;
+  background: var(--bg-secondary, #1a1a1a);
+  color: var(--text-secondary);
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  /* Auf einem Telefon muss der Finger treffen. */
+  min-height: 44px;
+}
+
+.layout-modus-knopf + .layout-modus-knopf {
+  border-left: 1px solid var(--border-color, #333);
+}
+
+.layout-modus-knopf.aktiv {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--text-primary);
+  box-shadow: inset 0 -2px 0 var(--accent-cyan);
+}
+
 /* Resize Handles */
 .resize-handle {
   position: absolute;
@@ -1283,6 +1424,17 @@ body {
 
 .resize-handle:active {
   background: #00b0cc;
+}
+
+/* Finger statt Maus: ein Griff von zwölf Pixeln ist nicht zu treffen. Die
+   Abfrage geht über den Zeiger und nicht über die Fensterbreite - ein Tablet
+   im Querformat ist breit UND grob. */
+@media (pointer: coarse) {
+  .resize-handle {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 50% !important;
+  }
 }
 
 /* Corner handles: größer und besser sichtbar */
@@ -2620,7 +2772,9 @@ body {
 
 .modul-vorschau-buehne {
   position: relative;
-  aspect-ratio: 16 / 9;
+  /* Das Format setzt screen.js aus der Drehung - hochkant montiert ist auch
+     die Vorschau hochkant. */
+  aspect-ratio: var(--vorschau-format, 16 / 9);
   overflow: hidden;
   border: 1px solid var(--border-color);
   border-radius: 12px;

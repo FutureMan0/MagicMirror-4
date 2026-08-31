@@ -88,6 +88,29 @@ function wendeDrehungAn(config) {
     : String(erlaubt.includes(grad) ? grad : 0);
 }
 
+/**
+ * Rasterspuren, die auch wirklich schrumpfen duerfen.
+ *
+ * `1fr` heisst in CSS `minmax(auto, 1fr)`, und `auto` als Mindestmass ist die
+ * Mindestbreite des Inhalts. Ein Modul, das mehr braucht als seine Spur, laesst
+ * die Spur deshalb WACHSEN - bei zwoelf Zeilen auf einem Bildschirm ragt das
+ * Raster dann unten heraus, und weil der Spiegel nicht rollt, ist der Rest
+ * abgeschnitten. Genau so sah es am Geraet aus.
+ *
+ * `minmax(0, 1fr)` nimmt dem Inhalt dieses Vetorecht. Angaben, die schon eine
+ * eigene Untergrenze mitbringen (`minmax(320px, 1fr)`, `auto`, feste Werte),
+ * bleiben unangetastet.
+ */
+function spurenTemplate(groessen, anzahl) {
+  const spuren = Array.isArray(groessen) && groessen.length > 0
+    ? groessen
+    : Array(Math.max(1, Number(anzahl) || 1)).fill('1fr');
+
+  return spuren
+    .map((spur) => (/^\s*\d*\.?\d+fr\s*$/.test(String(spur)) ? `minmax(0, ${String(spur).trim()})` : spur))
+    .join(' ');
+}
+
 function buildGridCSS(gridSettings, config) {
   // Ein Layout aus Zonen braucht das grobe Zonen-Raster, nicht das feine
   // 8x10 aus der Konfiguration - sonst landen die Zonen in Zelle 1 bis 3 von
@@ -110,15 +133,9 @@ function buildGridCSS(gridSettings, config) {
     };
   }
 
-  // Erstelle grid-template-columns String
-  const columnTemplate = gridSettings.columnSizes && gridSettings.columnSizes.length > 0
-    ? gridSettings.columnSizes.join(' ')
-    : `repeat(${gridSettings.columns}, 1fr)`;
-
-  // Erstelle grid-template-rows String
-  const rowTemplate = gridSettings.rowSizes && gridSettings.rowSizes.length > 0
-    ? gridSettings.rowSizes.join(' ')
-    : `repeat(${gridSettings.rows}, 1fr)`;
+  // Erstelle grid-template-columns/-rows
+  const columnTemplate = spurenTemplate(gridSettings.columnSizes, gridSettings.columns);
+  const rowTemplate = spurenTemplate(gridSettings.rowSizes, gridSettings.rows);
 
   // Setze ALLE CSS Custom Properties auf :root (werden von CSS verwendet)
   const root = document.documentElement;

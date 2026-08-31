@@ -134,17 +134,36 @@ test('eine geänderte Drehung erreicht Editor und Live-Ansicht sofort', () => {
   assert.match(appQuelle, /addEventListener\('mm:drehung'/);
 });
 
-test('die Live-Ansicht zeigt die Wand, nicht den Bildspeicher', () => {
-  const appQuelle = lies('src/webui/public/app.js');
+test('jede Vorschau zeigt die Wand, nicht den Bildspeicher', () => {
+  const screenQuelle = lies('src/webui/public/screen.js');
   const rendererQuelle = lies('src/renderer/renderer.js');
 
-  // Der Rahmen bekommt das Format des gedrehten Panels ...
-  assert.match(appQuelle, /const breite = hoch \? MIRROR_HEIGHT : MIRROR_WIDTH/);
-  assert.match(appQuelle, /const hoehe = hoch \? MIRROR_WIDTH : MIRROR_HEIGHT/);
+  // Eine Rechnung für alle drei Vorschauen. Vorher rechnete jede für sich mit
+  // festen 1920×1080 - und zwei davon wurden beim Umbau schlicht vergessen.
+  assert.match(screenQuelle, /breite: hoch \? 1080 : 1920/);
+  assert.match(screenQuelle, /hoehe: hoch \? 1920 : 1080/);
+  assert.match(screenQuelle, /format: hoch \? '9 \/ 16' : '16 \/ 9'/);
+  assert.match(screenQuelle, /rotate=off/);
 
-  // ... und der Renderer lässt seine eigene Drehung dort weg. Beides zugleich
-  // wäre die zweite Drehung, und der Text läge quer.
-  assert.match(appQuelle, /rotate=off/);
+  // Der Renderer lässt seine eigene Drehung dort weg. Beides zugleich wäre die
+  // zweite Drehung, und der Text läge quer.
   assert.match(rendererQuelle, /params\.get\('rotate'\) === 'off'/);
   assert.match(rendererQuelle, /drehungAus\s*\n?\s*\?\s*'0'/);
+});
+
+test('keine Vorschau rechnet mehr mit festen 1920 Pixeln', () => {
+  // Genau daran fiel es auf: die Modul-Detailvorschau und der Zonen-Editor
+  // blieben liegend, während die Live-Ansicht sich schon drehte.
+  for (const datei of [
+    'src/webui/public/module-browser.js',
+    'src/webui/public/zone-editor.js',
+    'src/webui/public/app.js'
+  ]) {
+    const quelle = lies(datei);
+    assert.match(
+      quelle,
+      /Bildschirm\?\.(vorschau|richteVorschauAus)|Bildschirm\.richteVorschauAus/,
+      `${datei} benutzt die gemeinsame Rechnung nicht`
+    );
+  }
 });
