@@ -315,5 +315,29 @@ child.on('exit', (code, signal) => {
   cleanup();
   console.log(`\nApp gestartet, Theme "${result.theme}".`);
   console.log(`Gemountete Module (${result.mounted.length}): ${result.mounted.join(', ')}`);
+
+  // Was nicht in seine Flaeche passt, wird abgeschnitten - und ohne Bildschirm
+  // vor der Nase faellt das sonst niemandem auf. Am Geraet stand einmal
+  // "23:42:5" statt der Uhrzeit; erst ein Foto vom Spiegel zeigte es.
+  const geometrie = result.geometrie || [];
+  if (geometrie.length) {
+    console.log('\nFlaechen (Flaeche -> Inhalt, Einpassung):');
+    for (const m of geometrie) {
+      const eng = m.inhalt[0] > m.flaeche[0] + 1 || m.inhalt[1] > m.flaeche[1] + 1;
+      console.log(
+        `  ${m.modul.padEnd(16)} ${String(m.flaeche.join('x')).padEnd(11)}`
+        + ` -> ${String(m.inhalt.join('x')).padEnd(11)} ${m.passung}`
+        + (eng ? '   ABGESCHNITTEN' : '')
+      );
+    }
+
+    const beschnitten = geometrie.filter(
+      m => m.inhalt[0] > m.flaeche[0] + 1 || m.inhalt[1] > m.flaeche[1] + 1
+    );
+    if (beschnitten.length) {
+      console.log(`\n${beschnitten.length} Modul(e) passen nicht in ihre Flaeche.`);
+    }
+  }
+
   console.log('Startprobe bestanden.');
 });

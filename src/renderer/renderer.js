@@ -459,10 +459,16 @@ async function renderModules() {
     }
 
     if (window.mmBus) {
-      window.mmBus.publish('system:modules-rendered', {
-        mounted,
-        failed,
-        theme: config.theme || 'default'
+      // Erst messen, dann melden: die Einpassung braucht ein Layout, und das
+      // steht erst im naechsten Bild.
+      requestAnimationFrame(() => {
+        if (!window.mmBus) return;
+        window.mmBus.publish('system:modules-rendered', {
+          mounted,
+          failed,
+          theme: config.theme || 'default',
+          geometrie: vermesseModule()
+        });
       });
     }
   } catch (error) {
@@ -636,6 +642,40 @@ function beobachtePassung(container, inhalt) {
 
   passungsBeobachter.observe(container);
   passungsBeobachter.observe(inhalt);
+}
+
+/**
+ * Was ist wie gross, und passt der Inhalt hinein?
+ *
+ * Ohne Bildschirm vor der Nase ist das die einzige Art, "23:42:5" statt der
+ * Uhrzeit zu bemerken. Die Startprobe (scripts/smoke.mjs) wertet das aus und
+ * meldet abgeschnittene Module - damit faellt beim naechsten Mal auf, was
+ * dieses Mal erst ein Foto vom Spiegel gezeigt hat.
+ */
+function vermesseModule() {
+  const messwerte = [];
+
+  for (const [, eintrag] of rendered) {
+    const rahmen = eintrag.container;
+    const inhalt = rahmen.querySelector(':scope > .mm-fit');
+    if (!inhalt) continue;
+
+    const stil = getComputedStyle(rahmen);
+    const breite = rahmen.clientWidth
+      - parseFloat(stil.paddingLeft || 0) - parseFloat(stil.paddingRight || 0);
+    const hoehe = rahmen.clientHeight
+      - parseFloat(stil.paddingTop || 0) - parseFloat(stil.paddingBottom || 0);
+    const passung = parseFloat(rahmen.style.getPropertyValue('--mm-fit-scale')) || 1;
+
+    messwerte.push({
+      modul: eintrag.entry.module,
+      flaeche: [Math.round(breite), Math.round(hoehe)],
+      inhalt: [Math.round(inhalt.scrollWidth * passung), Math.round(inhalt.scrollHeight * passung)],
+      passung
+    });
+  }
+
+  return messwerte;
 }
 
 /** Baut genau ein Modul neu auf, ohne die übrigen anzufassen. */
