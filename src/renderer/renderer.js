@@ -579,6 +579,65 @@ async function applyConfig(nextConfig) {
   }
 }
 
+// Ein Beobachter fuer alle Module. Einer statt einer je Kachel.
+let passungsBeobachter = null;
+
+/**
+ * Den Inhalt eines Moduls in seine Flaeche einpassen.
+ *
+ * Am Geraet sah man "23:38:4" statt der Uhrzeit und "1" statt 17 Grad: der
+ * Inhalt war breiter als die zugeteilte Flaeche, und seit .module-container
+ * `overflow: hidden` hat, wird er dort abgeschnitten. Ein Rollbalken waere
+ * keine Loesung - an einer Wand rollt niemand.
+ *
+ * Also verkleinern statt abschneiden. Nur verkleinern, nie vergroessern: nach
+ * oben entscheidet die Schriftgroesse, die man selbst einstellt.
+ *
+ * scrollWidth/scrollHeight sind die natuerlichen Masse. `transform` aendert
+ * das Layout nicht, deshalb bleiben sie beim Skalieren gleich - die Messung
+ * kann sich nicht aufschaukeln. Mit `zoom` waere genau das passiert.
+ */
+function passeEin(container) {
+  const inhalt = container && container.querySelector(':scope > .mm-fit');
+  if (!inhalt) return;
+
+  const stil = getComputedStyle(container);
+  const breite = container.clientWidth
+    - parseFloat(stil.paddingLeft || 0) - parseFloat(stil.paddingRight || 0);
+  const hoehe = container.clientHeight
+    - parseFloat(stil.paddingTop || 0) - parseFloat(stil.paddingBottom || 0);
+  if (breite <= 0 || hoehe <= 0) return;
+
+  const natBreite = inhalt.scrollWidth;
+  const natHoehe = inhalt.scrollHeight;
+  if (!natBreite || !natHoehe) return;
+
+  // Auf zwei Stellen runden: sonst zittert der Wert bei jeder Sekunde der Uhr.
+  const faktor = Math.min(1, breite / natBreite, hoehe / natHoehe);
+  const gerundet = Math.max(0.25, Math.round(faktor * 100) / 100);
+
+  container.style.setProperty('--mm-fit-scale', String(gerundet));
+}
+
+/** Flaeche und Inhalt beobachten - beide koennen sich aendern. */
+function beobachtePassung(container, inhalt) {
+  if (typeof ResizeObserver !== 'function') return;
+
+  if (!passungsBeobachter) {
+    passungsBeobachter = new ResizeObserver((eintraege) => {
+      const rahmen = new Set();
+      for (const eintrag of eintraege) {
+        const r = eintrag.target.closest && eintrag.target.closest('.module-container');
+        if (r) rahmen.add(r);
+      }
+      for (const r of rahmen) passeEin(r);
+    });
+  }
+
+  passungsBeobachter.observe(container);
+  passungsBeobachter.observe(inhalt);
+}
+
 /** Baut genau ein Modul neu auf, ohne die übrigen anzufassen. */
 async function remountModule(key, entry, container) {
   moduleLoader.destroyInstance(key);
@@ -594,7 +653,16 @@ async function remountModule(key, entry, container) {
     );
 
     if (result.element) {
-      container.appendChild(result.element);
+      // Zwischenschicht fuer die Einpassung. Das Modul selbst bleibt
+      // unangetastet - so kann es weiter eigene transform-Angaben setzen
+      // (der Tonarm der Schallplatte tut das).
+      const huelle = document.createElement('div');
+      huelle.className = 'mm-fit';
+      huelle.appendChild(result.element);
+      container.appendChild(huelle);
+
+      beobachtePassung(container, huelle);
+      requestAnimationFrame(() => passeEin(container));
     } else if (result.headless) {
       container.remove();
       rendered.delete(key);

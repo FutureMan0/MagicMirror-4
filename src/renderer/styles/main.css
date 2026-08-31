@@ -126,6 +126,21 @@
     --mm-size-4xl:  calc(var(--mm-size-4xl-quelle)  * var(--mm-font-scale, 1));
   }
 
+  /*
+   * Die Einpassung. Was nicht in seine Fläche passt, wird verkleinert statt
+   * abgeschnitten - siehe passeEin() in renderer.js. Der Faktor ist immer
+   * höchstens 1: nach oben entscheidet die Schriftgröße.
+   *
+   * transform und nicht zoom: transform ändert das Layout nicht, damit bleiben
+   * scrollWidth/scrollHeight die natürlichen Maße und die Messung schaukelt
+   * sich nicht auf.
+   */
+  .mm-fit {
+    transform-origin: top left;
+    transform: scale(var(--mm-fit-scale, 1));
+    min-width: 0;
+  }
+
   /* Scrollbar-Optik. Sichtbar wird sie nur, wenn ein Modul überläuft. */
   ::-webkit-scrollbar {
     width: 8px;

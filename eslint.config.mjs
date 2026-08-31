@@ -29,6 +29,9 @@ const browserGlobals = {
   Image: 'readonly',
   Audio: 'readonly',
   getComputedStyle: 'readonly',
+  // Der Renderer passt Modulinhalte in ihre Flaeche ein und beobachtet dafuer
+  // beide Groessen (siehe passeEin() in renderer.js).
+  ResizeObserver: 'readonly',
   alert: 'readonly',
   confirm: 'readonly',
   crypto: 'readonly',
