@@ -678,7 +678,10 @@ function runSmokeMode() {
       mounted: (payload && payload.mounted) || [],
       failed,
       warnings: startupWarnings,
-      theme: payload && payload.theme
+      theme: payload && payload.theme,
+      // Flaechen und Inhaltsmasse - die Startprobe markiert damit, was
+      // abgeschnitten wird.
+      geometrie: (payload && payload.geometrie) || []
     });
   });
 
