@@ -1,0 +1,53 @@
+/* AEON's orb breathes slowly; everything else is text in the theme's tokens. */
+.module-aeon {
+  min-width: 240px;
+}
+
+.aeon-orb {
+  width: calc(3.5rem * var(--mm-font-scale, 1));
+  height: calc(3.5rem * var(--mm-font-scale, 1));
+  margin: 0 auto var(--mm-space-4);
+  border-radius: var(--mm-radius-pill);
+  background: radial-gradient(circle at 35% 35%, var(--mm-color-accent), var(--mm-color-surface-2) 70%);
+  box-shadow: var(--mm-glow);
+  animation: aeon-breathe var(--mm-dur-drift) var(--mm-ease-standard) infinite alternate;
+}
+
+@keyframes aeon-breathe {
+  from { transform: scale(0.94); opacity: 0.75; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.aeon-said {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mm-space-2);
+  font-size: var(--mm-size-base);
+  line-height: var(--mm-leading-normal);
+}
+
+.aeon-line {
+  display: flex;
+  gap: var(--mm-space-3);
+}
+
+.aeon-at {
+  color: var(--mm-color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.aeon-agenda {
+  margin-top: var(--mm-space-4);
+  padding-top: var(--mm-space-4);
+  border-top: 1px solid var(--mm-color-border);
+}
+
+.aeon-quiet {
+  margin-top: var(--mm-space-4);
+  color: var(--mm-color-text-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aeon-orb { animation: none; }
+}

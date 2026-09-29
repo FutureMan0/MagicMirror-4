@@ -1,0 +1,64 @@
+{
+  "apiVersion": 2,
+  "name": "aeon",
+  "displayName": "AEON",
+  "version": "1.0.0",
+  "description": "AEONs Orb, was AEON zuletzt im Haus gesagt hat, und die Termine des Tages.",
+  "author": "MagicMirror⁴",
+  "secrets": [
+    {
+      "key": "token",
+      "env": "AEON_MIRROR_TOKEN",
+      "label": "Geräte-Token (optional)",
+      "exposeToRenderer": false
+    }
+  ],
+  "provides": [
+    "data:aeon"
+  ],
+  "config": {
+    "cortexUrl": {
+      "type": "string",
+      "default": "http://127.0.0.1:8010",
+      "description": "Adresse von AEONs Cortex im Heimnetz"
+    },
+    "token": {
+      "type": "string",
+      "default": "",
+      "description": "Token eines gekoppelten Geräts (POST /v1/pairing). Ohne Token zeigt der Spiegel nur, was der ganze Haushalt sehen darf; mit Token auch die Termine dieser Person."
+    },
+    "showOrb": {
+      "type": "boolean",
+      "default": true,
+      "description": "AEONs Orb anzeigen"
+    },
+    "maxSaid": {
+      "type": "number",
+      "default": 3,
+      "min": 0,
+      "max": 8,
+      "description": "Wie viele von AEONs letzten Sätzen angezeigt werden"
+    },
+    "maxEntries": {
+      "type": "number",
+      "default": 4,
+      "min": 0,
+      "max": 10,
+      "description": "Wie viele Termine angezeigt werden"
+    },
+    "days": {
+      "type": "number",
+      "default": 1,
+      "min": 1,
+      "max": 7,
+      "description": "Wie viele Tage voraus Termine gezeigt werden"
+    },
+    "updateInterval": {
+      "type": "number",
+      "default": 60000,
+      "min": 15000,
+      "description": "Aktualisierungsintervall in Millisekunden"
+    }
+  },
+  "privacyLevel": "personal"
+}
