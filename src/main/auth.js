@@ -165,8 +165,12 @@ class Auth {
     const now = Date.now();
     const last = this.lastPairingRequest.get(clientIp) || 0;
     if (now - last < PAIRING_MIN_INTERVAL_MS) {
+      // error.code ist der Vertrag mit der Web-Oberflaeche: sie uebersetzt
+      // ueber die Kennung (src/webui/public/auth.js), die Meldung ist nur
+      // Rueckfall fuer andere Clients.
       const error = new Error('Zu viele Kopplungsversuche. Bitte kurz warten.');
       error.status = 429;
+      error.code = 'PAIRING_RATE_LIMITED';
       throw error;
     }
     this.lastPairingRequest.set(clientIp, now);
@@ -210,6 +214,7 @@ class Auth {
     if (!state.active) {
       const error = new Error('Es läuft gerade keine Kopplung. Bitte am Spiegel neu starten.');
       error.status = 400;
+      error.code = 'PAIRING_NOT_RUNNING';
       throw error;
     }
 
@@ -218,6 +223,7 @@ class Auth {
       this.cancelPairing();
       const error = new Error('Zu viele Fehlversuche. Die Kopplung wurde abgebrochen.');
       error.status = 429;
+      error.code = 'PAIRING_TOO_MANY_ATTEMPTS';
       throw error;
     }
 
@@ -231,6 +237,7 @@ class Auth {
     if (!matches) {
       const error = new Error('Code stimmt nicht.');
       error.status = 401;
+      error.code = 'PAIRING_WRONG_CODE';
       throw error;
     }
 
@@ -249,6 +256,7 @@ class Auth {
     if (!matches) {
       const error = new Error('Token stimmt nicht.');
       error.status = 401;
+      error.code = 'TOKEN_WRONG';
       throw error;
     }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
@@ -32,13 +32,13 @@
       <h1 data-i18n="appTitle">MagicMirror⁴</h1>
       <div class="header-actions">
         <div class="instance-selector">
-          <label data-i18n="instance">Instanz:</label>
+          <label data-i18n="instance">Instance:</label>
           <select id="instance-select">
             <option value="display1">Display 1</option>
             <option value="display2">Display 2</option>
           </select>
         </div>
-        <button id="settings-btn" aria-label="Einstellungen">⚙️</button>
+        <button id="settings-btn" aria-label="Settings" data-i18n-aria="settings">⚙️</button>
       </div>
     </header>
 
@@ -52,27 +52,27 @@
           <div class="modul-browser" id="modul-browser">
 
             <div class="modul-uebersicht" id="modul-uebersicht">
-              <h2 data-i18n="modules">Module</h2>
+              <h2 data-i18n="modules">Modules</h2>
               <div class="modul-karten" id="modul-karten"></div>
             </div>
 
             <div class="modul-detail" id="modul-detail" hidden>
               <div class="modul-detail-kopf">
-                <button class="modul-zurueck" id="modul-zurueck" data-i18n="back">Zurück</button>
+                <button class="modul-zurueck" id="modul-zurueck" data-i18n="back">Back</button>
                 <h2 class="modul-detail-titel" id="modul-detail-titel"></h2>
               </div>
               <div class="modul-detail-inhalt">
                 <div class="modul-detail-vorschau">
                   <div class="modul-vorschau-buehne">
-                    <iframe id="modul-vorschau" title="Vorschau"
+                    <iframe id="modul-vorschau" title="Preview" data-i18n-title="preview"
                             sandbox="allow-scripts allow-same-origin"></iframe>
                   </div>
                 </div>
                 <div class="modul-detail-einstellungen" id="settings-section">
                   <div id="module-settings"></div>
                   <div class="modul-detail-aktionen" id="settings-actions">
-                    <button class="btn-secondary" id="cancel-settings-btn" data-i18n="cancel">Abbrechen</button>
-                    <button class="btn-primary" id="save-settings-btn" data-i18n="save">Speichern</button>
+                    <button class="btn-secondary" id="cancel-settings-btn" data-i18n="cancel">Cancel</button>
+                    <button class="btn-primary" id="save-settings-btn" data-i18n="save">Save</button>
                   </div>
                 </div>
               </div>
@@ -94,12 +94,12 @@
           <div class="layout-kopf">
             <div class="layout-modus" id="layout-modus" role="group">
               <button type="button" class="layout-modus-knopf" data-modus="zonen"
-                      data-i18n="layoutZones">Zonen</button>
+                      data-i18n="layoutZones">Zones</button>
               <button type="button" class="layout-modus-knopf" data-modus="frei"
-                      data-i18n="layoutFree">Frei</button>
+                      data-i18n="layoutFree">Free</button>
             </div>
             <button type="button" class="btn-secondary" id="toggle-live-view"
-                    data-i18n="livePreview">Live-Vorschau</button>
+                    data-i18n="livePreview">Live Preview</button>
           </div>
 
           <!-- Der echte Spiegel, klein. Der Editor zeigt nur Kaestchen mit
@@ -108,10 +108,10 @@
                sonst laeuft dauerhaft ein zweiter Spiegel samt Netzabfragen mit. -->
           <div class="live-view" id="live-view" hidden>
             <div class="live-view-header">
-              <span class="live-view-title" data-i18n="livePreview">Live-Vorschau</span>
+              <span class="live-view-title" data-i18n="livePreview">Live Preview</span>
               <span class="live-view-hint" id="live-view-hint"></span>
               <button type="button" class="btn-secondary" id="live-view-reload"
-                      aria-label="Neu laden">⟳</button>
+                      aria-label="Reload" data-i18n-aria="reload">⟳</button>
             </div>
             <div class="live-view-frame">
               <iframe id="live-view-iframe" title="Live"
@@ -126,7 +126,7 @@
       <!-- Tab 3: Mobile App Store (Fallback for mobile) -->
       <section id="tab-appstore" class="tab-content">
         <div class="appstore-section">
-          <h2 data-i18n="appStore">Store</h2>
+          <h2 data-i18n="appStore">App Store</h2>
           <div class="appstore-grid" id="appstore-grid"></div>
         </div>
       </section>
@@ -134,39 +134,39 @@
       <!-- Tab: Steuerung (Home Assistant) -->
       <section id="tab-control" class="tab-content">
         <div class="control-section">
-          <h2 data-i18n="control">Steuerung</h2>
-          <div id="control-body" data-i18n="loading">Wird geladen …</div>
+          <h2 data-i18n="control">Control</h2>
+          <div id="control-body" data-i18n="loading">Loading …</div>
         </div>
       </section>
 
       <!-- Tab: Privatsphäre -->
       <section id="tab-privacy" class="tab-content">
         <div class="privacy-section">
-          <h2 data-i18n="privacy">Privatsphäre</h2>
-          <div id="privacy-body" data-i18n="loading">Wird geladen …</div>
+          <h2 data-i18n="privacy">Privacy</h2>
+          <div id="privacy-body" data-i18n="loading">Loading …</div>
         </div>
       </section>
 
       <!-- Tab 4: Einstellungen -->
       <section id="tab-settings" class="tab-content">
         <div class="settings-section">
-          <h2 data-i18n="settings">Einstellungen</h2>
+          <h2 data-i18n="settings">Settings</h2>
 
           <!-- Bildschirm: Drehung und einzelne Anzeigen. Beides gehoert
                hierher und nicht ins Layout - es betrifft das Geraet, nicht
                den Inhalt. -->
           <div class="settings-group">
-            <h3 data-i18n="screen">Bildschirm</h3>
+            <h3 data-i18n="screen">Screen</h3>
 
             <div class="form-group">
-              <label for="screen-rotation" data-i18n="rotation">Drehung</label>
+              <label for="screen-rotation" data-i18n="rotation">Rotation</label>
               <select id="screen-rotation">
                 <option value="0">0°</option>
                 <option value="90">90°</option>
                 <option value="180">180°</option>
                 <option value="270">270°</option>
               </select>
-              <p class="form-hint" data-i18n="rotationHint">Gilt für diese Anzeige.</p>
+              <p class="form-hint" data-i18n="rotationHint">Applies to this display.</p>
             </div>
 
             <div id="screen-outputs" class="screen-outputs"></div>
@@ -175,23 +175,23 @@
           <!-- Einbrennschutz: betrifft das Panel und nicht den Inhalt - also
                hierher neben die Drehung und nicht ins Layout. -->
           <div class="settings-group" id="burnin-group">
-            <h3 data-i18n="burnIn">Einbrennschutz</h3>
+            <h3 data-i18n="burnIn">Burn-in protection</h3>
 
             <div class="form-group">
               <div class="form-group-checkbox">
                 <input type="checkbox" id="burnin-shift">
-                <span data-i18n="burnInShift">Bildversatz</span>
+                <span data-i18n="burnInShift">Pixel shift</span>
               </div>
-              <p class="form-hint" data-i18n="burnInShiftHint">Der Inhalt wandert alle paar Minuten um wenige Pixel weiter. Auf einem OLED verhindert das, dass sich die Uhrzeit dauerhaft ins Panel brennt.</p>
+              <p class="form-hint" data-i18n="burnInShiftHint">The content moves on by a few pixels every few minutes. On an OLED panel this keeps the clock from burning itself into the display.</p>
 
               <div class="darstellung-zeile">
-                <label for="burnin-range" data-i18n="burnInRange">Weite</label>
+                <label for="burnin-range" data-i18n="burnInRange">Distance</label>
                 <input type="range" id="burnin-range" min="2" max="24" step="2">
                 <output for="burnin-range"></output>
               </div>
 
               <div class="darstellung-zeile">
-                <label for="burnin-interval" data-i18n="burnInInterval">Takt</label>
+                <label for="burnin-interval" data-i18n="burnInInterval">Every</label>
                 <input type="range" id="burnin-interval" min="1" max="30" step="1">
                 <output for="burnin-interval"></output>
               </div>
@@ -199,38 +199,38 @@
 
             <div class="form-group">
               <div class="darstellung-zeile">
-                <label for="burnin-brightness" data-i18n="burnInBrightness">Helligkeit</label>
+                <label for="burnin-brightness" data-i18n="burnInBrightness">Brightness</label>
                 <input type="range" id="burnin-brightness" min="15" max="100" step="5">
                 <output for="burnin-brightness"></output>
               </div>
 
               <div class="form-group-checkbox">
                 <input type="checkbox" id="burnin-night">
-                <span data-i18n="burnInNight">Nachts absenken</span>
+                <span data-i18n="burnInNight">Dim at night</span>
               </div>
 
               <div class="darstellung-zeile">
-                <label for="burnin-night-brightness" data-i18n="burnInNightBrightness">Nachts</label>
+                <label for="burnin-night-brightness" data-i18n="burnInNightBrightness">At night</label>
                 <input type="range" id="burnin-night-brightness" min="5" max="100" step="5">
                 <output for="burnin-night-brightness"></output>
               </div>
 
               <div class="burnin-zeitraum">
-                <label for="burnin-from" data-i18n="burnInFrom">Von</label>
+                <label for="burnin-from" data-i18n="burnInFrom">From</label>
                 <input type="time" id="burnin-from">
-                <label for="burnin-to" data-i18n="burnInTo">Bis</label>
+                <label for="burnin-to" data-i18n="burnInTo">Until</label>
                 <input type="time" id="burnin-to">
               </div>
 
-              <p class="form-hint" data-i18n="burnInBrightnessHint">Einbrennen hängt an Helligkeit mal Zeit. Ganz ausschalten lässt sich der Bildschirm hier nicht - das entscheidet die Anwesenheit.</p>
+              <p class="form-hint" data-i18n="burnInBrightnessHint">Burn-in scales with brightness times time. The screen cannot be switched off here - presence decides that.</p>
             </div>
           </div>
 
           <div class="settings-group">
-            <h3 data-i18n="theme">Design</h3>
+            <h3 data-i18n="theme">Theme</h3>
             <div class="theme-picker">
-              <button data-theme="dark" class="active" data-i18n="themeDark">Dunkel</button>
-              <button data-theme="light" data-i18n="themeLight">Hell</button>
+              <button data-theme="dark" class="active" data-i18n="themeDark">Dark</button>
+              <button data-theme="light" data-i18n="themeLight">Light</button>
               <button data-theme="oled" data-i18n="themeOled">OLED</button>
             </div>
           </div>
@@ -242,7 +242,7 @@
           </div>
 
           <div class="settings-group">
-            <h3 data-i18n="language">Sprache</h3>
+            <h3 data-i18n="language">Language</h3>
             <select id="language-select">
               <option value="de">Deutsch</option>
               <option value="en">English</option>
@@ -257,17 +257,17 @@
           <div class="settings-group" id="update-group">
             <h3 data-i18n="update">Update</h3>
             <div id="update-status">
-              <span id="update-message" data-i18n="checking">Prüfe auf Updates...</span>
-              <button id="check-update-btn" class="btn-secondary" style="margin-left: 10px;" data-i18n="checkNow">Jetzt
-                prüfen</button>
+              <span id="update-message" data-i18n="checking">Checking...</span>
+              <button id="check-update-btn" class="btn-secondary" style="margin-left: 10px;" data-i18n="checkNow">Check
+                now</button>
             </div>
             <div id="update-action" style="display: none; margin-top: 15px;">
               <div
                 style="background: rgba(0, 255, 255, 0.1); border: 1px solid var(--accent-cyan); padding: 15px; border-radius: 8px;">
-                <p style="margin-bottom: 15px;" data-i18n="updateAvailableText">Ein neues Update von GitHub ist
-                  verfügbar!</p>
-                <button id="execute-update-btn" class="btn-primary" data-i18n="installUpdate">Update jetzt
-                  installieren</button>
+                <p style="margin-bottom: 15px;" data-i18n="updateAvailableText">A new update from GitHub is
+                  available!</p>
+                <button id="execute-update-btn" class="btn-primary" data-i18n="installUpdate">Install update
+                  now</button>
               </div>
             </div>
           </div>
@@ -280,7 +280,7 @@
   <nav class="bottom-nav">
     <button data-tab="modules" class="active">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5z"/><path d="M3 8.5 12 13l9-4.5"/><path d="M12 13v7"/></svg>
-      <span data-i18n="modules">Module</span>
+      <span data-i18n="modules">Modules</span>
     </button>
     <button data-tab="layout">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
@@ -288,19 +288,19 @@
     </button>
     <button data-tab="appstore">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 9 5.5 4h13L20 9"/><path d="M9 20v-6h6v6"/></svg>
-      <span data-i18n="appStore">Store</span>
+      <span data-i18n="appStore">App Store</span>
     </button>
     <button data-tab="control" id="nav-control" hidden>
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 1 3.5 10.9c-.5.4-.8 1-.8 1.6H9.3c0-.6-.3-1.2-.8-1.6A6 6 0 0 1 12 3z"/></svg>
-      <span data-i18n="control">Steuerung</span>
+      <span data-i18n="control">Control</span>
     </button>
     <button data-tab="privacy">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-      <span data-i18n="privacyShort">Privat</span>
+      <span data-i18n="privacyShort">Privacy</span>
     </button>
     <button data-tab="settings">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
-      <span data-i18n="settings">Einstellungen</span>
+      <span data-i18n="settings">Settings</span>
     </button>
   </nav>
 

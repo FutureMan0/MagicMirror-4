@@ -254,7 +254,7 @@
 
     const titel = document.createElement('h4');
     titel.className = 'screen-outputs-titel';
-    titel.textContent = text('outputs', 'Angeschlossene Anzeigen');
+    titel.textContent = text('outputs', 'Connected displays');
     behaelter.appendChild(titel);
 
     for (const ausgang of ausgaenge) {
@@ -268,7 +268,7 @@
 
       const zustand = document.createElement('span');
       zustand.className = 'screen-output-zustand';
-      zustand.textContent = ausgang.connected ? '' : text('outputDisconnected', 'nicht angeschlossen');
+      zustand.textContent = ausgang.connected ? '' : text('outputDisconnected', 'not connected');
 
       const schalter = document.createElement('button');
       schalter.type = 'button';

@@ -8,8 +8,21 @@ function modulName(displayName, fallback) {
   if (!displayName) return fallback;
   if (typeof displayName === 'string') return displayName;
 
-  const sprache = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'de';
-  return displayName[sprache] || displayName.de || displayName.en || fallback;
+  const sprache = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
+  return displayName[sprache] || displayName.en || displayName.de || fallback;
+}
+
+/**
+ * Jeder andere Text aus einem Manifest (module.json, theme.json) in der
+ * eingestellten Sprache: Beschreibungen, Einstellungs-Labels, Optionsnamen.
+ *
+ * Sie duerfen wie `displayName` ein String oder { en, de } sein. Ein Objekt
+ * direkt in einen Text gesetzt ergaebe „[object Object]".
+ */
+function lokal(wert, rueckfall = '') {
+  if (wert === null || wert === undefined || wert === '') return rueckfall;
+  if (typeof wert !== 'object') return String(wert);
+  return modulName(wert, rueckfall);
 }
 
 // Muss zu SECRET_PLACEHOLDER in src/main/configManager.js passen.
@@ -57,6 +70,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Erst danach die Theme-Auswahl aufbauen: sie markiert das aktive Theme
   // und braucht dafür die geladene Konfiguration.
   await setupMirrorThemePicker();
+  // Namen und Beschreibungen der Themes stehen in beiden Sprachen in
+  // theme.json - nach einem Sprachwechsel neu zeichnen.
+  document.addEventListener('mm:language', () => setupMirrorThemePicker());
   setupLiveView();
   window.ModulBrowser?.zeichneKarten();
 
@@ -176,13 +192,13 @@ function switchTab(tabName) {
 function updateSettingsButton(currentTab) {
   const settingsBtn = document.getElementById('settings-btn');
   if (settingsBtn) {
-    if (currentTab === 'settings') {
-      settingsBtn.innerHTML = '←'; // Zurück-Pfeil
-      settingsBtn.title = 'Zurück';
-    } else {
-      settingsBtn.innerHTML = '⚙️'; // Settings-Icon
-      settingsBtn.title = 'Einstellungen';
-    }
+    const schluessel = currentTab === 'settings' ? 'back' : 'settings';
+    settingsBtn.innerHTML = currentTab === 'settings' ? '←' : '⚙️'; // Zurück-Pfeil / Settings-Icon
+    // Ueber die Attribute, damit ein Sprachwechsel die Beschriftung mitnimmt.
+    settingsBtn.dataset.i18nAria = schluessel;
+    settingsBtn.dataset.i18nTitle = schluessel;
+    settingsBtn.title = t(schluessel);
+    settingsBtn.setAttribute('aria-label', t(schluessel));
   }
 }
 
@@ -410,7 +426,7 @@ document.addEventListener('mm:config', (event) => {
   // verschwinden Eingaben unter den Fingern.
   const settingsOpen = document.getElementById('settings-actions')?.style.display !== 'none';
   if (settingsOpen) {
-    showNotification('Die Konfiguration wurde anderswo geändert. Nach dem Speichern neu laden.');
+    showNotification(t('configChangedElsewhere'));
     return;
   }
 
@@ -462,18 +478,18 @@ async function setupMirrorThemePicker() {
 
     const name = document.createElement('span');
     name.className = 'theme-card-name';
-    name.textContent = theme.name;
+    name.textContent = lokal(theme.name, theme.id);
 
     const description = document.createElement('span');
     description.className = 'theme-card-description';
-    description.textContent = theme.description || '';
+    description.textContent = lokal(theme.description);
 
     card.append(swatch, name, description);
 
     if (theme.mode === 'light') {
       const badge = document.createElement('span');
       badge.className = 'theme-card-badge';
-      badge.textContent = 'hell';
+      badge.textContent = t('themeLightBadge');
       card.appendChild(badge);
     }
 
@@ -639,7 +655,7 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   if (moduleInfo?.info?.config) {
     Object.entries(moduleInfo.info.config).forEach(([key, schema]) => {
       html += '<div class="form-group">';
-      html += `<label>${schema.description || key}</label>`;
+      html += `<label>${lokal(schema.description, key)}</label>`;
 
       if (Array.isArray(schema.options) && schema.options.length) {
         // Eine Auswahl gehoert in ein Auswahlfeld. Vorher landete sie in
@@ -648,14 +664,14 @@ function showModuleSettings(moduleConfig, moduleInfo) {
         const gewaehlt = moduleConfig.config?.[key] ?? schema.default;
         html += `<select name="${key}">`;
         for (const option of schema.options) {
-          const beschriftung = schema.optionLabels?.[option] || option;
+          const beschriftung = lokal(schema.optionLabels?.[option], option);
           html += `<option value="${option}" ${option === gewaehlt ? 'selected' : ''}>${beschriftung}</option>`;
         }
         html += '</select>';
       } else if (schema.type === 'boolean') {
         html += `<div class="form-group-checkbox">`;
         html += `<input type="checkbox" name="${key}" ${(moduleConfig.config && moduleConfig.config[key]) !== false ? 'checked' : ''}>`;
-        html += `<span>${schema.description || key}</span>`;
+        html += `<span>${lokal(schema.description, key)}</span>`;
         html += `</div>`;
       } else if (schema.type === 'number') {
         html += `<input type="number" name="${key}" value="${moduleConfig.config?.[key] ?? schema.default ?? ''}">`;
@@ -665,12 +681,10 @@ function showModuleSettings(moduleConfig, moduleInfo) {
         // bedeutet "unverändert".
         const isSet = moduleConfig.config?.[key] === SECRET_PLACEHOLDER;
         html += `<input type="password" name="${key}" value="" autocomplete="new-password"`;
-        html += ` placeholder="${isSet ? '•••••••• (gespeichert)' : 'nicht gesetzt'}"`;
+        html += ` placeholder="${isSet ? t('secretSaved') : t('secretNotSet')}"`;
         html += ` data-secret="true" data-was-set="${isSet}">`;
         html += `<small style="color: var(--text-secondary); display: block; margin-top: 4px;">`;
-        html += isSet
-          ? 'Gespeichert. Leer lassen, um den Wert unverändert zu übernehmen.'
-          : 'Noch nicht gesetzt.';
+        html += isSet ? t('secretSavedHint') : t('secretNotSetHint');
         html += `</small>`;
       } else {
         html += `<input type="text" name="${key}" value="${moduleConfig.config?.[key] ?? schema.default ?? ''}" placeholder="${schema.default || ''}">`;
@@ -682,7 +696,7 @@ function showModuleSettings(moduleConfig, moduleInfo) {
     // Fallback: JSON-Editor, falls kein Schema vorhanden
     const rawConfig = JSON.stringify(moduleConfig.config || {}, null, 2);
     html += '<div class="form-group">';
-    html += '<label>Erweiterte Config (JSON)</label>';
+    html += `<label>${t('rawConfig')}</label>`;
     html += `<textarea name="__raw_config" rows="6" style="width: 100%; font-family: monospace;">${rawConfig}</textarea>`;
     html += '</div>';
   }
@@ -690,20 +704,20 @@ function showModuleSettings(moduleConfig, moduleInfo) {
   // Untis: Klassen-Liste laden
   if (moduleConfig.module === 'untis') {
     html += '<div class="form-group">';
-    html += '<label>Klasse auswählen</label>';
+    html += `<label>${t('classChoose')}</label>`;
     html += '<div style="display: flex; gap: 8px; align-items: center;">';
     html += '<select id="untis-class-select" style="flex: 1;"></select>';
-    html += '<button type="button" class="btn-secondary" id="untis-load-classes">Klassen laden</button>';
+    html += `<button type="button" class="btn-secondary" id="untis-load-classes">${t('classesLoad')}</button>`;
     html += '</div>';
-    html += '<small style="color: var(--text-secondary);">Wähle z.B. 5BHEL → classId + className werden gesetzt.</small>';
+    html += `<small style="color: var(--text-secondary);">${t('classHint')}</small>`;
     html += '</div>';
   }
 
   // Spotify: Einrichtung
   if (moduleConfig.module === 'spotify') {
     html += '<div class="form-group spotify-setup">';
-    html += '<label>Spotify-Verbindung</label>';
-    html += '<div id="spotify-setup-body">Wird geprüft …</div>';
+    html += `<label>${t('spotifyConnection')}</label>`;
+    html += `<div id="spotify-setup-body">${t('checkingShort')}</div>`;
     html += '</div>';
   }
 
@@ -745,12 +759,12 @@ async function initUntisClassPicker(moduleConfig) {
   loadBtn.addEventListener('click', async () => {
     try {
       loadBtn.disabled = true;
-      loadBtn.textContent = 'Lädt...';
+      loadBtn.textContent = t('loadingShort');
       const response = await fetch(`/api/untis/classes?instance=${currentInstance}`);
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || 'Klassen konnten nicht geladen werden.');
+        alert(data.error || t('classesFailed'));
         return;
       }
 
@@ -761,13 +775,13 @@ async function initUntisClassPicker(moduleConfig) {
       }
 
       select.innerHTML = `<option value="">${t('classPick')}</option>` + classes.map(c => {
-        const label = c.longName || c.name || `Klasse ${c.id}`;
+        const label = c.longName || c.name || t('classFallback', { id: c.id });
         // Name und Id stammen aus der WebUntis-Antwort.
         return `<option value="${escapeHtml(c.id)}">${escapeHtml(label)}</option>`;
       }).join('');
     } catch (error) {
       console.error('Fehler beim Laden der Klassen:', error);
-      alert('Klassen konnten nicht geladen werden.');
+      alert(t('classesFailed'));
     } finally {
       loadBtn.disabled = false;
       loadBtn.textContent = t('classesLoad');
@@ -834,7 +848,7 @@ function buildSpotifyConnected() {
 
   const line = document.createElement('div');
   line.className = 'spotify-status-ok';
-  line.textContent = '✓ Verbunden';
+  line.textContent = t('spotifyConnected');
   box.appendChild(line);
 
   const disconnect = document.createElement('button');
@@ -861,8 +875,8 @@ function buildSpotifySteps(status) {
   wrapper.appendChild(hint);
 
   wrapper.appendChild(buildSpotifyStep(1,
-    'Spotify-App anlegen',
-    'Im Dashboard auf „Create app". Name und Beschreibung sind frei wählbar.',
+    t('spotifyStep1Title'),
+    t('spotifyStep1Text'),
     (content) => {
       const link = document.createElement('a');
       link.href = 'https://developer.spotify.com/dashboard';
@@ -875,19 +889,19 @@ function buildSpotifySteps(status) {
   ));
 
   wrapper.appendChild(buildSpotifyStep(2,
-    'Diese Adresse als Redirect URI eintragen',
-    'Sie muss exakt übereinstimmen — deshalb kopieren statt abtippen.',
+    t('spotifyStep2Title'),
+    t('spotifyStep2Text'),
     (content) => content.appendChild(buildCopyField(status.redirectUri))
   ));
 
   wrapper.appendChild(buildSpotifyStep(3,
-    'Client ID einfügen',
-    'Aus der Übersicht der eben angelegten App. Ein Client Secret wird nicht gebraucht.',
+    t('spotifyStep3Title'),
+    t('spotifyStep3Text'),
     (content) => {
       const input = document.createElement('input');
       input.type = 'text';
       input.id = 'spotify-client-id';
-      input.placeholder = 'z. B. 4c2a9f18…';
+      input.placeholder = t('spotifyClientIdPlaceholder');
       input.autocomplete = 'off';
       input.spellcheck = false;
       content.appendChild(input);
@@ -895,7 +909,7 @@ function buildSpotifySteps(status) {
       const save = document.createElement('button');
       save.type = 'button';
       save.className = 'btn-secondary';
-      save.textContent = 'Speichern';
+      save.textContent = t('save');
       save.addEventListener('click', async () => {
         const value = input.value.trim();
         if (!value) return;
@@ -912,10 +926,8 @@ function buildSpotifySteps(status) {
   ));
 
   const connectStep = buildSpotifyStep(4,
-    'Verbinden',
-    status.hasClientId
-      ? 'Es öffnet sich Spotify. Nach dem Erlauben geht es automatisch zurück.'
-      : 'Erst die Client ID speichern.',
+    t('spotifyStep4Title'),
+    status.hasClientId ? t('spotifyStep4Ready') : t('spotifyStep4Wait'),
     (content) => {
       const connect = document.createElement('button');
       connect.type = 'button';
@@ -930,13 +942,13 @@ function buildSpotifySteps(status) {
       const details = document.createElement('details');
       details.className = 'spotify-fallback';
       details.innerHTML = `
-        <summary>Es kam kein automatischer Rücksprung</summary>
-        <p>Dann steht auf der Spotify-Seite ein Code. Hier einfügen:</p>
+        <summary>${t('spotifyNoReturn')}</summary>
+        <p>${t('spotifyPasteHint')}</p>
       `;
 
       const codeInput = document.createElement('input');
       codeInput.type = 'text';
-      codeInput.placeholder = 'Code von der Rückleitungsseite';
+      codeInput.placeholder = t('spotifyCodePlaceholder');
       details.appendChild(codeInput);
 
       const paste = document.createElement('button');
@@ -946,7 +958,7 @@ function buildSpotifySteps(status) {
       paste.addEventListener('click', async () => {
         const state = sessionStorage.getItem('spotifyState');
         if (!state) {
-          alert('Bitte zuerst „Mit Spotify verbinden" antippen.');
+          alert(t('spotifyConnectFirst'));
           return;
         }
 
@@ -958,7 +970,7 @@ function buildSpotifySteps(status) {
 
         const result = await response.json();
         if (result.ok) initSpotifySetup();
-        else alert(result.error || 'Der Code wurde nicht angenommen.');
+        else alert(result.error || t('spotifyCodeRejected'));
       });
       details.appendChild(paste);
 
@@ -1009,13 +1021,13 @@ function buildCopyField(value) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'btn-secondary';
-  button.textContent = 'Kopieren';
+  button.textContent = t('copy');
   button.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(value);
-      button.textContent = 'Kopiert';
+      button.textContent = t('copied');
       if (window.mmPwa) window.mmPwa.tap();
-      setTimeout(() => { button.textContent = 'Kopieren'; }, 2000);
+      setTimeout(() => { button.textContent = t('copy'); }, 2000);
     } catch {
       // Ohne Zwischenablage bleibt Markieren - das Feld ist dafür ausgelegt.
       button.textContent = t('pleaseSelect');
@@ -1032,7 +1044,7 @@ async function startSpotifyAuth() {
     const data = await response.json();
 
     if (!response.ok) {
-      alert(data.error || 'Der Anmeldevorgang ließ sich nicht starten.');
+      alert(data.error || t('spotifyAuthFailed'));
       return;
     }
 
@@ -1042,7 +1054,7 @@ async function startSpotifyAuth() {
 
     window.location.href = data.authUrl;
   } catch (error) {
-    alert('Der Anmeldevorgang ließ sich nicht starten.');
+    alert(t('spotifyAuthFailed'));
   }
 }
 
@@ -1149,7 +1161,7 @@ async function saveModuleSettings() {
       const rawConfig = JSON.parse(rawConfigValue);
       moduleConfig.config = { ...moduleConfig.config, ...rawConfig };
     } catch (error) {
-      alert('Ungültiges JSON in der erweiterten Config.');
+      alert(t('rawConfigInvalid'));
       return;
     }
   }
@@ -1259,11 +1271,11 @@ function renderAppStore() {
     card.innerHTML = `
       <div class="appstore-card-header">
         <h3 class="appstore-card-title">${modulName(moduleInfo.displayName, module.name)}</h3>
-        ${isInstalled ? '<span class="appstore-card-badge">Installiert</span>' : ''}
+        ${isInstalled ? `<span class="appstore-card-badge">${t('installed')}</span>` : ''}
       </div>
       
       <div class="appstore-card-description">
-        ${moduleInfo.description || 'Keine Beschreibung verfügbar.'}
+        ${lokal(moduleInfo.description, t('noDescription'))}
       </div>
       
       <div class="appstore-card-preview">
@@ -1273,14 +1285,14 @@ function renderAppStore() {
       <div class="appstore-card-actions">
         ${isInstalled ? `
           <button class="appstore-btn appstore-btn-remove" data-module="${module.name}">
-            ❌ Entfernen
+            ❌ ${t('remove')}
           </button>
           <button class="appstore-btn appstore-btn-configure" data-module-index="${moduleIndex}">
             ⚙️
           </button>
         ` : `
           <button class="appstore-btn appstore-btn-add" data-module="${module.name}">
-            ➕ Hinzufügen
+            ➕ ${t('add')}
           </button>
         `}
       </div>
@@ -1321,7 +1333,7 @@ async function addModule(moduleName) {
   // Prüfe ob Modul bereits existiert
   const exists = currentConfig.modules.some(m => m.module === moduleName);
   if (exists) {
-    alert('Dieses Modul ist bereits installiert.');
+    alert(t('moduleAlreadyInstalled'));
     return;
   }
 
@@ -1383,11 +1395,11 @@ async function addModule(moduleName) {
 
       // Zeige Success-Nachricht
       const displayName = modulName(moduleInfo?.info?.displayName, moduleName);
-      showNotification(`✓ ${displayName} wurde hinzugefügt!`, 'success');
+      showNotification(t('moduleAdded', { name: displayName }), 'success');
     }
   } catch (error) {
     console.error('Fehler beim Hinzufügen des Moduls:', error);
-    alert('Fehler beim Hinzufügen des Moduls.');
+    alert(t('moduleAddFailed'));
   }
 }
 
@@ -1397,7 +1409,7 @@ async function removeModule(moduleName) {
   const moduleInfo = availableModules.find(m => m.name === moduleName);
   const displayName = modulName(moduleInfo?.info?.displayName, moduleName);
 
-  if (!confirm(`Möchtest du ${displayName} wirklich entfernen?`)) {
+  if (!confirm(t('moduleRemoveConfirm', { name: displayName }))) {
     return;
   }
 
@@ -1422,11 +1434,11 @@ async function removeModule(moduleName) {
         renderPreview();
       }
 
-      showNotification(`✓ ${displayName} wurde entfernt.`, 'success');
+      showNotification(t('moduleRemoved', { name: displayName }), 'success');
     }
   } catch (error) {
     console.error('Fehler beim Entfernen des Moduls:', error);
-    alert('Fehler beim Entfernen des Moduls.');
+    alert(t('moduleRemoveFailed'));
   }
 }
 
@@ -1488,8 +1500,8 @@ async function checkUpdate() {
 
     if (data.updateAvailable) {
       const commits = data.behind === 1
-        ? (currentLanguage === 'de' ? '1 neuer Commit' : '1 new commit')
-        : (currentLanguage === 'de' ? `${data.behind} neue Commits` : `${data.behind} new commits`);
+        ? t('updateCommitOne')
+        : t('updateCommitsMany', { n: data.behind });
       message.textContent = `${t('updateAvailable')} (${commits})`;
       message.style.color = 'var(--accent-cyan)';
       if (actionDiv) actionDiv.style.display = 'block';
@@ -1497,13 +1509,15 @@ async function checkUpdate() {
     } else {
       // note kommt z.B. bei einem Branch ohne Upstream - dann ist "aktuell"
       // die falsche Auskunft.
-      message.textContent = data.note || t('systemUpToDate');
+      message.textContent = data.code === 'NO_UPSTREAM'
+        ? t('updateNoUpstream', { branch: data.branch || '' })
+        : (data.note || t('systemUpToDate'));
       message.style.color = 'var(--text-secondary)';
       if (actionDiv) actionDiv.style.display = 'none';
     }
   } catch (error) {
     console.error('Update-Check fehlgeschlagen:', error);
-    message.textContent = 'Error';
+    message.textContent = t('updateCheckFailed');
   }
 }
 
@@ -1511,23 +1525,19 @@ async function executeUpdate() {
   const btn = document.getElementById('execute-update-btn');
   if (!btn) return;
 
-  const confirmMsg = currentLanguage === 'de'
-    ? 'Das System wird aktualisiert und anschließend neu gestartet. Fortfahren?'
-    : 'The system will be updated and then restarted. Proceed?';
-  if (!confirm(confirmMsg)) {
+  if (!confirm(t('updateConfirm'))) {
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = currentLanguage === 'de' ? 'Installiere...' : 'Installing...';
+  btn.textContent = t('updateInstalling');
 
   try {
     const response = await fetch('/api/update/execute', { method: 'POST' });
     const data = await response.json();
 
     if (data.success) {
-      const successMsg = currentLanguage === 'de' ? 'Update erfolgreich! Neustart...' : 'Update successful! Restarting...';
-      showNotification(successMsg);
+      showNotification(t('updateSuccess'));
       setTimeout(() => {
         location.reload();
       }, 5000);
@@ -1535,24 +1545,17 @@ async function executeUpdate() {
       // Verhaltensaenderung: frueher wurden lokale Aenderungen still
       // weggestasht und waren praktisch unauffindbar. Jetzt bricht das Update
       // ab und sagt, welche Dateien betroffen sind.
-      alert(
-        (currentLanguage === 'de'
-          ? 'Update abgebrochen: es gibt lokale Änderungen im Projektverzeichnis.\n\n'
-          + 'Sie wurden NICHT verworfen. Betroffene Dateien:\n\n'
-          : 'Update cancelled: there are local changes in the project directory.\n\n'
-          + 'They were NOT discarded. Affected files:\n\n')
-        + (data.details || '')
-      );
+      alert(t('updateDirty') + (data.details || ''));
       btn.disabled = false;
       btn.textContent = t('installUpdate');
     } else {
-      alert('Update failed: ' + (data.error || 'Unknown error'));
+      alert(t('updateFailed', { error: data.error || t('unknownError') }));
       btn.disabled = false;
       btn.textContent = t('installUpdate');
     }
   } catch (error) {
     console.error('Update-Execution failed:', error);
-    alert(currentLanguage === 'de' ? 'Verbindung zum Server verloren während des Updates.' : 'Connection to server lost during update.');
+    alert(t('updateConnectionLost'));
   }
 }
 
@@ -1779,11 +1782,11 @@ async function saveConfigAndRefresh() {
     if (response.ok) {
       await loadConfig();
       renderPreview();
-      showNotification('✓ Layout gespeichert!', 'success');
+      showNotification(t('layoutSaved'), 'success');
     }
   } catch (error) {
     console.error('Fehler beim Speichern des Layouts:', error);
-    alert('Fehler beim Speichern des Layouts.');
+    alert(t('layoutSaveFailed'));
   }
 }
 

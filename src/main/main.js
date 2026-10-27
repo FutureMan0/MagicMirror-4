@@ -326,7 +326,7 @@ function startWebServer() {
       // Der Code selbst wird NICHT zurueckgegeben - er steht auf dem Spiegel.
       res.json({ started: true, expiresAt: state.expiresAt });
     } catch (error) {
-      res.status(error.status || 500).json({ error: error.message });
+      res.status(error.status || 500).json({ error: error.message, code: error.code || null });
     }
   });
 
@@ -337,7 +337,7 @@ function startWebServer() {
       res.setHeader('Set-Cookie', Auth.sessionCookie(sessionId));
       res.json({ success: true });
     } catch (error) {
-      res.status(error.status || 500).json({ error: error.message });
+      res.status(error.status || 500).json({ error: error.message, code: error.code || null });
     }
   });
 
@@ -348,7 +348,7 @@ function startWebServer() {
       res.setHeader('Set-Cookie', Auth.sessionCookie(sessionId));
       res.json({ success: true });
     } catch (error) {
-      res.status(error.status || 500).json({ error: error.message });
+      res.status(error.status || 500).json({ error: error.message, code: error.code || null });
     }
   });
 

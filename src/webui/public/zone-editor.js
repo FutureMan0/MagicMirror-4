@@ -25,11 +25,11 @@
   class ZonenEditor {
     /** Die Groessen, die im 3x3-Raster ueberhaupt Sinn ergeben. */
     static GROESSEN = [
-      [1, 1, 'sizeSingle', 'Einfach'],
-      [2, 1, 'sizeWide',   'Breit'],
-      [1, 2, 'sizeTall',   'Hoch'],
-      [2, 2, 'sizeBig',    'Groß'],
-      [3, 1, 'sizeFull',   'Volle Breite']
+      [1, 1, 'sizeSingle', 'Single'],
+      [2, 1, 'sizeWide',   'Wide'],
+      [1, 2, 'sizeTall',   'Tall'],
+      [2, 2, 'sizeBig',    'Large'],
+      [3, 1, 'sizeFull',   'Full width']
     ];
 
     constructor(selektor, config, beimSpeichern) {
@@ -80,7 +80,7 @@
     }
 
     sprache() {
-      return typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'de';
+      return typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
     }
 
     text(schluessel, rueckfall) {
@@ -107,7 +107,7 @@
       hintergrund.type = 'button';
       hintergrund.className = 'zonen-liveschalter';
       hintergrund.classList.toggle('an', this.live);
-      hintergrund.textContent = this.text('livePreviewBackdrop', 'Spiegel im Hintergrund');
+      hintergrund.textContent = this.text('livePreviewBackdrop', 'Mirror as backdrop');
       hintergrund.setAttribute('aria-pressed', String(this.live));
       hintergrund.addEventListener('click', () => {
         this.live = !this.live;
@@ -121,7 +121,7 @@
       // Nicht "Live-Vorschau": so heisst schon der Schalter im Kopf des
       // Layout-Reiters, und zwei gleich beschriftete Knoepfe nebeneinander
       // sind keine Auswahl, sondern ein Raetsel. Dieser hier macht Vollbild.
-      vollbild.textContent = this.text('fullscreen', 'Vollbild');
+      vollbild.textContent = this.text('fullscreen', 'Fullscreen');
       vollbild.addEventListener('click', () => this.zeigeVollbild());
 
       kopf.append(hintergrund, vollbild);
@@ -147,7 +147,7 @@
 
           this.liveBild = document.createElement('iframe');
           this.liveBild.className = 'zonen-live-bild';
-          this.liveBild.title = this.text('livePreview', 'Live-Vorschau');
+          this.liveBild.title = this.text('livePreview', 'Live Preview');
           this.liveBild.setAttribute('sandbox', 'allow-scripts allow-same-origin');
           // preview=1 schaltet das Praesenz-Dimmen ab - sonst sieht man ein
           // fast schwarzes Bild und haelt die Vorschau fuer kaputt.
@@ -238,7 +238,7 @@
 
       if (!anzeige) return modul.module;
       if (typeof anzeige === 'string') return anzeige;
-      return anzeige[this.sprache()] || anzeige.de || modul.module;
+      return anzeige[this.sprache()] || anzeige.en || anzeige.de || modul.module;
     }
 
     /** Alle Module - auch die abgeschalteten, sonst kann man sie nicht zurückholen. */
@@ -266,7 +266,7 @@
         const id = this.zoneVon(modul);
         wo.textContent = id
           ? window.MMZonen.zonenLabel(id, this.sprache())
-          : this.text('zoneFrei', 'Freie Position');
+          : this.text('zoneFrei', 'Custom position');
 
         zeile.append(name, wo);
         this.macheZiehbar(zeile, modul.module);
@@ -276,7 +276,7 @@
         // ueberhaupt Sinn ergeben.
         const groesse = document.createElement('select');
         groesse.className = 'zonen-groesse';
-        groesse.setAttribute('aria-label', this.text('size', 'Größe'));
+        groesse.setAttribute('aria-label', this.text('size', 'Size'));
 
         const aktuell = window.MMZonen.groesse(modul.position);
         for (const [c, r, schluessel, rueckfall] of ZonenEditor.GROESSEN) {
@@ -323,8 +323,8 @@
       const hinweis = document.createElement('p');
       hinweis.className = 'zonen-hinweis';
       hinweis.textContent = this.markiert
-        ? this.text('zoneTapZone', 'Jetzt eine Zone antippen.')
-        : this.text('zoneHint', 'Modul in eine Zone ziehen — oder antippen, dann die Zone.');
+        ? this.text('zoneTapZone', 'Now tap a zone.')
+        : this.text('zoneHint', 'Drag a module into a zone — or tap it, then the zone.');
       fuss.appendChild(hinweis);
 
       return fuss;
@@ -523,14 +523,14 @@
 
       const spiegel = document.createElement('iframe');
       spiegel.className = 'live-vollbild-bild';
-      spiegel.title = this.text('livePreview', 'Live-Vorschau');
+      spiegel.title = this.text('livePreview', 'Live Preview');
       spiegel.setAttribute('sandbox', 'allow-scripts allow-same-origin');
       spiegel.src = `/mirror/index.html?instance=${encodeURIComponent(instanz)}&preview=1&rotate=off`;
       buehne.appendChild(spiegel);
 
       const zurueck = document.createElement('button');
       zurueck.className = 'live-vollbild-zurueck';
-      zurueck.textContent = this.text('back', 'Zurück');
+      zurueck.textContent = this.text('back', 'Back');
 
       const schliessen = () => {
         document.removeEventListener('keydown', beiTaste);

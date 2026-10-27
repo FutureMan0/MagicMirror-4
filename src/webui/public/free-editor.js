@@ -65,8 +65,8 @@
       const anzeige = liste.find(m => m.name === modul.module)?.info?.displayName;
       if (!anzeige) return modul.module;
       if (typeof anzeige === 'string') return anzeige;
-      const sprache = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'de';
-      return anzeige[sprache] || anzeige.de || modul.module;
+      const sprache = typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
+      return anzeige[sprache] || anzeige.en || anzeige.de || modul.module;
     }
 
     /**
@@ -114,7 +114,7 @@
       const spiegel = document.createElement('button');
       spiegel.type = 'button';
       spiegel.className = 'frei-schalter';
-      spiegel.textContent = text('mirrorBackdrop', 'Spiegel im Hintergrund');
+      spiegel.textContent = text('mirrorBackdrop', 'Mirror behind');
       spiegel.addEventListener('click', () => {
         this.spiegelSichtbar = !this.spiegelSichtbar;
         localStorage.setItem('freiSpiegel', this.spiegelSichtbar ? '1' : '0');
@@ -160,8 +160,8 @@
 
       const module = this.module();
       this.hinweis.textContent = module.length
-        ? text('freeHint', 'Ziehen zum Verschieben, an der Ecke zum Vergrößern.')
-        : text('freeEmpty', 'Kein Modul aktiv.');
+        ? text('freeHint', 'Drag to move, drag the corner to resize.')
+        : text('freeEmpty', 'No module active.');
 
       module.forEach((modul, index) => this.zeichneModul(modul, index));
       this.zeichneWerkzeug();
@@ -313,7 +313,7 @@
       if (!modul) {
         const leer = document.createElement('p');
         leer.className = 'form-hint';
-        leer.textContent = text('freePick', 'Ein Modul antippen, um Größe und Schrift einzustellen.');
+        leer.textContent = text('freePick', 'Tap a module to set its font.');
         this.werkzeug.appendChild(leer);
         return;
       }
@@ -328,13 +328,13 @@
       // verändern und das Modul aus seiner Position schieben.
       const darstellung = modul.appearance || {};
       this.werkzeug.appendChild(this.regler(
-        text('moduleFontScale', 'Schriftgröße'), darstellung.fontScale,
+        text('moduleFontScale', 'Font size'), darstellung.fontScale,
         (faktor) => this.setzeDarstellung(modul, 'fontScale', faktor)
       ));
 
       const hinweis = document.createElement('p');
       hinweis.className = 'form-hint';
-      hinweis.textContent = text('freeSizeHint', 'Die Größe stellst du durch Ziehen an der Ecke ein.');
+      hinweis.textContent = text('freeSizeHint', 'Set the size by dragging the corner.');
       this.werkzeug.appendChild(hinweis);
     }
 

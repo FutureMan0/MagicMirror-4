@@ -19,9 +19,35 @@
     if (!response.ok) {
       const error = new Error(data.error || `HTTP ${response.status}`);
       error.status = response.status;
+      error.code = data.code || null;
       throw error;
     }
     return data;
+  }
+
+  // --- Texte -----------------------------------------------------------------
+  //
+  // i18n.js laedt nach dieser Datei, steht aber bereit, bevor das Fenster
+  // gebaut wird: das passiert erst nach der Antwort auf /api/auth/status.
+
+  function text(schluessel, werte) {
+    return typeof t === 'function' ? t(schluessel, werte) : schluessel;
+  }
+
+  // Der Server meldet eine feste Kennung; der Satz dazu kommt aus dem
+  // Woerterbuch. Seine eigene Meldung ist nur der Rueckfall - sie steht in
+  // einer Sprache, und der Server weiss nicht, welche dieses Geraet spricht.
+  const FEHLER = {
+    PAIRING_RATE_LIMITED: 'authErrRateLimited',
+    PAIRING_NOT_RUNNING: 'authErrNoPairing',
+    PAIRING_TOO_MANY_ATTEMPTS: 'authErrTooManyAttempts',
+    PAIRING_WRONG_CODE: 'authErrWrongCode',
+    TOKEN_WRONG: 'authErrWrongToken'
+  };
+
+  function fehlerText(error) {
+    const schluessel = FEHLER[error && error.code];
+    return schluessel ? text(schluessel) : error.message;
   }
 
   // Jede 401-Antwort blendet die Anmeldung wieder ein - egal welcher Aufruf
@@ -44,34 +70,34 @@
   function buildOverlay() {
     const root = document.createElement('div');
     root.className = 'auth-overlay';
+    // Alle Texte aus dem Woerterbuch - die Kopplung ist das Erste, was ein
+    // neues Geraet zu sehen bekommt. authTokenHint enthaelt <code>-Markup und
+    // ist ein fester Text aus i18n.js, keine fremde Eingabe.
     root.innerHTML = `
       <div class="auth-card">
-        <h2>Spiegel koppeln</h2>
-        <p class="auth-intro">
-          Damit nicht jeder im WLAN deine Einstellungen ändern kann, muss dieses
-          Gerät einmal gekoppelt werden.
-        </p>
+        <h2>${text('authTitle')}</h2>
+        <p class="auth-intro">${text('authIntro')}</p>
 
         <div class="auth-step" id="auth-step-start">
-          <button class="btn-primary" id="auth-start-btn">Kopplung am Spiegel starten</button>
-          <small>Der Spiegel zeigt dann 60 Sekunden lang einen QR-Code.</small>
+          <button class="btn-primary" id="auth-start-btn">${text('authStart')}</button>
+          <small>${text('authStartHint')}</small>
         </div>
 
         <div class="auth-step" id="auth-step-code" style="display: none;">
-          <label for="auth-code-input">Code vom Spiegel</label>
+          <label for="auth-code-input">${text('authCodeLabel')}</label>
           <input type="text" id="auth-code-input" inputmode="latin" autocapitalize="characters"
                  autocomplete="off" spellcheck="false" maxlength="11" placeholder="ABCD EFGH">
-          <button class="btn-primary" id="auth-claim-btn">Koppeln</button>
+          <button class="btn-primary" id="auth-claim-btn">${text('authPair')}</button>
           <small id="auth-countdown"></small>
         </div>
 
         <div class="auth-error" id="auth-error" style="display: none;"></div>
 
         <details class="auth-fallback">
-          <summary>Stattdessen mit Token anmelden</summary>
-          <p>Das Token steht als <code>MM_ADMIN_TOKEN</code> in der Datei <code>.env</code> auf dem Pi.</p>
+          <summary>${text('authTokenFallback')}</summary>
+          <p>${text('authTokenHint')}</p>
           <input type="password" id="auth-token-input" autocomplete="off" placeholder="MM_ADMIN_TOKEN">
-          <button class="btn-secondary" id="auth-token-btn">Anmelden</button>
+          <button class="btn-secondary" id="auth-token-btn">${text('authSignIn')}</button>
         </details>
       </div>
     `;
@@ -95,8 +121,8 @@
     const tick = () => {
       const secondsLeft = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
       label.textContent = secondsLeft > 0
-        ? `Code gültig noch ${secondsLeft} s`
-        : 'Code abgelaufen - Kopplung neu starten.';
+        ? text('authCodeValid', { n: secondsLeft })
+        : text('authCodeExpired');
       if (secondsLeft === 0) clearInterval(timer);
     };
     const timer = setInterval(tick, 1000);
@@ -112,7 +138,7 @@
       });
       finish();
     } catch (error) {
-      showError(error.message);
+      showError(fehlerText(error));
     }
   }
 
@@ -128,7 +154,7 @@
         overlay.querySelector('#auth-code-input').focus();
         startCountdown(result.expiresAt);
       } catch (error) {
-        showError(error.message);
+        showError(fehlerText(error));
       } finally {
         button.disabled = false;
       }
@@ -157,7 +183,7 @@
         });
         finish();
       } catch (error) {
-        showError(error.message);
+        showError(fehlerText(error));
       }
     });
   }

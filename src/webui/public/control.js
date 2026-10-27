@@ -23,6 +23,22 @@
   let entities = [];
   let controlEnabled = false;
   let available = false;
+  let lastEnvelope = null;
+
+  // Feste Kennungen aus dem Backend (modules/home-assistant/backend.js).
+  // Die Meldung des Servers steht in einer Sprache; der Satz kommt von hier.
+  const FEHLER = {
+    CONTROL_DISABLED: 'haErrControlDisabled',
+    ENTITY_NOT_LISTED: 'haErrEntityNotListed',
+    DOMAIN_BLOCKED: 'haErrDomainBlocked',
+    SERVICE_BLOCKED: 'haErrServiceBlocked'
+  };
+
+  const ZUSTAENDE = {
+    on: 'haStateOn', off: 'haStateOff', open: 'haStateOpen', closed: 'haStateClosed',
+    playing: 'haStatePlaying', paused: 'haStatePaused', idle: 'haStateIdle',
+    home: 'haStateHome', not_home: 'haStateAway'
+  };
 
   async function load() {
     const body = document.getElementById('control-body');
@@ -36,10 +52,12 @@
       entities = envelope.data?.entities || [];
       controlEnabled = Boolean(envelope.data?.controlEnabled);
       available = true;
+      lastEnvelope = envelope;
 
       render(envelope);
     } catch (error) {
       available = false;
+      lastEnvelope = null;
       body.textContent = t('haNotConfigured');
     }
 
@@ -59,7 +77,9 @@
     if (!envelope.ok && envelope.error) {
       const notice = document.createElement('div');
       notice.className = 'control-notice';
-      notice.textContent = `Nicht erreichbar: ${envelope.error.message}`;
+      notice.textContent = envelope.error.code === 'NOT_CONFIGURED'
+        ? t('haNotConfigured')
+        : t('haUnreachable', { message: envelope.error.message });
       body.appendChild(notice);
     }
 
@@ -154,7 +174,9 @@
       });
 
       const result = await response.json();
-      if (!result.ok) throw new Error(result.error || 'Der Server hat abgelehnt.');
+      if (!result.ok) {
+        throw new Error(FEHLER[result.code] ? t(FEHLER[result.code]) : (result.error || t('serverRefused')));
+      }
 
       // Kurz warten: Home Assistant meldet den neuen Zustand nicht sofort
       // zurück, und ein sofortiger Abruf brächte noch den alten.
@@ -185,17 +207,18 @@
   }
 
   function describe(entity) {
-    if (!entity.available) return 'nicht erreichbar';
+    if (!entity.available) return t('haStateUnavailable');
     if (entity.domain === 'media_player' && entity.mediaTitle) return entity.mediaTitle;
     if (entity.unit) return `${entity.state} ${entity.unit}`;
 
-    const words = {
-      on: 'an', off: 'aus', open: 'offen', closed: 'zu',
-      playing: 'läuft', paused: 'pausiert', idle: 'bereit',
-      home: 'zuhause', not_home: 'unterwegs'
-    };
-    return words[String(entity.state).toLowerCase()] || entity.state;
+    const schluessel = ZUSTAENDE[String(entity.state).toLowerCase()];
+    return schluessel ? t(schluessel) : entity.state;
   }
+
+  // Nach einem Sprachwechsel mit dem vorhandenen Stand neu zeichnen.
+  document.addEventListener('mm:language', () => {
+    if (lastEnvelope) render(lastEnvelope);
+  });
 
   // Bei einer Zustandsänderung aus dem Bus sofort nachziehen.
   document.addEventListener('mm:event', (event) => {

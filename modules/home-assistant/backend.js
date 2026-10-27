@@ -63,6 +63,13 @@ function parseEntities(value) {
     .filter(entry => /^[a-z_]+\.[a-z0-9_]+$/.test(entry));
 }
 
+/** Eine abgewiesene Schaltanfrage - mit Kennung, die die Oberfläche übersetzt. */
+function abgelehnt(meldung, code) {
+  const error = new Error(meldung);
+  error.code = code;
+  return error;
+}
+
 /** Namen, die ohne Zusatz lesbar sind: "sensor.wohnzimmer_temp" hilft nicht. */
 function friendlyName(state, fallback) {
   return state?.attributes?.friendly_name || fallback;
@@ -151,16 +158,18 @@ module.exports = defineHttpModule({
       const service = String(body.service || '');
       const domain = entityId.split('.')[0];
 
+      // Die Kennungen uebersetzt die Web-Oberflaeche (control.js); die
+      // Meldung ist der Rueckfall fuer andere Clients.
       if (!parseEntities(config.entities).includes(entityId)) {
-        throw new Error(`"${entityId}" steht nicht in der konfigurierten Liste.`);
+        throw abgelehnt(`"${entityId}" steht nicht in der konfigurierten Liste.`, 'ENTITY_NOT_LISTED');
       }
 
       if (!ALLOWED_DOMAINS.has(domain)) {
-        throw new Error(`Die Gattung "${domain}" lässt sich nicht schalten.`);
+        throw abgelehnt(`Die Gattung "${domain}" lässt sich nicht schalten.`, 'DOMAIN_BLOCKED');
       }
 
       if (!ALLOWED_SERVICES.has(service)) {
-        throw new Error(`Der Dienst "${service}" ist nicht erlaubt.`);
+        throw abgelehnt(`Der Dienst "${service}" ist nicht erlaubt.`, 'SERVICE_BLOCKED');
       }
 
       const base = baseUrl(config);

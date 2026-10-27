@@ -21,7 +21,7 @@
   }
 
   function sprache() {
-    return typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'de';
+    return typeof getCurrentLanguage === 'function' ? getCurrentLanguage() : 'en';
   }
 
   function text(schluessel, rueckfall) {
@@ -33,12 +33,16 @@
     const anzeige = liste.find(m => m.name === modulConfig.module)?.info?.displayName;
     if (!anzeige) return modulConfig.module;
     if (typeof anzeige === 'string') return anzeige;
-    return anzeige[sprache()] || anzeige.de || modulConfig.module;
+    return anzeige[sprache()] || anzeige.en || anzeige.de || modulConfig.module;
   }
 
   function beschreibung(modulConfig) {
     const liste = window.availableModules || [];
-    return liste.find(m => m.name === modulConfig.module)?.info?.description || '';
+    const text = liste.find(m => m.name === modulConfig.module)?.info?.description;
+    // Darf wie displayName ein Objekt { en, de } sein.
+    if (!text) return '';
+    if (typeof text === 'string') return text;
+    return text[sprache()] || text.en || text.de || '';
   }
 
   /** Die Karten. Eine je Modul, aktiv oder nicht. */
@@ -66,8 +70,8 @@
       const zustand = document.createElement('span');
       zustand.className = 'modul-karte-zustand';
       zustand.textContent = modul.enabled === false
-        ? text('moduleOff', 'Aus')
-        : text('moduleOn', 'An');
+        ? text('moduleOff', 'Off')
+        : text('moduleOn', 'On');
 
       karte.append(titel, zeile, zustand);
       karte.addEventListener('click', () => oeffne(index));

@@ -50,9 +50,9 @@
     const toast = document.createElement('div');
     toast.className = 'pwa-toast';
     toast.innerHTML = `
-      <span>Neue Version verfügbar.</span>
-      <button type="button" class="pwa-toast-action">Neu laden</button>
-      <button type="button" class="pwa-toast-dismiss" aria-label="Später">&times;</button>
+      <span>${t('pwaNewVersion')}</span>
+      <button type="button" class="pwa-toast-action">${t('reload')}</button>
+      <button type="button" class="pwa-toast-dismiss" aria-label="${t('later')}">&times;</button>
     `;
 
     toast.querySelector('.pwa-toast-action').addEventListener('click', () => {
@@ -108,19 +108,16 @@
     sheet.className = 'sheet pwa-install-sheet';
     sheet.innerHTML = isIOS
       ? `<div class="sheet-body">
-           <h3>Zum Home-Bildschirm</h3>
-           <p>Tippe unten auf <strong>Teilen</strong> und dann auf
-              <strong>„Zum Home-Bildschirm"</strong>. Danach öffnet sich MM⁴
-              wie eine App — ohne Browser-Leiste.</p>
-           <button type="button" class="btn-secondary" data-dismiss>Verstanden</button>
+           <h3>${t('pwaIosTitle')}</h3>
+           <p>${t('pwaIosText')}</p>
+           <button type="button" class="btn-secondary" data-dismiss>${t('gotIt')}</button>
          </div>`
       : `<div class="sheet-body">
-           <h3>MM⁴ installieren</h3>
-           <p>Als App auf dem Home-Bildschirm: Vollbild, schnellerer Start,
-              und sie funktioniert auch kurz ohne Verbindung.</p>
+           <h3>${t('pwaInstallTitle')}</h3>
+           <p>${t('pwaInstallText')}</p>
            <div class="sheet-actions">
-             <button type="button" class="btn-secondary" data-dismiss>Später</button>
-             <button type="button" class="btn-primary" data-install>Installieren</button>
+             <button type="button" class="btn-secondary" data-dismiss>${t('later')}</button>
+             <button type="button" class="btn-primary" data-install>${t('install')}</button>
            </div>
          </div>`;
 

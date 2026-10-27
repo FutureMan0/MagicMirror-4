@@ -49,8 +49,8 @@
     banner = document.createElement('div');
     banner.className = 'mm-offline-banner';
     banner.textContent = typeof t === 'function'
-      ? (t('offlineBanner') || 'Keine Verbindung zum Spiegel.')
-      : 'Keine Verbindung zum Spiegel — Änderungen sind vorübergehend gesperrt.';
+      ? (t('offlineBanner') || 'No connection to the mirror.')
+      : 'No connection to the mirror — changes are locked for now.';
     document.body.appendChild(banner);
   }
 

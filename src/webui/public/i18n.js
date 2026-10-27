@@ -134,7 +134,119 @@ const translations = {
     visualEditorDesc: 'Visueller Editor mit Drag & Drop und Resize-Funktionen.',
     visualEditorNote: 'Hinweis: Dieses Feature ist experimentell. Bei Problemen bitte zum Klassischen Grid wechseln.',
     addModule: '+ Modul hinzufügen',
-    searchPlaceholder: 'Suchen...'
+    searchPlaceholder: 'Suchen...',
+    // Ebenfalls nachgetragen: diese Texte standen fest im JavaScript
+    // (Koppelfenster, Modul-Dialog, Store, Update, Privatsphaere, PWA).
+    // Platzhalter in geschweiften Klammern fuellt t(schluessel, werte).
+    authTitle: 'Spiegel koppeln',
+    authIntro: 'Damit nicht jeder im WLAN deine Einstellungen ändern kann, muss dieses Gerät einmal gekoppelt werden.',
+    authStart: 'Kopplung am Spiegel starten',
+    authStartHint: 'Der Spiegel zeigt dann 60 Sekunden lang einen QR-Code.',
+    authCodeLabel: 'Code vom Spiegel',
+    authPair: 'Koppeln',
+    authTokenFallback: 'Stattdessen mit Token anmelden',
+    authTokenHint: 'Das Token steht als <code>MM_ADMIN_TOKEN</code> in der Datei <code>.env</code> auf dem Pi.',
+    authSignIn: 'Anmelden',
+    authCodeValid: 'Code gültig noch {n} s',
+    authCodeExpired: 'Code abgelaufen - Kopplung neu starten.',
+    authErrRateLimited: 'Zu viele Kopplungsversuche. Bitte kurz warten.',
+    authErrNoPairing: 'Es läuft gerade keine Kopplung. Bitte am Spiegel neu starten.',
+    authErrTooManyAttempts: 'Zu viele Fehlversuche. Die Kopplung wurde abgebrochen.',
+    authErrWrongCode: 'Code stimmt nicht.',
+    authErrWrongToken: 'Token stimmt nicht.',
+    configChangedElsewhere: 'Die Konfiguration wurde anderswo geändert. Nach dem Speichern neu laden.',
+    themeLightBadge: 'hell',
+    secretSaved: '•••••••• (gespeichert)',
+    secretNotSet: 'nicht gesetzt',
+    secretSavedHint: 'Gespeichert. Leer lassen, um den Wert unverändert zu übernehmen.',
+    secretNotSetHint: 'Noch nicht gesetzt.',
+    rawConfig: 'Erweiterte Config (JSON)',
+    rawConfigInvalid: 'Ungültiges JSON in der erweiterten Config.',
+    classChoose: 'Klasse auswählen',
+    classHint: 'Wähle z.B. 5BHEL → classId + className werden gesetzt.',
+    classFallback: 'Klasse {id}',
+    classesFailed: 'Klassen konnten nicht geladen werden.',
+    loadingShort: 'Lädt...',
+    checkingShort: 'Wird geprüft …',
+    spotifyConnection: 'Spotify-Verbindung',
+    spotifyConnected: '✓ Verbunden',
+    spotifyStep1Title: 'Spotify-App anlegen',
+    spotifyStep1Text: 'Im Dashboard auf „Create app". Name und Beschreibung sind frei wählbar.',
+    spotifyStep2Title: 'Diese Adresse als Redirect URI eintragen',
+    spotifyStep2Text: 'Sie muss exakt übereinstimmen — deshalb kopieren statt abtippen.',
+    spotifyStep3Title: 'Client ID einfügen',
+    spotifyStep3Text: 'Aus der Übersicht der eben angelegten App. Ein Client Secret wird nicht gebraucht.',
+    spotifyClientIdPlaceholder: 'z. B. 4c2a9f18…',
+    spotifyStep4Title: 'Verbinden',
+    spotifyStep4Ready: 'Es öffnet sich Spotify. Nach dem Erlauben geht es automatisch zurück.',
+    spotifyStep4Wait: 'Erst die Client ID speichern.',
+    spotifyNoReturn: 'Es kam kein automatischer Rücksprung',
+    spotifyPasteHint: 'Dann steht auf der Spotify-Seite ein Code. Hier einfügen:',
+    spotifyCodePlaceholder: 'Code von der Rückleitungsseite',
+    spotifyConnectFirst: 'Bitte zuerst „Mit Spotify verbinden" antippen.',
+    spotifyCodeRejected: 'Der Code wurde nicht angenommen.',
+    spotifyAuthFailed: 'Der Anmeldevorgang ließ sich nicht starten.',
+    copy: 'Kopieren',
+    copied: 'Kopiert',
+    installed: 'Installiert',
+    noDescription: 'Keine Beschreibung verfügbar.',
+    remove: 'Entfernen',
+    add: 'Hinzufügen',
+    moduleAlreadyInstalled: 'Dieses Modul ist bereits installiert.',
+    moduleAdded: '✓ {name} wurde hinzugefügt!',
+    moduleAddFailed: 'Fehler beim Hinzufügen des Moduls.',
+    moduleRemoveConfirm: 'Möchtest du {name} wirklich entfernen?',
+    moduleRemoved: '✓ {name} wurde entfernt.',
+    moduleRemoveFailed: 'Fehler beim Entfernen des Moduls.',
+    updateCommitOne: '1 neuer Commit',
+    updateCommitsMany: '{n} neue Commits',
+    updateCheckFailed: 'Prüfung fehlgeschlagen',
+    updateNoUpstream: 'Branch "{branch}" hat keinen Upstream - Updates sind hier nicht verfügbar.',
+    updateConfirm: 'Das System wird aktualisiert und anschließend neu gestartet. Fortfahren?',
+    updateInstalling: 'Installiere...',
+    updateSuccess: 'Update erfolgreich! Neustart...',
+    updateDirty: 'Update abgebrochen: es gibt lokale Änderungen im Projektverzeichnis.\n\nSie wurden NICHT verworfen. Betroffene Dateien:\n\n',
+    updateFailed: 'Update fehlgeschlagen: {error}',
+    unknownError: 'Unbekannter Fehler',
+    updateConnectionLost: 'Verbindung zum Server verloren während des Updates.',
+    layoutSaved: '✓ Layout gespeichert!',
+    layoutSaveFailed: 'Fehler beim Speichern des Layouts.',
+    haUnreachable: 'Nicht erreichbar: {message}',
+    haErrControlDisabled: 'Schalten ist ausgeschaltet.',
+    haErrEntityNotListed: 'Diese Entität steht nicht in der Liste des Moduls.',
+    haErrDomainBlocked: 'Diese Gattung lässt sich nicht schalten.',
+    haErrServiceBlocked: 'Dieser Dienst ist nicht erlaubt.',
+    serverRefused: 'Der Server hat abgelehnt.',
+    haStateUnavailable: 'nicht erreichbar',
+    haStateOn: 'an',
+    haStateOff: 'aus',
+    haStateOpen: 'offen',
+    haStateClosed: 'zu',
+    haStatePlaying: 'läuft',
+    haStatePaused: 'pausiert',
+    haStateIdle: 'bereit',
+    haStateHome: 'zuhause',
+    haStateAway: 'unterwegs',
+    privacyGuest: 'Gäste',
+    privacyShower: 'Dusche',
+    privacyOff: 'Aus',
+    privacyNormalHint: 'Alles sichtbar.',
+    privacyGuestHint: 'Nur Uhr und Wetter. Endet nach 30 Minuten von selbst.',
+    privacyShowerHint: 'Nur eine große Uhr, Sensoren aus.',
+    privacyOffHint: 'Anzeige komplett dunkel.',
+    privacyRevertsIn: 'Schaltet in {n} Minuten zurück.',
+    sensorActive: 'Sensor AKTIV',
+    sensorOff: 'Sensor aus',
+    sensorUncertain: 'Der Zustand ließ sich nicht sicher feststellen — im Zweifel gilt: aktiv.',
+    sensorNote: 'Ein Software-Aus ist Komfort. Sicher ist nur ein Schalter im Kabel.',
+    pwaNewVersion: 'Neue Version verfügbar.',
+    later: 'Später',
+    pwaIosTitle: 'Zum Home-Bildschirm',
+    pwaIosText: 'Tippe unten auf <strong>Teilen</strong> und dann auf <strong>„Zum Home-Bildschirm"</strong>. Danach öffnet sich MM⁴ wie eine App — ohne Browser-Leiste.',
+    gotIt: 'Verstanden',
+    pwaInstallTitle: 'MM⁴ installieren',
+    pwaInstallText: 'Als App auf dem Home-Bildschirm: Vollbild, schnellerer Start, und sie funktioniert auch kurz ohne Verbindung.',
+    install: 'Installieren'
   },
   en: {
     size: 'Size',
@@ -267,7 +379,116 @@ const translations = {
     visualEditorDesc: 'Visual Editor with Drag & Drop and Resize functions.',
     visualEditorNote: 'Note: This feature is experimental. If you encounter issues, please switch to the Classic Grid.',
     addModule: '+ Add Module',
-    searchPlaceholder: 'Search...'
+    searchPlaceholder: 'Search...',
+    authTitle: 'Pair with the mirror',
+    authIntro: 'So that not everyone on your Wi-Fi can change your settings, this device has to be paired once.',
+    authStart: 'Start pairing on the mirror',
+    authStartHint: 'The mirror then shows a QR code for 60 seconds.',
+    authCodeLabel: 'Code from the mirror',
+    authPair: 'Pair',
+    authTokenFallback: 'Sign in with the token instead',
+    authTokenHint: 'The token is stored as <code>MM_ADMIN_TOKEN</code> in the <code>.env</code> file on the Pi.',
+    authSignIn: 'Sign in',
+    authCodeValid: 'Code valid for another {n} s',
+    authCodeExpired: 'Code expired - start pairing again.',
+    authErrRateLimited: 'Too many pairing attempts. Please wait a moment.',
+    authErrNoPairing: 'No pairing is in progress. Please start it again on the mirror.',
+    authErrTooManyAttempts: 'Too many failed attempts. Pairing was cancelled.',
+    authErrWrongCode: 'That code is not correct.',
+    authErrWrongToken: 'That token is not correct.',
+    configChangedElsewhere: 'The configuration was changed elsewhere. Reload after saving.',
+    themeLightBadge: 'light',
+    secretSaved: '•••••••• (saved)',
+    secretNotSet: 'not set',
+    secretSavedHint: 'Saved. Leave empty to keep the stored value.',
+    secretNotSetHint: 'Not set yet.',
+    rawConfig: 'Advanced config (JSON)',
+    rawConfigInvalid: 'Invalid JSON in the advanced config.',
+    classChoose: 'Choose a class',
+    classHint: 'Pick e.g. 5BHEL → classId and className are filled in.',
+    classFallback: 'Class {id}',
+    classesFailed: 'Classes could not be loaded.',
+    loadingShort: 'Loading...',
+    checkingShort: 'Checking …',
+    spotifyConnection: 'Spotify connection',
+    spotifyConnected: '✓ Connected',
+    spotifyStep1Title: 'Create a Spotify app',
+    spotifyStep1Text: 'In the dashboard, tap “Create app”. Name and description are up to you.',
+    spotifyStep2Title: 'Add this address as the redirect URI',
+    spotifyStep2Text: 'It has to match exactly — so copy it instead of typing it.',
+    spotifyStep3Title: 'Paste the Client ID',
+    spotifyStep3Text: 'From the overview of the app you just created. No Client Secret is needed.',
+    spotifyClientIdPlaceholder: 'e.g. 4c2a9f18…',
+    spotifyStep4Title: 'Connect',
+    spotifyStep4Ready: 'Spotify opens. Once you allow access, you are taken back automatically.',
+    spotifyStep4Wait: 'Save the Client ID first.',
+    spotifyNoReturn: 'I was not taken back automatically',
+    spotifyPasteHint: 'Then the Spotify page shows a code. Paste it here:',
+    spotifyCodePlaceholder: 'Code from the redirect page',
+    spotifyConnectFirst: 'Please tap “Connect to Spotify” first.',
+    spotifyCodeRejected: 'The code was not accepted.',
+    spotifyAuthFailed: 'The sign-in could not be started.',
+    copy: 'Copy',
+    copied: 'Copied',
+    installed: 'Installed',
+    noDescription: 'No description available.',
+    remove: 'Remove',
+    add: 'Add',
+    moduleAlreadyInstalled: 'This module is already installed.',
+    moduleAdded: '✓ {name} added!',
+    moduleAddFailed: 'The module could not be added.',
+    moduleRemoveConfirm: 'Do you really want to remove {name}?',
+    moduleRemoved: '✓ {name} removed.',
+    moduleRemoveFailed: 'The module could not be removed.',
+    updateCommitOne: '1 new commit',
+    updateCommitsMany: '{n} new commits',
+    updateCheckFailed: 'Check failed',
+    updateNoUpstream: 'Branch "{branch}" has no upstream - updates are not available here.',
+    updateConfirm: 'The system will be updated and then restarted. Proceed?',
+    updateInstalling: 'Installing...',
+    updateSuccess: 'Update successful! Restarting...',
+    updateDirty: 'Update cancelled: there are local changes in the project directory.\n\nThey were NOT discarded. Affected files:\n\n',
+    updateFailed: 'Update failed: {error}',
+    unknownError: 'Unknown error',
+    updateConnectionLost: 'Connection to server lost during update.',
+    layoutSaved: '✓ Layout saved!',
+    layoutSaveFailed: 'The layout could not be saved.',
+    haUnreachable: 'Unreachable: {message}',
+    haErrControlDisabled: 'Switching is off.',
+    haErrEntityNotListed: 'This entity is not in the module’s list.',
+    haErrDomainBlocked: 'This kind of entity cannot be switched.',
+    haErrServiceBlocked: 'This service is not allowed.',
+    serverRefused: 'The server refused.',
+    haStateUnavailable: 'unavailable',
+    haStateOn: 'on',
+    haStateOff: 'off',
+    haStateOpen: 'open',
+    haStateClosed: 'closed',
+    haStatePlaying: 'playing',
+    haStatePaused: 'paused',
+    haStateIdle: 'idle',
+    haStateHome: 'home',
+    haStateAway: 'away',
+    privacyGuest: 'Guests',
+    privacyShower: 'Shower',
+    privacyOff: 'Off',
+    privacyNormalHint: 'Everything visible.',
+    privacyGuestHint: 'Only clock and weather. Ends by itself after 30 minutes.',
+    privacyShowerHint: 'Only a large clock, sensors off.',
+    privacyOffHint: 'Display completely dark.',
+    privacyRevertsIn: 'Switches back in {n} minutes.',
+    sensorActive: 'Sensor ACTIVE',
+    sensorOff: 'Sensor off',
+    sensorUncertain: 'The state could not be determined reliably — when in doubt, it counts as active.',
+    sensorNote: 'A software off is a convenience. Only a switch in the cable is safe.',
+    pwaNewVersion: 'New version available.',
+    later: 'Later',
+    pwaIosTitle: 'Add to Home Screen',
+    pwaIosText: 'Tap <strong>Share</strong> below, then <strong>Add to Home Screen</strong>. MM⁴ then opens like an app — without the browser bar.',
+    gotIt: 'Got it',
+    pwaInstallTitle: 'Install MM⁴',
+    pwaInstallText: 'As an app on your home screen: full screen, faster start, and it keeps working briefly without a connection.',
+    install: 'Install'
   }
 };
 
@@ -297,17 +518,29 @@ const positionNames = {
   }
 };
 
-// Aktuelle Sprache (wird aus LocalStorage geladen)
-let currentLanguage = localStorage.getItem('language') || 'de';
+// Aktuelle Sprache (wird aus LocalStorage geladen).
+//
+// Englisch ist die Vorgabe. Wer schon eine Sprache gewaehlt hat, behaelt sie:
+// sie steht im LocalStorage und - massgeblich - als `language` in der
+// Konfiguration, die loadConfig() in app.js danach einstellt.
+let currentLanguage = (() => {
+  const gespeichert = localStorage.getItem('language');
+  return translations[gespeichert] ? gespeichert : 'en';
+})();
 
 /** Die eingestellte Sprache - fuer alles, was nicht ueber t() laeuft. */
 function getCurrentLanguage() {
   return currentLanguage;
 }
 
-// Übersetzungsfunktion
-function t(key) {
-  return translations[currentLanguage]?.[key] || translations.de[key] || key;
+// Übersetzungsfunktion. Platzhalter wie {name} kommen aus `werte`.
+function t(key, werte) {
+  const text = translations[currentLanguage]?.[key] || translations.en[key] || key;
+  if (!werte) return text;
+  return Object.entries(werte).reduce(
+    (ergebnis, [name, wert]) => ergebnis.split(`{${name}}`).join(String(wert)),
+    text
+  );
 }
 
 // Positionsnamen übersetzen
@@ -339,6 +572,19 @@ function updatePageTranslations() {
       element.textContent = translation;
     }
   });
+
+  // Attribute, die kein Text sind, aber vorgelesen oder angezeigt werden.
+  document.querySelectorAll('[data-i18n-aria]').forEach(element => {
+    element.setAttribute('aria-label', t(element.getAttribute('data-i18n-aria')));
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(element => {
+    element.setAttribute('title', t(element.getAttribute('data-i18n-title')));
+  });
+
+  // Die Auswahl muss zeigen, was gilt - auch wenn die Sprache aus der
+  // Konfiguration kam und nicht aus dieser Auswahl.
+  const auswahl = document.getElementById('language-select');
+  if (auswahl) auswahl.value = currentLanguage;
 
   // HTML lang Attribut aktualisieren
   document.documentElement.lang = currentLanguage;

@@ -54,7 +54,11 @@ async function checkForUpdate() {
       ahead: 0,
       currentCommit: null,
       upstream: null,
-      note: `Branch "${branch.trim()}" hat keinen Upstream - Updates sind hier nicht verfügbar.`
+      // Die Web-Oberflaeche uebersetzt ueber code und branch; note ist der
+      // Rueckfall fuer andere Clients.
+      code: 'NO_UPSTREAM',
+      branch: branch.trim(),
+      note: `Branch "${branch.trim()}" has no upstream - updates are not available here.`
     };
   }
 

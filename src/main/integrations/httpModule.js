@@ -298,7 +298,7 @@ function defineHttpModule({
             });
             res.json({ ok: true, result: result ?? null });
           } catch (error) {
-            res.status(500).json({ ok: false, error: error.message });
+            res.status(500).json({ ok: false, error: error.message, code: error.code || null });
           }
         });
       }
