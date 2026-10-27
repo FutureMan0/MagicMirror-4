@@ -2,48 +2,75 @@
   "name": "spotify",
   "displayName": "Spotify",
   "version": "1.0.0",
-  "description": "Zeigt aktuell abgespielten Spotify Song",
+  "description": {
+    "en": "Shows the song currently playing on Spotify",
+    "de": "Zeigt aktuell abgespielten Spotify Song"
+  },
   "author": "Magic Mirror",
   "config": {
     "clientId": {
       "type": "string",
       "default": "",
-      "description": "Client ID aus dem Spotify-Dashboard. Ein Client Secret wird nicht mehr gebraucht."
+      "description": {
+        "en": "Client ID from the Spotify dashboard. A Client Secret is no longer needed.",
+        "de": "Client ID aus dem Spotify-Dashboard. Ein Client Secret wird nicht mehr gebraucht."
+      }
     },
     "refreshToken": {
       "type": "string",
       "default": "",
-      "description": "Wird beim Verbinden automatisch gesetzt."
+      "description": {
+        "en": "Set automatically when you connect.",
+        "de": "Wird beim Verbinden automatisch gesetzt."
+      }
     },
     "showCover": {
       "type": "boolean",
       "default": true,
-      "description": "Album Cover anzeigen"
+      "description": {
+        "en": "Show album cover",
+        "de": "Album Cover anzeigen"
+      }
     },
     "showProgress": {
       "type": "boolean",
       "default": true,
-      "description": "Fortschrittsbalken anzeigen"
+      "description": {
+        "en": "Show progress bar",
+        "de": "Fortschrittsbalken anzeigen"
+      }
     },
     "showSpotifyCode": {
       "type": "boolean",
       "default": true,
-      "description": "Spotify Code anzeigen"
+      "description": {
+        "en": "Show Spotify Code",
+        "de": "Spotify Code anzeigen"
+      }
     },
     "updateInterval": {
       "type": "number",
       "default": 5000,
-      "description": "Update-Intervall in Millisekunden"
+      "description": {
+        "en": "Update interval in milliseconds",
+        "de": "Update-Intervall in Millisekunden"
+      }
     },
     "showControls": {
       "type": "boolean",
       "default": true,
-      "description": "Wiedergabe am Handy steuern (Play, Pause, Weiter)"
+      "description": {
+        "en": "Control playback from your phone (play, pause, next)",
+        "de": "Wiedergabe am Handy steuern (Play, Pause, Weiter)"
+      }
     },
     "redirectUri": {
       "type": "string",
       "default": "",
-      "description": "Nur bei eigenem Fork nötig — sonst leer lassen."
+      "description": {
+        "en": "Only needed for your own fork — otherwise leave it empty.",
+        "de": "Nur bei eigenem Fork nötig — sonst leer lassen."
+      }
     },
     "coverStyle": {
       "type": "string",
@@ -52,10 +79,19 @@
         "square",
         "vinyl"
       ],
-      "description": "Darstellung des Covers: quadratisch oder als Schallplatte",
+      "description": {
+        "en": "Cover style: square or as a vinyl record",
+        "de": "Darstellung des Covers: quadratisch oder als Schallplatte"
+      },
       "optionLabels": {
-        "square": "Quadratisch",
-        "vinyl": "Schallplatte"
+        "square": {
+          "en": "Square",
+          "de": "Quadratisch"
+        },
+        "vinyl": {
+          "en": "Vinyl record",
+          "de": "Schallplatte"
+        }
       }
     }
   },

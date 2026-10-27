@@ -1,6 +1,9 @@
 {
   "name": "Minimal",
-  "description": "Nur Typografie. Keine Flächen, keine Rahmen, keine Dauer-Animationen. Die sparsamste Variante und die Referenz für alle anderen.",
+  "description": {
+    "en": "Typography only. No surfaces, no borders, no continuous animations. The most frugal variant and the reference for all others.",
+    "de": "Nur Typografie. Keine Flächen, keine Rahmen, keine Dauer-Animationen. Die sparsamste Variante und die Referenz für alle anderen."
+  },
   "mode": "dark",
   "author": "MagicMirror⁴",
   "supports": { "blur": false, "ambientMotion": false }

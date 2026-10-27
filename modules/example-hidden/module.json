@@ -5,14 +5,20 @@
     "en": "Example (hidden)"
   },
   "version": "1.0.0",
-  "description": "Vorlage für eigene Module. Im Store ausgeblendet.",
+  "description": {
+    "en": "Template for your own modules. Hidden in the store.",
+    "de": "Vorlage für eigene Module. Im Store ausgeblendet."
+  },
   "hidden": true,
   "author": "Magic Mirror",
   "config": {
     "text": {
       "type": "string",
       "default": "This is a hidden example module.",
-      "description": "Angezeigter Text"
+      "description": {
+        "en": "Displayed text",
+        "de": "Angezeigter Text"
+      }
     }
   },
   "apiVersion": 2,

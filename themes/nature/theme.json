@@ -1,6 +1,9 @@
 {
   "name": "Nature",
-  "description": "Warme Erdtöne, weiche Verläufe, Serifen-Überschriften. Ruhig und ohne Leuchtakzente.",
+  "description": {
+    "en": "Warm earth tones, soft gradients, serif headings. Calm and without glowing accents.",
+    "de": "Warme Erdtöne, weiche Verläufe, Serifen-Überschriften. Ruhig und ohne Leuchtakzente."
+  },
   "mode": "dark",
   "author": "MagicMirror⁴",
   "supports": { "blur": false, "ambientMotion": true }

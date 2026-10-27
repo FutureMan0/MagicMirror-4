@@ -5,28 +5,43 @@
     "en": "Clock & Date"
   },
   "version": "1.0.0",
-  "description": "Zeigt aktuelle Uhrzeit und Datum",
+  "description": {
+    "en": "Shows the current time and date",
+    "de": "Zeigt aktuelle Uhrzeit und Datum"
+  },
   "author": "Magic Mirror",
   "config": {
     "timeFormat": {
       "type": "string",
       "default": "HH:mm:ss",
-      "description": "Zeitformat (HH:mm:ss für 24h, hh:mm:ss A für 12h)"
+      "description": {
+        "en": "Time format (HH:mm:ss for 24 h, hh:mm:ss A for 12 h)",
+        "de": "Zeitformat (HH:mm:ss für 24h, hh:mm:ss A für 12h)"
+      }
     },
     "showDate": {
       "type": "boolean",
       "default": true,
-      "description": "Datum anzeigen"
+      "description": {
+        "en": "Show date",
+        "de": "Datum anzeigen"
+      }
     },
     "dateFormat": {
       "type": "string",
       "default": "dddd, DD. MMMM YYYY",
-      "description": "Datumsformat"
+      "description": {
+        "en": "Date format",
+        "de": "Datumsformat"
+      }
     },
     "timezone": {
       "type": "string",
       "default": "Europe/Vienna",
-      "description": "Zeitzone"
+      "description": {
+        "en": "Time zone",
+        "de": "Zeitzone"
+      }
     }
   },
   "privacyLevel": "public",

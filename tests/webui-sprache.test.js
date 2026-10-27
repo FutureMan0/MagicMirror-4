@@ -381,3 +381,79 @@ test('die Seite ohne Verbindung und das App-Manifest sind englisch', () => {
   const texte = [manifest.description, ...manifest.shortcuts.map(s => s.name)];
   assert.deepEqual(texte.filter(text => DEUTSCH.test(text)), [], 'deutscher Text im App-Manifest');
 });
+
+/**
+ * Was die Oberfläche aus den Manifesten liest - Beschreibungen, Labels der
+ * Einstellungen, Namen der Auswahlwerte -, stand nur auf Deutsch darin. In
+ * einer englischen Oberfläche hiess das Feld deshalb „Zeitzone".
+ *
+ * Jeder solche Text ist jetzt entweder { en, de } oder schon englisch (ein
+ * Eigenname wie „Client ID").
+ */
+function manifestTexte() {
+  const texte = [];
+  const modulOrdner = path.join(ROOT, 'modules');
+
+  for (const name of fs.readdirSync(modulOrdner)) {
+    const datei = path.join(modulOrdner, name, 'module.json');
+    if (!fs.existsSync(datei)) continue;
+    const m = JSON.parse(fs.readFileSync(datei, 'utf8'));
+
+    texte.push([`${name}.displayName`, m.displayName]);
+    texte.push([`${name}.description`, m.description]);
+    for (const [key, feld] of Object.entries(m.config || {})) {
+      texte.push([`${name}.config.${key}`, feld.description]);
+      for (const [wert, label] of Object.entries(feld.optionLabels || {})) {
+        texte.push([`${name}.config.${key}.${wert}`, label]);
+      }
+    }
+    for (const geheimnis of m.secrets || []) texte.push([`${name}.secrets.${geheimnis.key}`, geheimnis.label]);
+  }
+
+  const themeOrdner = path.join(ROOT, 'themes');
+  for (const id of fs.readdirSync(themeOrdner)) {
+    const datei = path.join(themeOrdner, id, 'theme.json');
+    if (!fs.existsSync(datei)) continue;
+    const meta = JSON.parse(fs.readFileSync(datei, 'utf8'));
+    texte.push([`theme ${id}.name`, meta.name]);
+    texte.push([`theme ${id}.description`, meta.description]);
+  }
+
+  return texte;
+}
+
+test('jeder sichtbare Text in Manifesten und Themes gibt es auf Englisch', () => {
+  const offen = [];
+
+  for (const [wo, text] of manifestTexte()) {
+    if (text === undefined) continue;
+    if (text && typeof text === 'object') {
+      if (!text.en || !text.de) offen.push(`  ${wo}: { en, de } unvollständig`);
+      else if (DEUTSCH.test(text.en)) offen.push(`  ${wo}: en ist deutsch - "${text.en}"`);
+    } else if (DEUTSCH.test(String(text))) {
+      offen.push(`  ${wo}: nur deutsch - "${text}"`);
+    }
+  }
+
+  assert.deepEqual(offen, [], 'Diese Texte fehlen auf Englisch:\n' + offen.join('\n'));
+});
+
+test('Texte aus Manifesten und Themes gehen durch lokal(), nicht roh in die Anzeige', () => {
+  const quelle = fs.readFileSync(path.join(WEBUI, 'app.js'), 'utf8');
+  const offen = [];
+
+  quelle.split('\n').forEach((zeile, index) => {
+    if (/^\s*(\/\/|\*)/.test(zeile)) return;
+    // Zugriffe auf Manifest- und Theme-Texte, die in der Anzeige landen.
+    if (!/(schema\.description|optionLabels|info\.description|moduleInfo\.description|theme\.(name|description))\b/.test(zeile)) return;
+    if (!/(textContent\s*=|innerHTML|html \+=|\$\{|beschriftung =)/.test(zeile)) return;
+    if (/lokal\(/.test(zeile)) return;
+    offen.push(`  app.js:${index + 1}  ${zeile.trim().slice(0, 70)}`);
+  });
+
+  assert.deepEqual(
+    offen, [],
+    'Hier landet ein Manifest-Text ungefiltert in der Anzeige. Ist er { en, de },\n'
+    + 'steht dort „[object Object]". Über lokal(...) führen:\n' + offen.join('\n')
+  );
+});

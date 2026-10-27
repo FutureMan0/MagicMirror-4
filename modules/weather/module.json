@@ -5,7 +5,10 @@
     "en": "Weather"
   },
   "version": "1.0.0",
-  "description": "Wetter-Anzeige mit OpenWeatherMap",
+  "description": {
+    "en": "Weather display using OpenWeatherMap",
+    "de": "Wetter-Anzeige mit OpenWeatherMap"
+  },
   "author": "Magic Mirror",
   "config": {
     "apiKey": {
@@ -16,32 +19,50 @@
     "city": {
       "type": "string",
       "default": "Vienna,AT",
-      "description": "Stadt (Name,CountryCode oder lat,lon)"
+      "description": {
+        "en": "City (Name,CountryCode or lat,lon)",
+        "de": "Stadt (Name,CountryCode oder lat,lon)"
+      }
     },
     "units": {
       "type": "string",
       "default": "metric",
-      "description": "Einheiten (metric/imperial)"
+      "description": {
+        "en": "Units (metric/imperial)",
+        "de": "Einheiten (metric/imperial)"
+      }
     },
     "forecastDays": {
       "type": "number",
       "default": 5,
-      "description": "Anzahl Vorhersage-Tage"
+      "description": {
+        "en": "Number of forecast days",
+        "de": "Anzahl Vorhersage-Tage"
+      }
     },
     "showEffects": {
       "type": "boolean",
       "default": true,
-      "description": "Wetter-Effekte anzeigen"
+      "description": {
+        "en": "Show weather effects",
+        "de": "Wetter-Effekte anzeigen"
+      }
     },
     "showAlerts": {
       "type": "boolean",
       "default": true,
-      "description": "Wetter-Warnungen anzeigen"
+      "description": {
+        "en": "Show weather warnings",
+        "de": "Wetter-Warnungen anzeigen"
+      }
     },
     "alertRefreshInterval": {
       "type": "number",
       "default": 300000,
-      "description": "Aktualisierungsintervall für Warnungen (ms)"
+      "description": {
+        "en": "Update interval for warnings (ms)",
+        "de": "Aktualisierungsintervall für Warnungen (ms)"
+      }
     }
   },
   "apiVersion": 2,

@@ -3,13 +3,19 @@
   "name": "unraid",
   "displayName": "Unraid",
   "version": "1.0.0",
-  "description": "Array, Platten, Temperaturen und Docker-Container des Unraid-Servers.",
+  "description": {
+    "en": "Array, disks, temperatures and Docker containers of the Unraid server.",
+    "de": "Array, Platten, Temperaturen und Docker-Container des Unraid-Servers."
+  },
   "author": "MagicMirror⁴",
   "secrets": [
     {
       "key": "apiKey",
       "env": "UNRAID_API_KEY",
-      "label": "Unraid API-Schlüssel",
+      "label": {
+        "en": "Unraid API key",
+        "de": "Unraid API-Schlüssel"
+      },
       "exposeToRenderer": false
     }
   ],
@@ -20,57 +26,87 @@
     "serverUrl": {
       "type": "string",
       "default": "",
-      "description": "Adresse des Servers, z. B. https://tower.local"
+      "description": {
+        "en": "Server address, e.g. https://tower.local",
+        "de": "Adresse des Servers, z. B. https://tower.local"
+      }
     },
     "apiKey": {
       "type": "string",
       "default": "",
-      "description": "Erzeugen mit: unraid-api apikey --create. Vorher unter Settings → Management Access die Developer Options einschalten."
+      "description": {
+        "en": "Create it with: unraid-api apikey --create. First turn on the Developer Options under Settings → Management Access.",
+        "de": "Erzeugen mit: unraid-api apikey --create. Vorher unter Settings → Management Access die Developer Options einschalten."
+      }
     },
     "allowInsecureTls": {
       "type": "boolean",
       "default": true,
-      "description": "Selbstsigniertes Zertifikat akzeptieren (bei Unraid der Normalfall)"
+      "description": {
+        "en": "Accept a self-signed certificate (the normal case with Unraid)",
+        "de": "Selbstsigniertes Zertifikat akzeptieren (bei Unraid der Normalfall)"
+      }
     },
     "showSystem": {
       "type": "boolean",
       "default": true,
-      "description": "CPU und Arbeitsspeicher anzeigen"
+      "description": {
+        "en": "Show CPU and memory",
+        "de": "CPU und Arbeitsspeicher anzeigen"
+      }
     },
     "showArray": {
       "type": "boolean",
       "default": true,
-      "description": "Array und Platten anzeigen"
+      "description": {
+        "en": "Show array and disks",
+        "de": "Array und Platten anzeigen"
+      }
     },
     "showDocker": {
       "type": "boolean",
       "default": true,
-      "description": "Docker-Container anzeigen"
+      "description": {
+        "en": "Show Docker containers",
+        "de": "Docker-Container anzeigen"
+      }
     },
     "showVms": {
       "type": "boolean",
       "default": false,
-      "description": "Virtuelle Maschinen anzeigen (nicht in jeder Unraid-Fassung verfügbar)"
+      "description": {
+        "en": "Show virtual machines (not available in every Unraid version)",
+        "de": "Virtuelle Maschinen anzeigen (nicht in jeder Unraid-Fassung verfügbar)"
+      }
     },
     "maxDisks": {
       "type": "number",
       "default": 8,
       "min": 1,
       "max": 30,
-      "description": "Höchstzahl angezeigter Platten"
+      "description": {
+        "en": "Maximum number of disks shown",
+        "de": "Höchstzahl angezeigter Platten"
+      }
     },
     "warnTemp": {
       "type": "number",
       "default": 45,
       "min": 30,
       "max": 70,
-      "description": "Ab welcher Temperatur eine Platte auffällig dargestellt wird (°C)"
+      "description": {
+        "en": "Temperature from which a disk is highlighted (°C)",
+        "de": "Ab welcher Temperatur eine Platte auffällig dargestellt wird (°C)"
+      }
     },
     "updateInterval": {
       "type": "number",
       "default": 30000,
       "min": 10000,
-      "description": "Aktualisierungsintervall in Millisekunden"
+      "description": {
+        "en": "Update interval in milliseconds",
+        "de": "Aktualisierungsintervall in Millisekunden"
+      }
     }
   },
   "privacyLevel": "personal"

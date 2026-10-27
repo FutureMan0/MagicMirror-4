@@ -20,8 +20,10 @@ class ThemeManager {
   scanThemes() {
     const themes = [{
       id: 'default',
-      name: 'Standard',
-      description: 'Die Grundschicht ohne zusätzliches Theme.',
+      // Name und Beschreibung duerfen { en, de } sein - die Web-Oberflaeche
+      // waehlt die Sprache (lokal() in app.js), wie bei theme.json.
+      name: { en: 'Default', de: 'Standard' },
+      description: { en: 'The base layer without an additional theme.', de: 'Die Grundschicht ohne zusätzliches Theme.' },
       mode: 'dark',
       href: null,
       supports: { blur: false, ambientMotion: false }

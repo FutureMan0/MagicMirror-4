@@ -1,6 +1,9 @@
 {
   "name": "Glass",
-  "description": "Milchglas-Flächen, weiche Schatten, große Radien. Der Blur ist teuer und wird auf schwacher Hardware automatisch abgeschaltet.",
+  "description": {
+    "en": "Frosted-glass surfaces, soft shadows, large radii. The blur is expensive and is switched off automatically on weak hardware.",
+    "de": "Milchglas-Flächen, weiche Schatten, große Radien. Der Blur ist teuer und wird auf schwacher Hardware automatisch abgeschaltet."
+  },
   "mode": "dark",
   "author": "MagicMirror⁴",
   "supports": { "blur": true, "ambientMotion": true }
