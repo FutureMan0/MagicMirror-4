@@ -5,6 +5,8 @@
 
 [![CI](https://github.com/FutureMan0/MagicMirror-4/actions/workflows/ci.yml/badge.svg)](https://github.com/FutureMan0/MagicMirror-4/actions/workflows/ci.yml)
 
+<img src="assets/icon.png" alt="MagicMirror⁴ app icon" width="68" align="left">
+
 **A smart mirror you set up entirely from your phone.** Turn modules on, move tiles,
 switch themes and store credentials in a web app that installs to your home screen.
 No config file to edit over SSH.
@@ -12,6 +14,11 @@ No config file to edit over SSH.
 **Not a MagicMirror² fork.** MM⁴ is its own Electron app with its own module system.
 `Module.register`, `node_helper` and regions like `top_bar` don't exist here, and
 modules from the MM² ecosystem don't run.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/hero-dark.svg">
+  <img src=".github/readme/hero-light.svg" alt="How it fits together: a phone pairs with the web server on the Raspberry Pi. The Electron app runs the web server on port 3000, the module backends that keep credentials on the Pi, and a live WebSocket bus that updates one window per display at once. The modules talk to OpenWeatherMap, WebUntis, Spotify, GitHub, Gitea, Unraid and Home Assistant." width="100%">
+</picture>
 
 ## Quick start
 
