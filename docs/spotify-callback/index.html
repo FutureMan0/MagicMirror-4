@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>MagicMirror⁴ — Spotify verbinden</title>
+  <title>MagicMirror⁴ — Connect Spotify</title>
   <style>
     :root { color-scheme: dark; }
 
@@ -62,8 +62,8 @@
 
 <body>
   <div class="card">
-    <h1 id="title">Zurück zum Spiegel …</h1>
-    <p id="message">Einen Moment.</p>
+    <h1 id="title">Back to the mirror …</h1>
+    <p id="message">One moment.</p>
 
     <!--
       Rückfallebene. Sie ist nicht optional:
@@ -79,8 +79,8 @@
     -->
     <div id="fallback" class="hidden">
       <code id="code"></code>
-      <button id="copy" type="button">Code kopieren</button>
-      <button id="retry" type="button" class="secondary">Weiterleitung erneut versuchen</button>
+      <button id="copy" type="button">Copy code</button>
+      <button id="retry" type="button" class="secondary">Try the redirect again</button>
     </div>
   </div>
 
@@ -105,17 +105,17 @@
       }
 
       if (authError) {
-        title.textContent = 'Abgebrochen';
+        title.textContent = 'Cancelled';
         message.textContent = authError === 'access_denied'
-          ? 'Der Zugriff wurde nicht erlaubt. Du kannst den Vorgang im Spiegel erneut starten.'
-          : 'Spotify meldet: ' + authError;
+          ? 'Access was not allowed. You can start again from the mirror.'
+          : 'Spotify reports: ' + authError;
         message.className = 'error';
         return;
       }
 
       if (!code || !state) {
-        title.textContent = 'Etwas fehlt';
-        message.textContent = 'Diese Seite wird von Spotify aufgerufen und braucht Code und State.';
+        title.textContent = 'Something is missing';
+        message.textContent = 'Spotify opens this page, and it needs a code and a state.';
         message.className = 'error';
         return;
       }
@@ -136,7 +136,7 @@
       }
 
       if (!target) {
-        showFallback('Code kopieren', 'Die Adresse des Spiegels ließ sich nicht ablesen. Kopiere den Code und füge ihn im Spiegel ein.');
+        showFallback('Copy the code', 'The address of the mirror could not be read. Copy the code and paste it in the mirror dialog.');
         return;
       }
 
@@ -152,25 +152,25 @@
       document.getElementById('copy').addEventListener('click', function () {
         var button = this;
         var done = function () {
-          button.textContent = 'Kopiert';
-          setTimeout(function () { button.textContent = 'Code kopieren'; }, 2000);
+          button.textContent = 'Copied';
+          setTimeout(function () { button.textContent = 'Copy code'; }, 2000);
         };
 
         if (navigator.clipboard) {
           navigator.clipboard.writeText(code).then(done, function () {
             // Ohne Zwischenablage: der Code ist markierbar (user-select: all).
-            button.textContent = 'Bitte von Hand markieren';
+            button.textContent = 'Please select it by hand';
           });
         } else {
-          button.textContent = 'Bitte von Hand markieren';
+          button.textContent = 'Please select it by hand';
         }
       });
 
       // Klappt die Weiterleitung nicht binnen drei Sekunden, gibt es den Code
       // zum Abtippen - statt einer Seite, die einfach hängt.
       setTimeout(function () {
-        showFallback('Klappt nicht automatisch',
-          'Kopiere den Code und füge ihn im Spiegel-Dialog ein.');
+        showFallback('That did not work automatically',
+          'Copy the code and paste it in the mirror dialog.');
       }, 3000);
 
       go();

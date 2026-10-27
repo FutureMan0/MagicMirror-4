@@ -101,7 +101,7 @@ class SensorPower {
       } catch (error) {
         // Meist fehlende Rechte. Der Nutzer soll das erfahren, statt sich auf
         // eine Abschaltung zu verlassen, die nicht stattgefunden hat.
-        this.lastError = `USB-Gerät konnte nicht gelöst werden: ${error.message}`;
+        this.lastError = `USB device could not be released: ${error.message}`;
         this.log.warn?.(this.lastError);
       }
     }
@@ -146,7 +146,7 @@ class SensorPower {
       uncertain,
       lastError: this.lastError,
       // Damit die Oberfläche das auch sagen kann.
-      note: 'Ein Software-Aus ist Komfort. Sicher ist nur ein Schalter im Kabel.'
+      note: 'A software off is a convenience. Only a switch in the cable is safe.'
     };
   }
 

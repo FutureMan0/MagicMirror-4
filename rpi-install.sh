@@ -78,7 +78,7 @@ if [ -z "$CURRENT_NODE_MAJOR" ] || [ "$CURRENT_NODE_MAJOR" -lt "$NODE_MAJOR_REQU
     curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR_REQUIRED}.x" | bash -
     apt install -y nodejs
 else
-    echo -e "${GREEN}Node.js v${CURRENT_NODE_MAJOR} ist aktuell genug.${NC}"
+    echo -e "${GREEN}Node.js v${CURRENT_NODE_MAJOR} is recent enough.${NC}"
 fi
 
 # Seit der mmWave-Sensor entfallen ist, hat das Projekt keine native
@@ -99,10 +99,10 @@ sudo -u $REAL_USER npm ci --omit=dev
 # kein Sonderfall. Ohne diese Pruefung endet die Installation "erfolgreich"
 # und der Spiegel startet trotzdem nie.
 if ! sudo -u $REAL_USER node -e "const f=require('fs');const b=require('electron');process.exit(typeof b==='string'&&f.existsSync(b)?0:1)" 2>/dev/null; then
-    echo -e "${YELLOW}Electron-Binaerdatei fehlt - wird nachgeladen...${NC}"
+    echo -e "${YELLOW}Electron binary is missing - downloading it...${NC}"
     sudo -u $REAL_USER node node_modules/electron/install.js || {
-        echo -e "${RED}Electron liess sich nicht laden. Meist die Netzwerkverbindung.${NC}"
-        echo -e "${RED}Nachholen mit: node node_modules/electron/install.js${NC}"
+        echo -e "${RED}Electron could not be downloaded. Usually the network connection.${NC}"
+        echo -e "${RED}Retry with: node node_modules/electron/install.js${NC}"
         exit 1
     }
 fi

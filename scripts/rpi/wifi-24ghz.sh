@@ -26,7 +26,7 @@ fehler() { echo -e "${ROT}$*${AUS}"; }
 MODUS="${1:-an}"
 
 if [ "$MODUS" != "--pruefen" ] && [ "$EUID" -ne 0 ]; then
-  fehler "Bitte mit sudo starten."
+  fehler "Please run with sudo."
   exit 1
 fi
 
@@ -45,7 +45,7 @@ if command -v nmcli >/dev/null 2>&1 && systemctl is-active --quiet NetworkManage
   VERBINDUNGEN="$(nmcli -t -f UUID,TYPE,NAME connection show 2>/dev/null | awk -F: '$2 == "802-11-wireless"' || true)"
 
   if [ -z "$VERBINDUNGEN" ]; then
-    warne "NetworkManager läuft, kennt aber keine WLAN-Verbindung."
+    warne "NetworkManager is running but knows no Wi-Fi connection."
   fi
 
   while IFS=: read -r uuid typ name; do
@@ -53,29 +53,29 @@ if command -v nmcli >/dev/null 2>&1 && systemctl is-active --quiet NetworkManage
 
     if [ "$MODUS" = "--pruefen" ]; then
       band="$(nmcli -g 802-11-wireless.band connection show "$uuid" 2>/dev/null || true)"
-      echo "  ${name:-$uuid}: band=${band:-<frei>}"
+      echo "  ${name:-$uuid}: band=${band:-<any>}"
       continue
     fi
 
     if [ "$MODUS" = "--aus" ]; then
       nmcli connection modify "$uuid" 802-11-wireless.band "" 2>/dev/null \
-        && melde "  ${name:-$uuid}: Bindung gelöst" \
-        || warne "  ${name:-$uuid}: ließ sich nicht ändern"
+        && melde "  ${name:-$uuid}: band lock removed" \
+        || warne "  ${name:-$uuid}: could not be changed"
       continue
     fi
 
     # bg = 2,4 GHz, a = 5 GHz. Die Namen kommen aus 802.11b/g bzw. 802.11a.
     nmcli connection modify "$uuid" 802-11-wireless.band bg 2>/dev/null \
-      && melde "  ${name:-$uuid}: auf 2,4 GHz festgelegt" \
-      || warne "  ${name:-$uuid}: ließ sich nicht ändern"
+      && melde "  ${name:-$uuid}: locked to 2.4 GHz" \
+      || warne "  ${name:-$uuid}: could not be changed"
   done <<< "$VERBINDUNGEN"
 
   if [ "$MODUS" = "an" ]; then
     # NetworkManager kennt keinen globalen Vorgabewert für das Band - die
     # Einstellung hängt an der einzelnen Verbindung. Ein später von Hand
     # angelegtes WLAN ist deshalb wieder frei.
-    warne "Neu angelegte WLAN-Verbindungen sind davon nicht erfasst."
-    warne "Nach jedem neuen WLAN dieses Skript noch einmal laufen lassen."
+    warne "Wi-Fi connections added later are not covered."
+    warne "Run this script again after adding a new Wi-Fi network."
   fi
 fi
 
@@ -89,7 +89,7 @@ for conf in /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supp
     if grep -q "freq_list=" "$conf"; then
       echo "  $conf: $(grep -m1 'freq_list=' "$conf" | sed -E 's/^[[:space:]]*//')"
     else
-      echo "  $conf: freq_list=<frei>"
+      echo "  $conf: freq_list=<any>"
     fi
     continue
   fi
@@ -98,7 +98,7 @@ for conf in /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supp
 
   if [ "$MODUS" = "--aus" ]; then
     sed -i -E '/^[[:space:]]*freq_list=/d' "$conf"
-    melde "  $conf: Frequenzliste entfernt"
+    melde "  $conf: frequency list removed"
     continue
   fi
 
@@ -120,21 +120,21 @@ for conf in /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supp
   if [ -s "$conf.mm4-neu" ]; then
     mv "$conf.mm4-neu" "$conf"
     chmod 600 "$conf"
-    melde "  $conf: auf 2,4 GHz festgelegt"
+    melde "  $conf: locked to 2.4 GHz"
   else
     rm -f "$conf.mm4-neu"
-    warne "  $conf: unverändert gelassen (die Umschrift ergab eine leere Datei)"
+    warne "  $conf: left unchanged (rewriting it produced an empty file)"
   fi
 done
 
 if [ "$GEFUNDEN" -eq 0 ]; then
-  warne "Weder NetworkManager noch wpa_supplicant gefunden - nichts zu tun."
+  warne "Neither NetworkManager nor wpa_supplicant found - nothing to do."
   exit 0
 fi
 
 if [ "$MODUS" = "an" ]; then
-  melde "WLAN ist auf 2,4 GHz festgelegt."
-  echo "  Wirksam beim nächsten Verbindungsaufbau - also spätestens nach dem Neustart."
-  echo "  Prüfen:       sudo $(dirname "$(readlink -f "$0")")/wifi-24ghz.sh --pruefen"
-  echo "  Zurücknehmen: sudo $(dirname "$(readlink -f "$0")")/wifi-24ghz.sh --aus"
+  melde "Wi-Fi is locked to 2.4 GHz."
+  echo "  Takes effect on the next connection - after the reboot at the latest."
+  echo "  Check:  sudo $(dirname "$(readlink -f "$0")")/wifi-24ghz.sh --pruefen"
+  echo "  Revert: sudo $(dirname "$(readlink -f "$0")")/wifi-24ghz.sh --aus"
 fi

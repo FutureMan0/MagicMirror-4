@@ -53,7 +53,7 @@ async function handleTimetable(req, res, { instanceName, ConfigManager }) {
     }
 
     if (!server || !username || !password) {
-      return res.status(400).json({ error: 'WebUntis ist nicht vollständig konfiguriert.' });
+      return res.status(400).json({ error: 'WebUntis is not fully configured.' });
     }
 
     console.log(`WebUntis Login Versuch: Server=${server}, User=${username}, School=${school || '(none)'}`);
@@ -86,20 +86,20 @@ async function handleTimetable(req, res, { instanceName, ConfigManager }) {
 
     if (!authResponse.ok) {
       console.error(`WebUntis Auth HTTP Fehler: ${authResponse.status}`);
-      return res.status(500).json({ error: `WebUntis Login fehlgeschlagen (HTTP ${authResponse.status})` });
+      return res.status(500).json({ error: `WebUntis login failed (HTTP ${authResponse.status})` });
     }
 
     if (authData?.error) {
       console.error('WebUntis Auth Fehler:', authData.error);
       return res.status(401).json({ 
-        error: `WebUntis Login fehlgeschlagen: ${authData.error.message || authData.error.code || 'Unbekannter Fehler'}` 
+        error: `WebUntis login failed: ${authData.error.message || authData.error.code || 'unknown error'}` 
       });
     }
 
     const sessionId = authData?.result?.sessionId;
     if (!sessionId) {
       console.error('Keine Session-ID in Response:', authData);
-      return res.status(401).json({ error: 'WebUntis Login fehlgeschlagen: Keine Session-ID erhalten.' });
+      return res.status(401).json({ error: 'WebUntis login failed: no session ID received.' });
     }
 
     console.log('WebUntis Login erfolgreich, Session-ID:', sessionId);
@@ -139,13 +139,13 @@ async function handleTimetable(req, res, { instanceName, ConfigManager }) {
       });
       
       if (!target) {
-        return res.status(404).json({ error: `Klasse "${className}" nicht gefunden.` });
+        return res.status(404).json({ error: `Class "${className}" not found.` });
       }
       classId = target.id;
     }
 
     if (!classId) {
-      return res.status(400).json({ error: 'classId fehlt. Bitte Klassen-ID oder Klassenname setzen.' });
+      return res.status(400).json({ error: 'classId is missing. Please set a class ID or class name.' });
     }
 
     const fetchUntisRpc = async (method, params = {}) => {
@@ -161,7 +161,7 @@ async function handleTimetable(req, res, { instanceName, ConfigManager }) {
       });
       const data = await response.json();
       if (data?.error) {
-        throw new Error(data.error?.message || 'WebUntis Fehler');
+        throw new Error(data.error?.message || 'WebUntis error');
       }
       return data?.result || [];
     };
@@ -217,13 +217,13 @@ async function handleTimetable(req, res, { instanceName, ConfigManager }) {
     clearTimeout(timetableTimeout);
 
     if (!timetableResponse.ok) {
-      return res.status(500).json({ error: `WebUntis Fehler (${timetableResponse.status})` });
+      return res.status(500).json({ error: `WebUntis error (${timetableResponse.status})` });
     }
 
     const timetableData = await timetableResponse.json();
     if (timetableData?.error) {
       console.error('WebUntis getTimetable Fehler:', timetableData.error);
-      return res.status(500).json({ error: timetableData.error?.message || 'WebUntis Fehler' });
+      return res.status(500).json({ error: timetableData.error?.message || 'WebUntis error' });
     }
 
     const responseData = {
@@ -278,7 +278,7 @@ async function handleTestAuth(req, res, { instanceName, ConfigManager }) {
 
     if (!server || !username || !password) {
       return res.status(400).json({ 
-        error: 'WebUntis ist nicht vollständig konfiguriert.',
+        error: 'WebUntis is not fully configured.',
         details: {
           server: !!server,
           username: !!username,
@@ -320,14 +320,14 @@ async function handleTestAuth(req, res, { instanceName, ConfigManager }) {
     if (authData?.result?.sessionId) {
       return res.json({
         success: true,
-        message: 'Authentifizierung erfolgreich',
+        message: 'Authentication successful',
         sessionId: authData.result.sessionId.substring(0, 8) + '...'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: 'Unerwartete Response',
+      error: 'Unexpected response',
       data: authData
     });
   } catch (error) {
@@ -358,7 +358,7 @@ async function handleClasses(req, res, { instanceName, ConfigManager }) {
     const school = moduleConfig.school || envConfig.UNTIS_SCHOOL;
 
     if (!server || !username || !password) {
-      return res.status(400).json({ error: 'WebUntis ist nicht vollständig konfiguriert.' });
+      return res.status(400).json({ error: 'WebUntis is not fully configured.' });
     }
 
     const authBody = {
@@ -382,12 +382,12 @@ async function handleClasses(req, res, { instanceName, ConfigManager }) {
     const authData = await authResponse.json();
     
     if (authData?.error) {
-      return res.status(401).json({ error: authData.error.message || 'WebUntis Login fehlgeschlagen' });
+      return res.status(401).json({ error: authData.error.message || 'WebUntis login failed' });
     }
     
     const sessionId = authData?.result?.sessionId;
     if (!sessionId) {
-      return res.status(401).json({ error: 'WebUntis Login fehlgeschlagen.' });
+      return res.status(401).json({ error: 'WebUntis login failed.' });
     }
 
     const classesResponse = await fetch(`https://${server}/WebUntis/jsonrpc.do;jsessionid=${sessionId}`, {
@@ -403,7 +403,7 @@ async function handleClasses(req, res, { instanceName, ConfigManager }) {
 
     const classesData = await classesResponse.json();
     if (classesData?.error) {
-      return res.status(500).json({ error: classesData.error?.message || 'WebUntis Fehler' });
+      return res.status(500).json({ error: classesData.error?.message || 'WebUntis error' });
     }
 
     res.json({

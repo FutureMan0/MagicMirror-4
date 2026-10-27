@@ -131,13 +131,13 @@ function registerRoutes(app, context) {
     if (response.status === 204) return null;
 
     if (response.status === 401) {
-      const error = new Error('Zugang abgelaufen. Bitte neu verbinden.');
+      const error = new Error('Access expired. Please reconnect.');
       error.code = 'UNAUTHORIZED';
       throw error;
     }
 
     if (!response.ok) {
-      throw new Error(`Spotify antwortete mit ${response.status}`);
+      throw new Error(`Spotify responded with ${response.status}`);
     }
 
     return response.status === 202 ? null : response.json().catch(() => null);
@@ -149,12 +149,12 @@ function registerRoutes(app, context) {
     try {
       const config = readConfig(req.query.instance);
       if (!config.clientId) {
-        return res.status(400).json({ error: 'Es fehlt noch die Client ID.' });
+        return res.status(400).json({ error: 'The Client ID is still missing.' });
       }
 
       const back = returnAddress(req);
       if (!back) {
-        return res.status(400).json({ error: 'Die Adresse dieses Spiegels ließ sich nicht bestimmen.' });
+        return res.status(400).json({ error: 'The address of this mirror could not be determined.' });
       }
 
       const { verifier, challenge } = createPkcePair();
@@ -193,12 +193,12 @@ function registerRoutes(app, context) {
     try {
       nonce = JSON.parse(Buffer.from(state, 'base64url').toString()).n;
     } catch {
-      throw new Error('Der state ist unlesbar.');
+      throw new Error('The state cannot be read.');
     }
 
     const entry = pending.get(nonce);
     if (!entry) {
-      throw new Error('Dieser Anmeldevorgang ist abgelaufen. Bitte neu starten.');
+      throw new Error('This sign-in has expired. Please start again.');
     }
     pending.delete(nonce);
 
@@ -211,7 +211,7 @@ function registerRoutes(app, context) {
     });
 
     if (!data.refresh_token) {
-      throw new Error('Spotify hat keinen Refresh-Token geliefert.');
+      throw new Error('Spotify did not return a refresh token.');
     }
 
     tokens.saveRefreshToken(data.refresh_token);
@@ -244,7 +244,7 @@ function registerRoutes(app, context) {
     try {
       const { code, state } = req.body || {};
       if (!code || !state) {
-        return res.status(400).json({ ok: false, error: 'Code und state werden benötigt.' });
+        return res.status(400).json({ ok: false, error: 'Code and state are required.' });
       }
 
       await completeAuth(String(code).trim(), String(state).trim());

@@ -20,7 +20,7 @@ warne()  { echo -e "${GELB}$*${AUS}"; }
 fehler() { echo -e "${ROT}$*${AUS}"; }
 
 if [ "$EUID" -ne 0 ]; then
-  fehler "Bitte mit sudo starten."
+  fehler "Please run with sudo."
   exit 1
 fi
 
@@ -34,8 +34,8 @@ if [ -f /boot/firmware/cmdline.txt ]; then
 elif [ -f /boot/cmdline.txt ]; then
   BOOT=/boot
 else
-  warne "Weder /boot/firmware/cmdline.txt noch /boot/cmdline.txt - kein Raspberry Pi?"
-  warne "Das Bootlogo wird übersprungen."
+  warne "Neither /boot/firmware/cmdline.txt nor /boot/cmdline.txt - not a Raspberry Pi?"
+  warne "Skipping the boot logo."
   exit 0
 fi
 
@@ -48,9 +48,9 @@ if [ "${1:-}" = "--aus" ]; then
   for datei in "$CMDLINE" "$CONFIG"; do
     if [ -f "$datei.vor-mm4" ]; then
       cp "$datei.vor-mm4" "$datei"
-      melde "$datei zurückgespielt."
+      melde "$datei restored."
     else
-      warne "Keine Sicherung für $datei - unverändert gelassen."
+      warne "No backup for $datei - left unchanged."
     fi
   done
 
@@ -61,17 +61,17 @@ if [ "${1:-}" = "--aus" ]; then
       || true
   fi
   rm -rf "$THEME_DIR"
-  melde "Bootlogo entfernt."
+  melde "Boot logo removed."
   exit 0
 fi
 
 # --- Plymouth --------------------------------------------------------------
 
 if ! command -v plymouth-set-default-theme >/dev/null 2>&1; then
-  melde "Plymouth wird nachinstalliert ..."
+  melde "Installing Plymouth ..."
   apt-get install -y plymouth plymouth-themes >/dev/null || {
-    warne "Plymouth ließ sich nicht installieren - ohne es gibt es kein Bootlogo."
-    warne "Der Rest der Installation läuft weiter."
+    warne "Plymouth could not be installed - without it there is no boot logo."
+    warne "The rest of the installation continues."
     exit 0
   }
 fi
@@ -93,7 +93,7 @@ DREHUNG="$(node -e '
   console.log(0);
 ' "$PROJEKT" "$INSTANZ" 2>/dev/null || echo 0)"
 
-melde "Bootlogo für Drehung ${DREHUNG}° ..."
+melde "Boot logo for rotation ${DREHUNG}° ..."
 install -d "$THEME_DIR"
 
 # Ein mitgebrachtes Logo hat Vorrang. So lässt sich ein eigenes Bild einsetzen,
@@ -189,8 +189,8 @@ printf '%s\n' "$zeile" > "$CMDLINE"
 # --- Übernehmen ------------------------------------------------------------
 
 plymouth-set-default-theme mm4 >/dev/null
-update-initramfs -u >/dev/null 2>&1 || warne "update-initramfs lief nicht durch - das Logo erscheint eventuell erst nach dem naechsten Update."
+update-initramfs -u >/dev/null 2>&1 || warne "update-initramfs did not complete - the logo may only appear after the next update."
 
-melde "Bootlogo eingerichtet (${DREHUNG}°)."
-echo "  Sicherungen: $CMDLINE.vor-mm4, $CONFIG.vor-mm4"
-echo "  Zurücknehmen: sudo $PROJEKT/scripts/rpi/boot-splash.sh --aus"
+melde "Boot logo set up (${DREHUNG}°)."
+echo "  Backups: $CMDLINE.vor-mm4, $CONFIG.vor-mm4"
+echo "  Revert:  sudo $PROJEKT/scripts/rpi/boot-splash.sh --aus"
