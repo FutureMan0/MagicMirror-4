@@ -9,6 +9,39 @@ class HomeAssistantModule extends HaBase {
   static moduleName = 'home-assistant';
   static patchable = ['showUnavailable'];
 
+  // Als Klassenfeld und nicht auf oberster Ebene: unter file:// teilen sich
+  // alle Module einen globalen Scope.
+  static texte = {
+    de: {
+      title: 'Zuhause',
+      noneReachable: 'Keine der eingetragenen Entitäten ist erreichbar.',
+      noneListed: 'Noch keine Entitäten eingetragen.',
+      states: {
+        on: 'an', off: 'aus',
+        open: 'offen', closed: 'zu',
+        home: 'zuhause', not_home: 'unterwegs',
+        playing: 'läuft', paused: 'pausiert', idle: 'bereit'
+      }
+    },
+    en: {
+      title: 'Home',
+      noneReachable: 'None of the listed entities can be reached.',
+      noneListed: 'No entities listed yet.',
+      states: {
+        on: 'on', off: 'off',
+        open: 'open', closed: 'closed',
+        home: 'home', not_home: 'away',
+        playing: 'playing', paused: 'paused', idle: 'idle'
+      }
+    }
+  };
+
+  /** Die Texte in der Sprache des Spiegels. */
+  get texte() {
+    const alle = HomeAssistantModule.texte;
+    return alle[this.config?.language] || alle.en;
+  }
+
   constructor(config = {}) {
     super(config);
 
@@ -19,7 +52,7 @@ class HomeAssistantModule extends HaBase {
   }
 
   get title() {
-    return 'Zuhause';
+    return this.texte.title;
   }
 
   renderData(data, root) {
@@ -30,8 +63,8 @@ class HomeAssistantModule extends HaBase {
       root.appendChild(this.buildNotice(
         'dm-error',
         data && data.total > 0
-          ? 'Keine der eingetragenen Entitäten ist erreichbar.'
-          : 'Noch keine Entitäten eingetragen.'
+          ? this.texte.noneReachable
+          : this.texte.noneListed
       ));
       return;
     }
@@ -81,15 +114,9 @@ class HomeAssistantModule extends HaBase {
 
     if (entity.unit) return `${entity.state} ${entity.unit}`;
 
-    const words = {
-      on: 'an', off: 'aus',
-      open: 'offen', closed: 'zu',
-      home: 'zuhause', not_home: 'unterwegs',
-      playing: 'läuft', paused: 'pausiert', idle: 'bereit',
-      unavailable: '—'
-    };
-
-    return words[String(entity.state).toLowerCase()] || entity.state;
+    const zustand = String(entity.state).toLowerCase();
+    if (zustand === 'unavailable') return '—';
+    return this.texte.states[zustand] || entity.state;
   }
 }
 

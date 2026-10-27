@@ -136,7 +136,7 @@
     humanError(error) {
       const uebersetzen = (typeof window !== 'undefined' && window.mmHumanError);
       if (uebersetzen) return uebersetzen(error, this.config?.language || 'de');
-      return 'Vorübergehend nicht verfügbar';
+      return this.config?.language === 'de' ? 'Vorübergehend nicht verfügbar' : 'Temporarily unavailable';
     }
 
     /** Bus-Abo, das beim Zerstören automatisch endet. */

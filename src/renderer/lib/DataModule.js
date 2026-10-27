@@ -192,7 +192,7 @@
      * Module ueberschreiben das - "Nichts laeuft" sagt mehr als "keine Daten".
      */
     emptyText() {
-      return this.text('empty') || 'Nichts zu zeigen.';
+      return this.text('empty') || (this.sprache === 'de' ? 'Nichts zu zeigen.' : 'Nothing to show.');
     }
 
     renderPlaceholder() {

@@ -386,6 +386,9 @@ async function renderModules() {
     // Sofort leeren, um Geister-Module zu vermeiden
     container.innerHTML = '';
     document.documentElement.lang = config.language || 'en';
+    // Das Privatsphaere-Band steht ausserhalb der Module und folgt der Sprache
+    // nicht von selbst.
+    window.mmPrivacy?.refresh?.();
 
     // Container für Grid-Module
     const gridContainer = document.createElement('div');
@@ -732,7 +735,9 @@ async function remountModule(key, entry, container) {
 
 function createErrorPlaceholder(moduleName, errorMessage) {
   const lang = (config && config.language) || 'en';
-  const defaultMessage = lang === 'de' ? 'Modul konnte nicht geladen werden' : 'Module could not be loaded';
+  const defaultMessage = window.mmUiText
+    ? window.mmUiText('moduleFailed', lang)
+    : 'Module could not be loaded';
   const message = errorMessage || defaultMessage;
   const placeholder = document.createElement('div');
   placeholder.className = 'module-placeholder';
@@ -877,9 +882,12 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(err => {
         console.error('Config laden fehlgeschlagen:', err);
+        // Ohne Konfiguration gibt es keine eingestellte Sprache - es gilt
+        // die Vorgabe am <html>, also Englisch.
+        const sprache = document.documentElement.lang;
         showStandaloneError(err.message === 'nicht angemeldet'
-          ? 'Nicht angemeldet — bitte die Web-Oberfläche öffnen und koppeln.'
-          : `Konfiguration konnte nicht geladen werden: ${err.message}`);
+          ? window.mmUiText('notSignedIn', sprache)
+          : window.mmUiText('configFailed', sprache) + err.message);
       });
   }
 });

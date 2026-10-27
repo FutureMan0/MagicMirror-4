@@ -13,12 +13,19 @@
   let currentMode = 'normal';
   let banner = null;
 
+  // Schluessel in errorText.js; die Sprache setzt der Renderer als lang am
+  // <html>.
   const LABELS = {
     normal: null,
-    guest: 'Gästemodus — persönliche Inhalte sind ausgeblendet',
+    guest: 'privacyGuest',
     shower: null,
-    off: 'Anzeige aus'
+    off: 'privacyOff'
   };
+
+  function text(schluessel) {
+    const uebersetzen = window.mmUiText;
+    return uebersetzen ? uebersetzen(schluessel, document.documentElement.lang) : '';
+  }
 
   function apply(state) {
     if (!state || !state.mode) return;
@@ -31,9 +38,9 @@
   }
 
   function updateBanner(mode) {
-    const text = LABELS[mode];
+    const schluessel = LABELS[mode];
 
-    if (!text) {
+    if (!schluessel) {
       banner?.remove();
       banner = null;
       return;
@@ -45,7 +52,7 @@
       document.body.appendChild(banner);
     }
 
-    banner.textContent = text;
+    banner.textContent = text(schluessel);
   }
 
   /** Module, die es anbieten, über den Wechsel informieren. */
@@ -70,6 +77,8 @@
 
   window.mmPrivacy = {
     apply,
-    getMode: () => currentMode
+    getMode: () => currentMode,
+    // Nach einem Sprachwechsel: das Band neu beschriften.
+    refresh: () => updateBanner(currentMode)
   };
 })();

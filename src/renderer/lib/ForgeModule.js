@@ -6,6 +6,11 @@
 (function () {
   const Base = (typeof window !== 'undefined' && window.DataModule) || class {};
 
+  const TEXTE = {
+    de: { noRepos: 'Keine Repositories eingetragen.', open: '{n} offen', noCommits: 'Keine Commits gefunden.' },
+    en: { noRepos: 'No repositories listed.', open: '{n} open', noCommits: 'No commits found.' }
+  };
+
   class ForgeModule extends Base {
     static patchable = ['maxCommits', 'showStars', 'showOpenIssues'];
 
@@ -25,12 +30,18 @@
       return this.constructor.displayName || this.constructor.moduleName;
     }
 
+    /** Ein Text in der Sprache des Spiegels. */
+    forgeText(schluessel, n) {
+      const texte = TEXTE[this.config?.language] || TEXTE.en;
+      return texte[schluessel].replace('{n}', String(n));
+    }
+
     renderData(data, root) {
       root.textContent = '';
 
       const repos = (data && data.repos) || [];
       if (repos.length === 0) {
-        root.appendChild(this.buildNotice('dm-error', 'Keine Repositories eingetragen.'));
+        root.appendChild(this.buildNotice('dm-error', this.forgeText('noRepos')));
         return;
       }
 
@@ -59,14 +70,14 @@
       }
 
       if (data.showOpenIssues && repo.openIssues) {
-        badges.appendChild(this.buildPill(`${repo.openIssues} offen`, 'warn'));
+        badges.appendChild(this.buildPill(this.forgeText('open', repo.openIssues), 'warn'));
       }
 
       header.appendChild(badges);
       box.appendChild(header);
 
       if (repo.commits.length === 0) {
-        box.appendChild(this.buildNotice('dm-error', 'Keine Commits gefunden.'));
+        box.appendChild(this.buildNotice('dm-error', this.forgeText('noCommits')));
         return box;
       }
 

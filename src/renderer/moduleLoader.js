@@ -132,7 +132,7 @@ class RendererModuleLoader {
     if (!this.moduleClasses.has(moduleName)) {
       const loaded = await this.loadModule(moduleName);
       if (!loaded) {
-        const message = 'Modul konnte nicht geladen werden';
+        const message = this.rahmenText('moduleFailed', language);
         return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
     }
@@ -148,7 +148,7 @@ class RendererModuleLoader {
       this.loadedModules.set(instanceKey || moduleName, instance);
 
       if (typeof instance.render !== 'function') {
-        const message = 'Modul hat keine render() Methode';
+        const message = this.rahmenText('noRender', language);
         console.error(`Modul ${moduleName}: ${message}`);
         return { ok: false, error: message, element: this.createPlaceholder(moduleName, message) };
       }
@@ -168,7 +168,7 @@ class RendererModuleLoader {
       return {
         ok: false,
         error: error.message,
-        element: this.createPlaceholder(moduleName, `Fehler: ${error.message}`)
+        element: this.createPlaceholder(moduleName, `${this.rahmenText('errorPrefix', language)}${error.message}`)
       };
     }
   }
@@ -184,6 +184,11 @@ class RendererModuleLoader {
    * Konfiguration ein (siehe ConfigManager) - und lässt die weg, die laut
    * Manifest gar nicht in den Browser gehören.
    */
+  /** Ein fester Text des Rahmens in der Sprache des Spiegels (errorText.js). */
+  rahmenText(schluessel, sprache) {
+    return window.mmUiText ? window.mmUiText(schluessel, sprache) : schluessel;
+  }
+
   mergeConfig(moduleName, config, envConfig, language) {
     return { ...config, language };
   }

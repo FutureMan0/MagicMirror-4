@@ -72,7 +72,7 @@ class SpotifyModule extends SpotifyBase {
     if (!data || !data.track) {
       root.textContent = '';
       this.elements = {};
-      root.appendChild(this.buildNotice('dm-error', 'Gerade läuft nichts.'));
+      root.appendChild(this.buildNotice('dm-error', this.emptyText()));
       return;
     }
 

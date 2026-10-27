@@ -6,6 +6,12 @@
   let overlay = null;
   let countdownTimer = null;
 
+  // In der Sprache des Spiegels - der Renderer setzt sie als lang am <html>.
+  function text(schluessel, werte) {
+    const uebersetzen = window.mmUiText;
+    return uebersetzen ? uebersetzen(schluessel, document.documentElement.lang, werte) : '';
+  }
+
   function removeOverlay() {
     if (countdownTimer) {
       clearInterval(countdownTimer);
@@ -28,7 +34,7 @@
 
     const title = document.createElement('div');
     title.className = 'pairing-title';
-    title.textContent = 'Gerät koppeln';
+    title.textContent = text('pairingTitle');
     card.appendChild(title);
 
     if (data.svg) {
@@ -61,7 +67,7 @@
 
     const tick = () => {
       const secondsLeft = Math.max(0, Math.ceil((data.expiresAt - Date.now()) / 1000));
-      countdown.textContent = `gültig noch ${secondsLeft} s`;
+      countdown.textContent = text('pairingValid', { n: secondsLeft });
       if (secondsLeft === 0) removeOverlay();
     };
 

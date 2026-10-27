@@ -8,6 +8,19 @@ class UnraidModule extends UnraidBase {
   static moduleName = 'unraid';
   static patchable = ['maxDisks', 'warnTemp', 'showSystem', 'showArray', 'showDocker', 'showVms'];
 
+  // Als Klassenfeld und nicht auf oberster Ebene: unter file:// teilen sich
+  // alle Module einen globalen Scope. Array, Parity, Docker, CPU und RAM
+  // heissen in beiden Sprachen so.
+  static texte = {
+    de: { unavailable: 'Nicht verfügbar: ', used: 'Belegt', running: 'laufen' },
+    en: { unavailable: 'Unavailable: ', used: 'Used', running: 'running' }
+  };
+
+  /** Die Texte in der Sprache des Spiegels. */
+  get texte() {
+    return UnraidModule.texte[this.config?.language] || UnraidModule.texte.en;
+  }
+
   constructor(config = {}) {
     super(config);
 
@@ -35,7 +48,7 @@ class UnraidModule extends UnraidBase {
     if (data.unavailable && data.unavailable.length > 0) {
       const notice = document.createElement('div');
       notice.className = 'dm-status dm-status-stale';
-      notice.textContent = `Nicht verfügbar: ${data.unavailable.map(u => u.section).join(', ')}`;
+      notice.textContent = this.texte.unavailable + data.unavailable.map(u => u.section).join(', ');
       root.appendChild(notice);
     }
   }
@@ -82,7 +95,7 @@ class UnraidModule extends UnraidBase {
       const label2 = array.usedGb && array.totalGb
         ? `${(array.usedGb / 1024).toFixed(1)} / ${(array.totalGb / 1024).toFixed(1)} TB`
         : `${Math.round(array.percent)} %`;
-      box.appendChild(this.renderMeter('Belegt', array.percent, label2));
+      box.appendChild(this.renderMeter(this.texte.used, array.percent, label2));
     }
 
     if (array.parity && array.parity.status && String(array.parity.status).toUpperCase() !== 'IDLE') {
@@ -148,7 +161,7 @@ class UnraidModule extends UnraidBase {
 
     const value = document.createElement('span');
     value.className = 'dm-row-value';
-    value.textContent = `${running} / ${total} laufen`;
+    value.textContent = `${running} / ${total} ${this.texte.running}`;
     row.appendChild(value);
 
     return row;

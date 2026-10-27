@@ -31,7 +31,9 @@ class WeatherModule {
         'tomorrow': 'MORGEN',
         'falling': 'Fallend',
         'rising': 'Steigend',
-        'stable': 'Stabil'
+        'stable': 'Stabil',
+        'loading': 'Wetter wird geladen...',
+        'alert': 'Wetter-Warnung'
       },
       'en': {
         'feels_like': 'Feels like',
@@ -45,7 +47,9 @@ class WeatherModule {
         'tomorrow': 'TOMORROW',
         'falling': 'Falling',
         'rising': 'Rising',
-        'stable': 'Stable'
+        'stable': 'Stable',
+        'loading': 'Loading weather...',
+        'alert': 'Weather warning'
       }
     };
 
@@ -67,7 +71,7 @@ class WeatherModule {
     this.container.innerHTML = h`
       <div class="weather-loading">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Wetter wird geladen...</div>
+        <div class="loading-text">${this.t.loading}</div>
       </div>
     `;
 
@@ -390,7 +394,7 @@ class WeatherModule {
       alertBanner.innerHTML = h`
         <div class="alert-icon">⚠️</div>
         <div class="alert-content">
-          <div class="alert-title">${alert.event || 'Wetter-Warnung'}</div>
+          <div class="alert-title">${alert.event || this.t.alert}</div>
           <div class="alert-description">${alert.description || ''}</div>
           <div class="alert-time">
             🕐 ${startTimeStr} - ${endTimeStr}

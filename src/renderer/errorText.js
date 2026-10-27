@@ -51,7 +51,8 @@
    * @returns {string} ein Satz ohne Fachbegriffe
    */
   function humanError(fehler, sprache = 'de') {
-    const key = sprache === 'en' ? 'en' : 'de';
+    // Eine unbekannte Sprache faellt auf Englisch, die Vorgabe der Anwendung.
+    const key = sprache === 'de' ? 'de' : 'en';
 
     const text = [
       fehler && fehler.code,
@@ -87,7 +88,24 @@
     ageNow:        { de: 'gerade eben', en: 'just now' },
     ageMinutes:    { de: 'vor {n} min', en: '{n} min ago' },
     ageHours:      { de: 'vor {n} h', en: '{n} h ago' },
-    ageDays:       { de: 'vor {n} Tagen', en: '{n} days ago' }
+    ageDays:       { de: 'vor {n} Tagen', en: '{n} days ago' },
+
+    // Was der Spiegel selbst zeigt, ausserhalb der Module: Platzhalter fuer
+    // ein Modul, das nicht laedt, die Kopplung, die Privatsphaere und die
+    // Ansicht ohne Konfiguration. Die Sprache kommt aus `language` in der
+    // Konfiguration (am Spiegel: document.documentElement.lang).
+    moduleFailed:  { de: 'Modul konnte nicht geladen werden', en: 'Module could not be loaded' },
+    noRender:      { de: 'Modul hat keine render() Methode', en: 'Module has no render() method' },
+    errorPrefix:   { de: 'Fehler: ', en: 'Error: ' },
+    pairingTitle:  { de: 'Gerät koppeln', en: 'Pair a device' },
+    pairingValid:  { de: 'gültig noch {n} s', en: 'valid for another {n} s' },
+    privacyGuest:  { de: 'Gästemodus — persönliche Inhalte sind ausgeblendet',
+                     en: 'Guest mode — personal content is hidden' },
+    privacyOff:    { de: 'Anzeige aus', en: 'Display off' },
+    notSignedIn:   { de: 'Nicht angemeldet — bitte die Web-Oberfläche öffnen und koppeln.',
+                     en: 'Not signed in — open the web interface and pair this device.' },
+    configFailed:  { de: 'Konfiguration konnte nicht geladen werden: ',
+                     en: 'The configuration could not be loaded: ' }
   };
 
   /**
@@ -99,7 +117,7 @@
     const eintrag = TEXTE[schluessel];
     if (!eintrag) return '';
 
-    const key = sprache === 'en' ? 'en' : 'de';
+    const key = sprache === 'de' ? 'de' : 'en';
     return Object.entries(werte).reduce(
       (text, [name, wert]) => text.replace(`{${name}}`, String(wert)),
       eintrag[key]
