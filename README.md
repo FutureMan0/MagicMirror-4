@@ -1,21 +1,34 @@
-<p align="center">
-  <img src="assets/icon.png" alt="MagicMirror⁴" width="128" height="128">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/readme/banner-dark.svg">
+  <img src=".github/readme/banner-light.svg" alt="MagicMirror⁴: a smart mirror you set up from your phone" width="100%">
+</picture>
 
-# MagicMirror⁴
-
-[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-cyan.svg)](https://opensource.org/licenses/MIT)
-[![Plattform](https://img.shields.io/badge/Plattform-Raspberry%20Pi%204%2F5-blue)](#schnellstart-auf-dem-raspberry-pi)
 [![CI](https://github.com/FutureMan0/MagicMirror-4/actions/workflows/ci.yml/badge.svg)](https://github.com/FutureMan0/MagicMirror-4/actions/workflows/ci.yml)
 
-Ein Smart Mirror, der sich vollständig vom Handy einrichten lässt: Module
-aktivieren, Kacheln verschieben, Themes wechseln, Zugangsdaten hinterlegen —
-alles über eine Weboberfläche, die sich als App auf den Home-Bildschirm legen
-lässt. Keine Konfigurationsdatei, die man über SSH bearbeitet.
+**A smart mirror you set up entirely from your phone.** Turn modules on, move tiles,
+switch themes and store credentials in a web app that installs to your home screen.
+No config file to edit over SSH.
 
-**Kein MagicMirror²-Fork.** Wer `Module.register`, `node_helper` oder Regionen
-wie `top_bar` sucht, findet sie hier nicht — MM⁴ ist eine eigene Electron-App
-mit eigenem Modulsystem. Module aus dem MM²-Ökosystem laufen nicht.
+**Not a MagicMirror² fork.** MM⁴ is its own Electron app with its own module system.
+`Module.register`, `node_helper` and regions like `top_bar` don't exist here, and
+modules from the MM² ecosystem don't run.
+
+## Quick start
+
+Raspberry Pi 4 or 5, Raspberry Pi OS (64-bit, Bookworm), a screen on HDMI:
+
+```bash
+git clone https://github.com/FutureMan0/MagicMirror-4.git
+cd MagicMirror-4
+chmod +x rpi-install.sh
+sudo ./rpi-install.sh
+```
+
+Then open `http://<pi-ip>:3000` on your phone, tap **Kopplung am Spiegel starten**
+(start pairing) and scan the QR code the mirror shows for 60 seconds.
+
+> [!NOTE]
+> The documentation below is in German.
 
 ---
 
