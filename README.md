@@ -152,10 +152,11 @@ restart something is therefore on screen immediately instead of nothing for
 minutes. During an outage the last known state stays visible — clearly
 marked as *“Unreachable — showing data from 12 min ago”*.
 
-Each of these modules has a **connection test** that says more than
-“works/doesn't work”: Unraid names the available sections (the GraphQL schema
-differs between versions), Home Assistant names entities it cannot find — a
-typo in an ID is the most common reason nothing is shown.
+Each of these modules has a **connection test**, `POST /api/<module>/test`,
+that says more than “works/doesn't work”: Unraid names the available sections
+(the GraphQL schema differs between versions), Home Assistant names entities it
+cannot find — a typo in an ID is the most common reason nothing is shown. The
+web interface does not offer a button for it yet.
 
 **Error messages are sentences, not output.** What the mirror shows reads
 “No connection” or “Credentials rejected”. The technical message goes to the
@@ -348,8 +349,9 @@ journalctl -u mm-kiosk -f    # the graphical session
 pm2 logs                     # the application
 ```
 
-**Modules stay empty.** First use the connection test in the module dialog —
-it names the cause more precisely than the display on the mirror. The most
+**Modules stay empty.** First run the module's connection test
+(`POST /api/<module>/test`, see [Modules](#modules)) — it names the cause more
+precisely than the display on the mirror. The most
 common reason is a typo in an ID or an expired token.
 
 **A module is missing entirely.** Is it in `config/instances/<name>.json`?
@@ -398,18 +400,13 @@ To be honest, so nobody comes with the wrong expectations:
 
 **Checked and working:** the mirror starts on a Raspberry Pi 4 under
 Electron 43, all modules load, the live channel transmits changes
-immediately, 274 tests pass — on the development machine, in CI and on the Pi
-itself. Credentials demonstrably don't leave the device: checked with real
+immediately, 397 tests pass on the development machine; the suite also ran
+green in CI and on the Pi itself when it had 274 tests. Credentials demonstrably don't leave the device: checked with real
 keys on real hardware.
 
-**Known bugs:** the weather module still fetches its data itself instead of
-through a backend. On the mirror it works; in the live view on your phone it
-stays empty, because the key is deliberately not delivered there. A backend
-for it is still to come.
-
 **Not finished yet:** gesture control so far only has a provider without
-hardware; a real sensor is not connected. The Visual Editor is a preview — if
-the layout misbehaves, switch back to the **classic grid** in the settings.
+hardware; a real sensor is not connected. The **Free** layout is a preview — if
+the layout misbehaves, switch back to **Zones** in the **Layout** tab.
 Shower mode does not turn itself on.
 
 **Not tried:** the web interface on a real phone. It is built and tested as a
