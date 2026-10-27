@@ -548,6 +548,45 @@ und mit `zlib` als PNG geschrieben, ohne Bildbibliothek. `sharp` oder
 ImageMagick wären eine native Abhängigkeit, die auf dem Pi übersetzt werden
 müsste, für etwas, das sich praktisch nie ändert.
 
+## Sprache
+
+**Englisch ist die Vorgabe, Deutsch die zweite Sprache.** Alles, was der
+Nutzer sieht, gibt es in beiden; ein Text, der nur deutsch dasteht, ist ein
+Fehler. Wo ein Text lebt:
+
+| Wo er erscheint | Wo er steht |
+| :--- | :--- |
+| Web-Oberfläche | `src/webui/public/i18n.js`, beide Wörterbücher; Markup über `data-i18n`, `data-i18n-aria`, `data-i18n-title`, JavaScript über `t(schluessel, { platzhalter })` |
+| Rahmen am Spiegel (Kopplung, Privatsphäre-Band, Platzhalter, Altersangaben) | `TEXTE` in `src/renderer/errorText.js`, abgerufen über `window.mmUiText(schluessel, sprache)` |
+| Inhalt eines Moduls | im Modul selbst, als `static texte = { de, en }` oder `translations` - **nie** auf oberster Ebene (siehe Modul-Scope) |
+| Manifest und Theme | `displayName`, `description`, Einstellungs-Labels, `optionLabels`, `secrets[].label` in `module.json`, `name`/`description` in `theme.json`: String oder `{ "en": …, "de": … }`. Die Web-Oberfläche löst sie über `modulName()`/`lokal()` in `app.js` auf |
+| Server, Installer, `docs/spotify-callback/` | Englisch. Sie wissen nicht, welche Sprache der Betrachter spricht |
+
+Meldungen des Servers, die die Oberfläche anzeigt, tragen eine feste
+Kennung (`error.code`, z. B. `PAIRING_WRONG_CODE`, `ENTITY_NOT_LISTED`,
+`NO_UPSTREAM`). Übersetzt wird in der Oberfläche über die Kennung; der Text
+des Servers ist nur Rückfall für andere Clients. Einige Servermeldungen sind
+noch deutsch, weil Tests ihren Wortlaut prüfen (Kopplung, Home-Assistant-
+Schranken, Eingabe-Hub, Spotify-Tokenspeicher).
+
+Wächter: `tests/webui-sprache.test.js` (Web-Oberfläche, Manifeste, Themes)
+und `tests/spiegel-sprache.test.js` (Spiegel).
+
+**Woher die Sprache kommt.** Maßgeblich ist `language` in der Konfiguration;
+`config/config.json` liefert `"en"`. Die Web-Oberfläche startet mit dem Wert
+aus `localStorage` (sonst Englisch) und stellt nach `loadConfig()` auf die
+Sprache der Konfiguration um. Eine bestehende Installation behält ihre
+Sprache, weil `saveConfig()` die ganze Konfiguration samt `language` in
+`config/instances/<name>.json` schreibt - nur wer nie etwas gespeichert hat,
+bekommt nach dem Update Englisch. Das Koppelfenster erscheint vor der
+Anmeldung, also ohne Konfiguration: dort gilt allein `localStorage`.
+
+**Falle: ein Schlüssel, der in keinem Wörterbuch steht, fällt nicht auf.**
+`t()` gibt dann den Schlüssel selbst zurück, und am Handy steht
+„authStartHint". Der Test „jeder Schlüssel, den die Oberfläche benutzt" findet
+`t('…')`, `text('…')` und die Tabellen `FEHLER`, `ZUSTAENDE`, `MODES`; wer
+Schlüssel anders zusammensetzt, ist für den Test unsichtbar.
+
 ## Prüfen
 
 ```bash

@@ -187,6 +187,10 @@ example of a module with an outside API — about 120 lines of display and 100
 lines of backend, half of them comments. The details are in
 [`CLAUDE.md`](CLAUDE.md) (in German).
 
+Visible texts in `module.json` — `displayName`, `description`, the labels of
+the settings — can be a plain string or `{ "en": "…", "de": "…" }`; the web
+interface shows the language that is set.
+
 ---
 
 ## Themes
@@ -213,7 +217,8 @@ themes/my-theme/
 ```
 
 The folder is enough; the choice in the web interface is read from
-`themes/`. All tokens are in `src/renderer/styles/tokens.css`.
+`themes/`. All tokens are in `src/renderer/styles/tokens.css`. `name` and
+`description` can be `{ "en": "…", "de": "…" }` as well.
 
 Three things that make the difference:
 
