@@ -24,406 +24,390 @@ chmod +x rpi-install.sh
 sudo ./rpi-install.sh
 ```
 
-Then open `http://<pi-ip>:3000` on your phone, tap **Kopplung am Spiegel starten**
-(start pairing) and scan the QR code the mirror shows for 60 seconds.
-
-> [!NOTE]
-> The documentation below is in German.
+Then open `http://<pi-ip>:3000` on your phone, tap **Start pairing on the mirror**
+and scan the QR code the mirror shows for 60 seconds.
 
 ---
 
-## Inhalt
+## Contents
 
-- [Schnellstart auf dem Raspberry Pi](#schnellstart-auf-dem-raspberry-pi)
-- [Anmeldung](#anmeldung)
-- [Als App aufs Handy](#als-app-aufs-handy)
-- [Module](#module)
+- [What the installer does](#what-the-installer-does)
+- [Signing in](#signing-in)
+- [The app on your phone](#the-app-on-your-phone)
+- [Modules](#modules)
 - [Themes](#themes)
-- [Privatsphäre](#privatsphäre)
-- [Spotify verbinden](#spotify-verbinden)
-- [Aktualisieren](#aktualisieren)
-- [Wenn etwas nicht geht](#wenn-etwas-nicht-geht)
-- [Entwickeln und prüfen](#entwickeln-und-prüfen)
-- [Stand der Dinge](#stand-der-dinge)
+- [Privacy](#privacy)
+- [Connecting Spotify](#connecting-spotify)
+- [Updating](#updating)
+- [Troubleshooting](#troubleshooting)
+- [Development and checks](#development-and-checks)
+- [Where things stand](#where-things-stand)
 
 ---
 
-## Schnellstart auf dem Raspberry Pi
+## What the installer does
 
-Vorausgesetzt: Raspberry Pi 4 oder 5, Raspberry Pi OS (64 Bit, Bookworm),
-Bildschirm an HDMI.
+`rpi-install.sh` from the [quick start](#quick-start):
 
-```bash
-git clone https://github.com/FutureMan0/MagicMirror-4.git
-cd MagicMirror-4
-chmod +x rpi-install.sh
-sudo ./rpi-install.sh
-```
+1. **Sets up Node.js 22** if an older version is installed.
+2. **Installs the dependencies** — without development tools. That is about
+   three quarters fewer packages; on a weak Wi-Fi connection it decides
+   whether the installation gets through at all.
+3. **Checks that Electron is really there.** The download of the binary can
+   break off without the installation reporting an error — the installer then
+   fetches it again instead of reporting success for an installation that
+   will never become a mirror.
+4. **Sets up a kiosk session:** X11 via systemd, mouse pointer off, standby
+   off, GPU acceleration on.
+5. **Autostart** via pm2, so the mirror comes up by itself after a reboot.
 
-Was der Installer tut:
-
-1. **Node.js 22** einrichten, falls eine ältere Fassung installiert ist.
-2. **Abhängigkeiten installieren** — ohne Entwicklungswerkzeuge. Das sind rund
-   drei Viertel weniger Pakete; auf einer schwachen WLAN-Verbindung entscheidet
-   das darüber, ob die Installation überhaupt durchläuft.
-3. **Prüfen, ob Electron wirklich da ist.** Der Download der Programmdatei kann
-   abbrechen, ohne dass die Installation einen Fehler meldet — dann wird sie
-   nachgeholt statt eine Installation als gelungen zu melden, aus der nie ein
-   Spiegel wird.
-4. **Kiosk-Sitzung einrichten:** X11 über systemd, Mauszeiger aus, Standby aus,
-   GPU-Beschleunigung an.
-5. **Autostart** über pm2, damit der Spiegel nach einem Neustart von selbst
-   hochkommt.
-
-Es gibt **keine nativen Abhängigkeiten** — kein Übersetzen, kein
-`electron-rebuild`, keine ABI-Fragen.
+There are **no native dependencies** — no compiling, no
+`electron-rebuild`, no ABI questions.
 
 ---
 
-## Anmeldung
+## Signing in
 
-Der Konfigurations-Server ist nicht offen. Beim ersten Start erzeugt MM⁴ ein
-Admin-Token und legt es als `MM_ADMIN_TOKEN` in der `.env` ab.
+The configuration server is not open. On first start MM⁴ generates an admin
+token and stores it as `MM_ADMIN_TOKEN` in the `.env` file.
 
-**Handy koppeln:**
+**Pairing your phone:**
 
-1. `http://<pi-ip>:3000` im Browser öffnen.
-2. **„Kopplung am Spiegel starten"** antippen.
-3. Der Spiegel zeigt 60 Sekunden lang einen QR-Code. Scannen — oder den
-   achtstelligen Code darunter abtippen.
+1. Open `http://<pi-ip>:3000` in the browser.
+2. Tap **“Start pairing on the mirror”**.
+3. The mirror shows a QR code for 60 seconds. Scan it — or type in the
+   eight-character code below it.
 
-Der Code steht ausschließlich auf dem Spiegel und geht nie über das Netzwerk.
-Wer ihn lesen kann, steht im Raum: genau das ist der Nachweis. Ein gekoppeltes
-Gerät bleibt 30 Tage angemeldet.
+The code only ever appears on the mirror and never goes over the network.
+Whoever can read it is in the room: that is exactly the proof. A paired
+device stays signed in for 30 days.
 
-**Ausgesperrt?** Das Token aus der `.env` reicht ebenfalls — in der
-Anmeldemaske unter „Stattdessen mit Token anmelden".
+**Locked out?** The token from the `.env` works too — in the sign-in dialog
+under “Sign in with the token instead”.
 
-**Was ohne Anmeldung geht:** Anfragen von der Maschine selbst (`127.0.0.1`).
-Die Module am Spiegel holen ihre Daten über HTTP von der eigenen Adresse, und
-wer Zugriff auf den Pi hat, hat ohnehin eine Shell. Weitergeleitete Anfragen
-gelten dabei **nicht** als lokal: geprüft wird die Adresse der Verbindung,
-nicht ein `X-Forwarded-For`-Header.
+**What works without signing in:** requests from the machine itself
+(`127.0.0.1`). The modules on the mirror fetch their data over HTTP from
+their own address, and anyone with access to the Pi has a shell anyway.
+Forwarded requests do **not** count as local: what is checked is the address
+of the connection, not an `X-Forwarded-For` header.
 
-**Zugangsdaten verlassen den Pi nicht.** `GET /api/config` liefert für jedes
-im Manifest deklarierte Geheimnis nur `"__SET__"` — gesetzt oder nicht gesetzt,
-mehr erfährt der Browser nicht.
+**Credentials don't leave the Pi.** For every secret declared in a manifest,
+`GET /api/config` returns only `"__SET__"` — set or not set, the browser
+learns nothing more.
 
-> `MM_AUTH=off` in der `.env` schaltet die Anmeldung ab. Dann kann jeder im
-> Netzwerk die Konfiguration ändern und Updates auslösen — nur als Notausgang
-> gedacht.
-
----
-
-## Als App aufs Handy
-
-Die Weboberfläche ist eine installierbare PWA.
-
-1. `http://<pi-ip>:3000` öffnen und koppeln.
-2. Etwas speichern — danach fragt die App, ob sie auf den Home-Bildschirm soll.
-   Auf iOS steht dort stattdessen die Anleitung über *Teilen*.
-3. Ab dann startet MM⁴ im Vollbild, ohne Browser-Leiste.
-
-Im Tab **Live** siehst du den Spiegel so, wie er gerade an der Wand aussieht —
-dieselbe Anzeige, live, nicht ein Vorschaubild.
-
-Ohne Verbindung lädt die Oberfläche weiter, zeigt den zuletzt bekannten Stand
-und **sperrt dabei die Speichern-Knöpfe**. Wer offline weiterklickt, würde
-sonst einen Stand überschreiben, den er nie gesehen hat.
-
-> **Zum Offline-Betrieb:** Browser erlauben Service Worker nur über HTTPS oder
-> auf `localhost`. Im Heimnetz per IP ist die Offline-Hülle deshalb inaktiv —
-> installieren und alles andere funktioniert trotzdem.
+> `MM_AUTH=off` in the `.env` turns signing in off. Then anyone on the
+> network can change the configuration and trigger updates — meant only as an
+> emergency exit.
 
 ---
 
-## Module
+## The app on your phone
 
-Ein Modul ist ein Ordner unter `modules/`. MM⁴ findet ihn beim Start von
-selbst; aktiviert wird er in der Weboberfläche.
+The web interface is an installable PWA.
 
-| Modul | Zeigt | Braucht |
+1. Open `http://<pi-ip>:3000` and pair.
+2. Save something — afterwards the app asks whether it should go on your home
+   screen. On iOS you get the instructions via *Share* instead.
+3. From then on MM⁴ starts full screen, without the browser bar.
+
+**Live Preview** in the **Layout** tab shows the mirror as it looks on the
+wall right now — the same display, live, not a thumbnail.
+
+Without a connection the interface still loads, shows the last known state
+and **locks the Save buttons** while doing so. Anyone who kept clicking
+offline would otherwise overwrite a state they have never seen.
+
+> **About offline mode:** browsers only allow service workers over HTTPS or
+> on `localhost`. On your home network by IP the offline shell is therefore
+> inactive — installing and everything else still works.
+
+---
+
+## Modules
+
+A module is a folder under `modules/`. MM⁴ finds it by itself at startup; it
+is turned on in the web interface.
+
+| Module | Shows | Needs |
 | :--- | :--- | :--- |
-| **Uhr** | Zeit und Datum | — |
-| **Wetter** | Aktuell und Vorhersage, mit passenden Effekten | OpenWeatherMap-Schlüssel (kostenlos) |
-| **WebUntis** | Stundenplan als Wochen- oder Tagesansicht | Schule, Server, Zugangsdaten |
-| **Spotify** | Laufender Titel mit Cover, steuerbar am Handy | Spotify Premium, siehe unten |
-| **GitHub** | Letzte Commits, offene Pull Requests, Sterne | Repositories als `besitzer/name`; ab zwei Repositories ein Token — ohne erlaubt GitHub nur 60 Anfragen pro Stunde |
-| **Gitea** | Dasselbe für Gitea oder Forgejo, dazu die Beitrags-Heatmap | Adresse der Instanz und Token; selbstsignierte Zertifikate sind erlaubt, wenn eingeschaltet |
-| **Unraid** | Array, Plattentemperaturen, Parity, Docker-Container | Unraid 7, *Settings → Management Access → Developer Options* eingeschaltet, Schlüssel via `unraid-api apikey --create` |
-| **Home Assistant** | Zustände ausgewählter Entitäten, am Handy schaltbar | Adresse und langlebiger Zugriffstoken (im HA-Profil ganz unten) |
+| **Clock** | Time and date | — |
+| **Weather** | Current conditions and forecast, with matching effects | OpenWeatherMap key (free) |
+| **WebUntis** | Timetable as a week or day view | School, server, credentials |
+| **Spotify** | Current track with cover, controllable from your phone | Spotify Premium, see below |
+| **GitHub** | Latest commits, open pull requests, stars | Repositories as `owner/name`; from two repositories on a token — without one GitHub allows only 60 requests per hour |
+| **Gitea** | The same for Gitea or Forgejo, plus the contribution heatmap | Address of the instance and a token; self-signed certificates are allowed if turned on |
+| **Unraid** | Array, disk temperatures, parity, Docker containers | Unraid 7, *Settings → Management Access → Developer Options* turned on, key via `unraid-api apikey --create` |
+| **Home Assistant** | States of selected entities, switchable from your phone | Address and a long-lived access token (at the very bottom of your HA profile) |
 
-Die Module mit fremder Schnittstelle bauen auf demselben Fundament:
-Zwischenspeicher auf Platte, wachsender Abstand bei Fehlern, ein Abruf für alle
-Anzeigen. Nach einem Neustart steht deshalb sofort etwas da, statt minutenlang
-nichts. Bei einem Ausfall bleibt der letzte bekannte Stand sichtbar — sichtbar
-gekennzeichnet als *„Nicht erreichbar — zeigt den Stand von vor 12 min"*.
+The modules that talk to an outside API are built on the same foundation:
+on-disk cache, growing back-off on errors, one fetch for all displays. After a
+restart something is therefore on screen immediately instead of nothing for
+minutes. During an outage the last known state stays visible — clearly
+marked as *“Unreachable — showing data from 12 min ago”*.
 
-Jedes dieser Module hat einen **Verbindungstest**, der nicht nur „geht/geht
-nicht" sagt: Unraid nennt die verfügbaren Abschnitte (das GraphQL-Schema
-unterscheidet sich je Version), Home Assistant nennt Entitäten, die es nicht
-findet — ein Tippfehler in einer Kennung ist der häufigste Grund dafür, dass
-nichts angezeigt wird.
+Each of these modules has a **connection test** that says more than
+“works/doesn't work”: Unraid names the available sections (the GraphQL schema
+differs between versions), Home Assistant names entities it cannot find — a
+typo in an ID is the most common reason nothing is shown.
 
-**Fehlermeldungen sind Sätze, keine Ausgaben.** Was am Spiegel steht, heißt
-„Keine Verbindung" oder „Zugangsdaten abgelehnt". Die technische Meldung geht
-in die Konsole, wo sie hingehört.
+**Error messages are sentences, not output.** What the mirror shows reads
+“No connection” or “Credentials rejected”. The technical message goes to the
+console, where it belongs.
 
-### Schalten mit Home Assistant
+### Switching with Home Assistant
 
-Am Spiegel sind die Kacheln **schreibgeschützt** — er ist kein Touchscreen, und
-ein versehentlicher Griff im Vorbeigehen wäre ärgerlicher als nützlich.
-Geschaltet wird am Handy, im Tab **Steuerung**.
+On the mirror the tiles are **read-only** — it is not a touchscreen, and an
+accidental touch while walking past would be more annoying than useful.
+Switching happens on your phone, in the **Control** tab.
 
-Dafür muss *„Schalten erlauben"* ausdrücklich eingeschaltet werden. Auch dann
-gelten drei Schranken, die alle greifen müssen:
+For that, *“Allow switching”* has to be turned on explicitly. Even then three
+barriers apply, and all of them have to pass:
 
-1. Die Entität muss in deiner Liste stehen.
-2. Ihre Gattung muss schaltbar sein — Licht, Schalter, Szene, Skript, Medien,
-   Rollladen, Lüfter, Klima.
-3. Der Dienst muss bekannt sein.
+1. The entity has to be in your list.
+2. Its kind has to be switchable — light, switch, scene, script, media,
+   cover, fan, climate.
+3. The service has to be known.
 
-**Türschlösser, Alarmanlagen und `homeassistant.stop` lassen sich nicht
-schalten**, auch nicht, wenn man sie einträgt. Diese Liste steht im Code, nicht
-in der Konfiguration.
+**Door locks, alarm systems and `homeassistant.stop` cannot be switched**,
+not even if you list them. This list lives in the code, not in the
+configuration.
 
-### Ein eigenes Modul
+### Your own module
 
 ```
-modules/mein-modul/
-  module.json    Manifest: Name, Einstellungen, Geheimnisse
-  index.js       läuft im Spiegel
+modules/my-module/
+  module.json    manifest: name, settings, secrets
+  index.js       runs on the mirror
   styles.css     optional
-  backend.js     optional, läuft im Hauptprozess
+  backend.js     optional, runs in the main process
 ```
 
-`modules/example-hidden/` ist die vollständige Vorlage, `modules/github/` das
-Beispiel für ein Modul mit fremder Schnittstelle — rund 120 Zeilen Anzeige und
-100 Zeilen Backend, davon die Hälfte Kommentare. Einzelheiten stehen in
-[`CLAUDE.md`](CLAUDE.md).
+`modules/example-hidden/` is the complete template, `modules/github/` the
+example of a module with an outside API — about 120 lines of display and 100
+lines of backend, half of them comments. The details are in
+[`CLAUDE.md`](CLAUDE.md) (in German).
 
 ---
 
 ## Themes
 
-Sechs mitgelieferte Themes, umschaltbar in den Einstellungen:
+Six themes are included, switchable under **Settings → Mirror Theme**:
 
 | Theme | | |
 | :--- | :--- | :--- |
-| **Minimal** | dunkel | Nur Typografie. Keine Flächen, keine Rahmen, keine Dauer-Animationen — und damit die sparsamste Variante. |
-| **OLED Black** | dunkel | Reines Schwarz und gedämpfte Helligkeit. Auf OLED-Panels bleibt der Hintergrund unbeleuchtet und brennt nicht ein. |
-| **Newspaper** | **hell** | Serifensatz mit Haarlinien statt Kästen. Wirkt wie eine gedruckte Titelseite. |
-| **Nature** | dunkel | Warme Erdtöne, weiche Verläufe, Serifen-Überschriften. |
-| **Glass** | dunkel | Milchglas-Flächen und weiche Schatten. |
-| **Cyberpunk** | dunkel | HUD-Optik mit geschnittenen Ecken, Cyan und Gelb, Rajdhani in Versalien. |
+| **Minimal** | dark | Typography only. No surfaces, no borders, no continuous animations — which makes it the most frugal variant. |
+| **OLED Black** | dark | Pure black and dimmed brightness. On OLED panels the background stays unlit and does not burn in. |
+| **Newspaper** | **light** | Serif typesetting with hairlines instead of boxes. Looks like a printed front page. |
+| **Nature** | dark | Warm earth tones, soft gradients, serif headings. |
+| **Glass** | dark | Frosted-glass surfaces and soft shadows. |
+| **Cyberpunk** | dark | HUD look with clipped corners, cyan and yellow, Rajdhani in capitals. |
 
-### Ein eigenes Theme
+### Your own theme
 
-Ein Theme belegt Design-Tokens neu — es muss die Module nicht kennen:
+A theme reassigns design tokens — it does not need to know the modules:
 
 ```
-themes/mein-theme/
+themes/my-theme/
   theme.css     @layer theme { :root { --mm-color-accent: ...; } }
-  theme.json    { "name": "Mein Theme", "mode": "dark", "description": "..." }
+  theme.json    { "name": "My Theme", "mode": "dark", "description": "..." }
 ```
 
-Der Ordner genügt; die Auswahl in der Weboberfläche wird aus `themes/` gelesen.
-Sämtliche Tokens stehen in `src/renderer/styles/tokens.css`.
+The folder is enough; the choice in the web interface is read from
+`themes/`. All tokens are in `src/renderer/styles/tokens.css`.
 
-Drei Dinge, die den Unterschied machen:
+Three things that make the difference:
 
-* **Kein `!important` nötig.** Modul-CSS liegt in `@layer module`, Themes in
-  `@layer theme` — die Layer-Reihenfolge schlägt Spezifität und
-  Quellreihenfolge. Die erste Fassung des Cyberpunk-Themes brauchte dafür noch
-  21 `!important`.
-* **`npm run check:tokens`** schlägt fehl, sobald ein Modul-Stylesheet eine
-  rohe Farbe enthält oder Schrift unter der Lesbarkeitsgrenze setzt. Was nicht
-  über ein Token läuft, kann kein Theme umfärben — und im Standard-Theme fällt
-  das niemandem auf.
-* **Dekoration muss Platz für sich reservieren.** Geschnittene Ecken und
-  Schrägen liegen über dem Inhalt; ohne Reserve schneiden sie Text ab.
+* **No `!important` needed.** Module CSS lives in `@layer module`, themes in
+  `@layer theme` — layer order beats specificity and source order. The first
+  version of the Cyberpunk theme still needed 21 `!important` for this.
+* **`npm run check:tokens`** fails as soon as a module stylesheet contains a
+  raw colour or sets text below the readability limit. Whatever doesn't go
+  through a token cannot be recoloured by a theme — and in the default theme
+  nobody notices.
+* **Decoration has to reserve room for itself.** Clipped corners and slants
+  sit on top of the content; without a reserve they cut off text.
 
-Auf schwacher Hardware setzt MM⁴ automatisch `data-perf="low"` und schaltet
-damit für **jedes** Theme Blur, Schatten und Dauer-Animationen ab.
+On weak hardware MM⁴ automatically sets `data-perf="low"` and with that turns
+off blur, shadows and continuous animations for **every** theme.
 
 ---
 
-## Privatsphäre
+## Privacy
 
-Vier Zustände, umschaltbar am Handy im Tab **Privat**:
+Four states, switchable on your phone in the **Privacy** tab:
 
 | | |
 | :--- | :--- |
-| **Normal** | Alles sichtbar |
-| **Gäste** | Nur Uhr und Wetter. Endet nach 30 Minuten von selbst |
-| **Dusche** | Nur eine große Uhr, Sensoren aus |
-| **Aus** | Anzeige komplett dunkel |
+| **Normal** | Everything visible |
+| **Guests** | Only clock and weather. Ends by itself after 30 minutes |
+| **Shower** | Only a large clock, sensors off |
+| **Off** | Display completely dark |
 
-Was ausgeblendet wird, steht im Manifest jedes Moduls. **Ohne Angabe gilt ein
-Modul als heikel** — neue Module sind privat, bis man sie freigibt. Ein
-vergessenes Feld wäre sonst ein Datenleck.
+What gets hidden is declared in each module's manifest. **Without a
+declaration a module counts as sensitive** — new modules are private until
+you release them. A forgotten field would otherwise be a data leak.
 
-Ausgeblendet wird über CSS, nicht durch Neuaufbau: sofort, flackerfrei, und die
-Module behalten ihren Zustand. Module, die es anbieten, stellen zusätzlich ihre
-Abfragen ein — ein ausgeblendeter Stundenplan, der weiter alle 15 Minuten
-abgerufen wird, wäre nur halb privat.
+Hiding happens through CSS, not by rebuilding: instantly, without flicker,
+and the modules keep their state. Modules that offer it also stop their
+fetching — a hidden timetable that is still fetched every 15 minutes would
+only be half private.
 
-Der Dusch-Modus wird von Hand geschaltet, am Handy oder per Geste.
+Shower mode is switched by hand, on your phone or by gesture.
 
-> **Zu Sensoren, ehrlich:** Ein Software-Aus ist Komfort, keine Garantie. Auf
-> einem Raspberry Pi lässt sich nicht einmal ein einzelner USB-Port stromlos
-> schalten — alle Downstream-Ports hängen zusammen. Wenn eine Kamera im Raum
-> ist, ist ein **physischer Schalter im Kabel** (ca. 8 €) die einzige
-> überzeugende Abschaltung. Die Anzeige im Handy zeigt den *gemessenen*
-> Zustand und meldet im Zweifel „aktiv".
-
----
-
-## Spotify verbinden
-
-Geht vollständig am Handy, in vier Schritten im Modul-Dialog:
-
-1. **App anlegen** im Spotify-Dashboard (Name frei wählbar).
-2. **Redirect URI eintragen** — steht im Dialog zum Kopieren. Sie muss exakt
-   stimmen, deshalb kopieren statt abtippen.
-3. **Client ID einfügen.** Ein Client Secret wird nicht gebraucht.
-4. **Verbinden.**
-
-> Spotify verlangt für eigene Apps ein **Premium-Konto**. Ohne das endet der
-> Vorgang in einem 403, dessen Ursache nirgends steht.
-
-**Warum eine fremde Rückleitungsadresse?** Spotify erlaubt seit dem 27.11.2025
-nur noch `https://` oder wörtliche Loopback-Adressen als Redirect URI — die
-LAN-Adresse des Pi ist damit ausgeschlossen. Die Rückleitung läuft deshalb über
-eine statische HTTPS-Seite, die nichts tut außer weiterzuleiten: sie liest die
-Adresse deines Spiegels aus dem `state` und schickt dich dorthin zurück. Die
-Zugangsdaten selbst laufen nie über sie.
-
-Klappt der automatische Rücksprung nicht — Chromes HTTPS-First-Mode kann
-dazwischenfunken —, steht auf der Seite ein Code zum Einfügen.
+> **About sensors, honestly:** a software off is a convenience, not a
+> guarantee. On a Raspberry Pi you cannot even cut power to a single USB
+> port — all downstream ports are tied together. If there is a camera in the
+> room, a **physical switch in the cable** (about €8) is the only convincing
+> way to turn it off. The display on your phone shows the *measured* state and
+> reports “active” when in doubt.
 
 ---
 
-## Aktualisieren
+## Connecting Spotify
 
-In der Weboberfläche unter **System → Update**. Dahinter passiert:
+Works entirely from your phone, in four steps in the module dialog:
+
+1. **Create a Spotify app** in the Spotify dashboard (any name).
+2. **Add the redirect URI** — the dialog shows it, ready to copy. It has to
+   match exactly, so copy it instead of typing it.
+3. **Paste the Client ID.** No Client Secret is needed.
+4. **Connect.**
+
+> Spotify requires a **Premium account** for your own apps. Without one the
+> process ends in a 403 whose cause is not stated anywhere.
+
+**Why a redirect address somewhere else?** Since 27 Nov 2025 Spotify only
+allows `https://` or literal loopback addresses as a redirect URI — which
+rules out the Pi's LAN address. The redirect therefore goes through a static
+HTTPS page that does nothing but forward: it reads your mirror's address from
+the `state` and sends you back there. The credentials themselves never pass
+through it.
+
+If the automatic return doesn't work — Chrome's HTTPS-First Mode can get in
+the way — the page shows a code to paste.
+
+---
+
+## Updating
+
+In the web interface under **Settings → Update**. Behind it:
 
 ```
-git pull --ff-only  →  npm ci --omit=dev  →  Electron prüfen  →  Neustart
+git pull --ff-only  →  npm ci --omit=dev  →  check Electron  →  restart
 ```
 
-Drei bewusste Entscheidungen:
+Three deliberate decisions:
 
-* **`--ff-only`, kein `stash`.** Lokale Änderungen wurden früher stillschweigend
-  weggestasht; wer das nicht wusste, hat sie nie wiedergefunden. Jetzt bricht
-  das Update ab und sagt, was los ist.
-* **`npm ci`, kein `npm install`.** `npm install` schreibt das Lockfile bei
-  jeder Gelegenheit um — genau dadurch war es einmal kaputt.
-* **Electron wird nachgewiesen, bevor neu gestartet wird.** `npm ci` meldet
-  Erfolg, auch wenn der Download der Programmdatei abgebrochen ist. Ohne diese
-  Prüfung wäre der Spiegel nach dem Neustart tot — mit einem Update, das sich
-  als erfolgreich gemeldet hat.
+* **`--ff-only`, no `stash`.** Local changes used to be stashed away silently;
+  whoever didn't know never found them again. Now the update stops and says
+  what is going on.
+* **`npm ci`, not `npm install`.** `npm install` rewrites the lockfile at
+  every opportunity — that is exactly how it once got broken.
+* **Electron is proven to be there before restarting.** `npm ci` reports
+  success even when the download of the binary broke off. Without this check
+  the mirror would be dead after the restart — with an update that reported
+  itself as successful.
 
-Hat man lokal etwas geändert und will es behalten:
+If you changed something locally and want to keep it:
 
 ```bash
 cd MagicMirror-4
-git status                       # zeigt, worum es geht
-git stash push -m "meine Änderungen"
+git status                       # shows what this is about
+git stash push -m "my changes"
 git pull --ff-only
 git stash pop
 ```
 
 ---
 
-## Wenn etwas nicht geht
+## Troubleshooting
 
-**Der Bildschirm bleibt schwarz, im Log steht `Missing X server or $DISPLAY`.**
-Electron wurde ohne laufenden X-Server gestartet — typisch, wenn pm2 beim
-Systemstart früher dran ist als die grafische Sitzung. Der mitgelieferte
-Installer richtet dafür eine Kiosk-Sitzung über systemd ein und startet MM⁴
-darin. Wer vorher `pm2 startup` benutzt hat: der Installer schaltet den Dienst
-`pm2-<benutzer>` ab, damit er Electron nicht weiter kopflos startet.
+**The screen stays black, the log says `Missing X server or $DISPLAY`.**
+Electron was started without a running X server — typical when pm2 is faster
+at boot than the graphical session. The bundled installer sets up a kiosk
+session via systemd for this and starts MM⁴ inside it. If you used
+`pm2 startup` before: the installer disables the `pm2-<user>` service so it
+stops starting Electron headless.
 
 **Logs:**
 
 ```bash
-journalctl -u mm-kiosk -f    # die grafische Sitzung
-pm2 logs                     # die Anwendung
+journalctl -u mm-kiosk -f    # the graphical session
+pm2 logs                     # the application
 ```
 
-**Module bleiben leer.** Zuerst den Verbindungstest im Modul-Dialog benutzen —
-er nennt die Ursache genauer als die Anzeige am Spiegel. Häufigster Grund ist
-ein Tippfehler in einer Kennung oder ein abgelaufener Token.
+**Modules stay empty.** First use the connection test in the module dialog —
+it names the cause more precisely than the display on the mirror. The most
+common reason is a typo in an ID or an expired token.
 
-**Ein Modul fehlt ganz.** Steht es in `config/instances/<name>.json`? Diese
-Datei **ersetzt** die Modulliste aus `config/config.json`, sie ergänzt sie
-nicht. Ein Modul, das nur in der allgemeinen Konfiguration steht, erscheint auf
-dieser Instanz nicht.
+**A module is missing entirely.** Is it in `config/instances/<name>.json`?
+That file **replaces** the module list from `config/config.json`, it does not
+add to it. A module that is only in the general configuration does not
+appear on this instance.
 
-**Das Handy erreicht den Spiegel nicht.** Beide im selben Netz? Und läuft der
-Server: `curl -s -o /dev/null -w '%{http_code}\n' http://<pi-ip>:3000/` sollte
-`200` liefern.
+**The phone can't reach the mirror.** Are both on the same network? And is
+the server running: `curl -s -o /dev/null -w '%{http_code}\n' http://<pi-ip>:3000/`
+should return `200`.
 
-**Alles ruckelt.** `vcgencmd measure_temp` und `vcgencmd get_throttled` prüfen —
-ein gedrosselter Pi ist die häufigste Ursache. Sonst hilft ein sparsameres
-Theme (Minimal oder OLED Black).
+**Everything stutters.** Check `vcgencmd measure_temp` and
+`vcgencmd get_throttled` — a throttled Pi is the most common cause. Otherwise
+a more frugal theme helps (Minimal or OLED Black).
 
 ---
 
-## Entwickeln und prüfen
+## Development and checks
 
-Zum Entwickeln braucht es keinen Pi; Node 22 genügt.
+You don't need a Pi to develop; Node 22 is enough.
 
 ```bash
 npm ci
-npm run dev            # Electron mit Entwicklerwerkzeugen
+npm run dev            # Electron with developer tools
 ```
 
-Die Weboberfläche liegt dann auf `http://localhost:3000`, der Spiegel selbst
-auf `http://localhost:3000/mirror/` — er läuft auch im normalen Browser.
+The web interface is then at `http://localhost:3000`, the mirror itself at
+`http://localhost:3000/mirror/` — it also runs in a normal browser.
 
 ```bash
-npm run verify         # Lint, Token- und Lesbarkeitsprüfung, Tests
-npm run smoke          # startet die App wirklich (braucht einen Bildschirm)
-npm run routes         # zeigt alle registrierten Modul-Routen
+npm run verify         # lint, token and readability check, tests
+npm run smoke          # really starts the app (needs a screen)
+npm run routes         # shows all registered module routes
 ```
 
-`npm run smoke` startet Electron mit einer Konfiguration, in der **jedes**
-vorhandene Modul aktiv ist, prüft dass alle laden, und verbindet sich
-anschließend als echter WebSocket-Client. In der CI läuft das über vier Themes
-hinweg und auf Node 20 und 22.
+`npm run smoke` starts Electron with a configuration in which **every**
+existing module is active, checks that all of them load, and then connects as
+a real WebSocket client. In CI this runs across four themes and on Node 20
+and 22.
 
 ---
 
-## Stand der Dinge
+## Where things stand
 
-Ehrlich gesagt, damit niemand falsche Erwartungen mitbringt:
+To be honest, so nobody comes with the wrong expectations:
 
-**Geprüft und läuft:** Der Spiegel startet auf einem Raspberry Pi 4 unter
-Electron 43, alle Module laden, der Live-Kanal überträgt Änderungen sofort,
-274 Tests laufen durch — auf dem Entwicklungsrechner, in der CI und auf dem Pi
-selbst. Zugangsdaten verlassen das Gerät nachweislich nicht: geprüft mit
-echten Schlüsseln auf echter Hardware.
+**Checked and working:** the mirror starts on a Raspberry Pi 4 under
+Electron 43, all modules load, the live channel transmits changes
+immediately, 274 tests pass — on the development machine, in CI and on the Pi
+itself. Credentials demonstrably don't leave the device: checked with real
+keys on real hardware.
 
-**Bekannte Fehler:** Das Wetter-Modul holt seine Daten noch selbst statt über
-ein Backend. Am Spiegel funktioniert es; in der Live-Ansicht am Handy bleibt
-es leer, weil der Schlüssel dorthin bewusst nicht ausgeliefert wird. Ein
-Backend dafür steht aus.
+**Known bugs:** the weather module still fetches its data itself instead of
+through a backend. On the mirror it works; in the live view on your phone it
+stays empty, because the key is deliberately not delivered there. A backend
+for it is still to come.
 
-**Noch nicht fertig:** Die Gestensteuerung hat bisher nur einen Anbieter ohne
-Hardware; ein echter Sensor ist nicht angebunden. Der Visual Editor ist eine
-Vorschau — bei Layoutproblemen in den Einstellungen zurück auf **Klassisches
-Raster**. Der Dusch-Modus schaltet sich nicht selbst ein.
+**Not finished yet:** gesture control so far only has a provider without
+hardware; a real sensor is not connected. The Visual Editor is a preview — if
+the layout misbehaves, switch back to the **classic grid** in the settings.
+Shower mode does not turn itself on.
 
-**Nicht ausprobiert:** die Weboberfläche auf einem echten Handy. Sie ist als
-PWA gebaut und getestet, aber niemand hat sie bisher installiert.
+**Not tried:** the web interface on a real phone. It is built and tested as a
+PWA, but nobody has installed it yet.
 
-Getestet wurde auf Raspberry Pi OS Bookworm (64 Bit) auf einem Pi 4. Andere
-Kombinationen sollten funktionieren, sind aber nicht ausprobiert.
+Tested on Raspberry Pi OS Bookworm (64-bit) on a Pi 4. Other combinations
+should work but have not been tried.
 
 ---
 
-## Lizenz
+## License
 
 MIT.
